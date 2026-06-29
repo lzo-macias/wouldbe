@@ -132,13 +132,12 @@ router.post("/admin/admins/:id/terminate", superAdminMFA, async (req, res, next)
 });
 
 // POST /api/admin/admins/:id/pii-access — grant an admin the PII-view capability.
-// Body: { reason }. super_admin + fresh MFA only. (The DB layer also writes an
-// atomic before/after audit row; recordAdminAction adds the standard middleware
-// audit entry per the task's wiring.)
+// Body: { reason }. super_admin + fresh MFA only. NO recordAdminAction middleware:
+// grantPIIAccess writes its OWN atomic before/after audit row inside the txn, so
+// adding the middleware would double-log (matches the create/update/terminate pattern).
 router.post(
     "/admin/admins/:id/pii-access",
     ...superAdminMFA,
-    recordAdminAction("admin.pii_access.grant", { resourceType: "admin_user" }),
     async (req, res, next) => {
         try {
             const row = await grantPIIAccess({
@@ -156,11 +155,11 @@ router.post(
 );
 
 // DELETE /api/admin/admins/:id/pii-access — revoke the PII-view capability.
-// Body: { reason }. super_admin + fresh MFA only.
+// Body: { reason }. super_admin + fresh MFA only. NO recordAdminAction middleware
+// (revokePIIAccess writes its own atomic audit row — avoid double-logging).
 router.delete(
     "/admin/admins/:id/pii-access",
     ...superAdminMFA,
-    recordAdminAction("admin.pii_access.revoke", { resourceType: "admin_user" }),
     async (req, res, next) => {
         try {
             const row = await revokePIIAccess({

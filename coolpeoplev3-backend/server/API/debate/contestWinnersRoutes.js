@@ -25,6 +25,7 @@ router.post(
             const winner = await recordContestWinner({
                 ...req.body,
                 debate_id: req.params.id,
+                selected_by_user_id: req.user.id, // audit actor from the token, not the body
             });
             return res.status(201).json(winner);
         } catch (err) {

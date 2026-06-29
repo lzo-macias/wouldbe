@@ -30,7 +30,7 @@ const httpError = (status, message) => {
 };
 
 // Mirrors the tax_records.form_type CHECK.
-const FORM_TYPES = ["1099-MISC", "1099-NEC", "1099-K", "W-2"];
+const FORM_TYPES = ["1099-MISC", "1099-NEC", "1099-K", "W-2", "1042-S"];
 
 const TAX_COLS = `
     id, tax_year, recipient_user_id, form_type, gross_amount_cents,

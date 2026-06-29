@@ -147,22 +147,25 @@ const getConversationById = async ({ conversation_id, user_id }) => {
 
 // addParticipant — the actor must be a participant to add others. Re-adding a
 // user who previously left clears left_at instead of erroring on the unique key.
-const addParticipant = async ({ conversation_id, actor_user_id, user_id, role = "member" }) => {
+const addParticipant = async ({ conversation_id, actor_user_id, user_id }) => {
     if (!actor_user_id) throw httpError(401, "authentication required")
     if (!conversation_id) throw httpError(400, "conversation_id is required")
     if (!user_id) throw httpError(400, "user_id is required")
     try {
         return await withTransaction(async (tx) => {
             await assertMembership(conversation_id, actor_user_id, tx)
+            // Added users are always 'member' — role is NOT client-settable here,
+            // so a non-admin can't add someone (or themselves) as 'admin'
+            // (privilege escalation). Promotion belongs in a dedicated admin path.
             const { rows } = await tx.query(
                 `INSERT INTO conversation_participants (conversation_id, user_id, role)
-                 VALUES ($1, $2, $3)
+                 VALUES ($1, $2, 'member')
                  ON CONFLICT (conversation_id, user_id) DO UPDATE SET
                     left_at = NULL,
-                    role = EXCLUDED.role,
+                    role = 'member',
                     joined_at = NOW()
                  RETURNING *`,
-                [conversation_id, user_id, role]
+                [conversation_id, user_id]
             )
             return rows[0]
         })

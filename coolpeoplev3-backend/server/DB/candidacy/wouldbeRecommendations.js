@@ -162,15 +162,17 @@ const respondToRecommendation = async ({ id, target_user_id, response, resulting
                 if (upd.rows.length === 0) {
                     throw httpError(404, "recommendation not found")
                 }
+                // Scope to the responder's OWN wouldbe so a user can't flip
+                // entry_path on a WouldBe they don't own (IDOR).
                 const wb = await tx.query(
                     `UPDATE wouldbe
                      SET entry_path = 'nomination', updated_at = NOW()
-                     WHERE id = $1
+                     WHERE id = $1 AND user_id = $2
                      RETURNING id;`,
-                    [resultingWouldbeId]
+                    [resultingWouldbeId, target_user_id]
                 )
                 if (wb.rows.length === 0) {
-                    throw httpError(400, "resulting wouldbe does not exist")
+                    throw httpError(400, "resulting wouldbe does not exist or is not yours")
                 }
                 return upd.rows[0]
             })

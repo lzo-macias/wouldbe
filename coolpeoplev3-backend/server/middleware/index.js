@@ -296,7 +296,7 @@ const recordAdminAction = (actionType, { resourceType = null } = {}) =>
     };
 
 const httpError = (status, message)  => {
-    e = new Error(message)
+    const e = new Error(message)
     e.status = status
     return e
 }

@@ -119,14 +119,22 @@ const createPost = async ({
     }
 }
 
-// getPostById — the post plus its tag rows (a post has many tags, so they come
-// back as an array rather than multiplying the post row).
-const getPostById = async ({ id }) => {
+// getPostById — the post plus its tag rows. PUBLIC-SAFE: a post is only returned
+// if it's publicly renderable (approved + public + not removed) OR the caller is
+// its author. Without this, an unauthenticated GET /posts/:id leaked private/
+// unlisted/pending/removed posts to anyone who knew the id. viewer_user_id is the
+// authed caller's id when available (null for anonymous).
+const getPostById = async ({ id, viewer_user_id = null }) => {
     if (!id) throw httpError(400, "id is required")
     try {
         const result = await client.query(`SELECT * FROM posts WHERE id = $1`, [id])
         const post = result.rows[0]
         if (!post) return null
+        const publiclyVisible =
+            post.moderation_status === "approved" &&
+            post.visibility === "public" &&
+            post.removed_at === null
+        if (!publiclyVisible && post.author_user_id !== viewer_user_id) return null
         post.tags = await getPostTags(id)
         return post
     } catch (err) {
