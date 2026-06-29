@@ -80,49 +80,30 @@ const upsertTaxRecord = async ({
     }
 
     try {
-        return await withTransaction(async (tx) => {
-            const existing = await tx.query(
-                `SELECT id FROM tax_records
-                  WHERE recipient_user_id = $1 AND tax_year = $2 AND form_type = $3
-                  FOR UPDATE`,
-                [recipient_user_id, tax_year, form_type]
-            );
-
-            if (existing.rows.length) {
-                const upd = await tx.query(
-                    `UPDATE tax_records
-                        SET gross_amount_cents = $2,
-                            w9_received = COALESCE($3, w9_received),
-                            w9_storage_url = COALESCE($4, w9_storage_url)
-                      WHERE id = $1
-                      RETURNING ${TAX_COLS}`,
-                    [
-                        existing.rows[0].id,
-                        String(gross_amount_cents),
-                        w9_received === undefined ? null : !!w9_received,
-                        w9_storage_url ?? null,
-                    ]
-                );
-                return upd.rows[0];
-            }
-
-            const ins = await tx.query(
-                `INSERT INTO tax_records
-                   (tax_year, recipient_user_id, form_type, gross_amount_cents,
-                    w9_received, w9_storage_url)
-                 VALUES ($1,$2,$3,$4, COALESCE($5, false), $6)
-                 RETURNING ${TAX_COLS}`,
-                [
-                    tax_year,
-                    recipient_user_id,
-                    form_type,
-                    String(gross_amount_cents),
-                    w9_received === undefined ? null : !!w9_received,
-                    w9_storage_url ?? null,
-                ]
-            );
-            return ins.rows[0];
-        });
+        // True upsert via the (recipient_user_id, tax_year, form_type) UNIQUE
+        // constraint (migration 1780900000000). Atomic and race-safe — the old
+        // SELECT-FOR-UPDATE-then-INSERT double-inserted when the row didn't exist
+        // yet (nothing to lock). COALESCE keeps an existing w9 when not re-supplied.
+        const result = await client.query(
+            `INSERT INTO tax_records
+               (tax_year, recipient_user_id, form_type, gross_amount_cents,
+                w9_received, w9_storage_url)
+             VALUES ($1, $2, $3, $4, COALESCE($5, false), $6)
+             ON CONFLICT (recipient_user_id, tax_year, form_type) DO UPDATE SET
+                gross_amount_cents = EXCLUDED.gross_amount_cents,
+                w9_received    = COALESCE($5, tax_records.w9_received),
+                w9_storage_url = COALESCE($6, tax_records.w9_storage_url)
+             RETURNING ${TAX_COLS}`,
+            [
+                tax_year,
+                recipient_user_id,
+                form_type,
+                String(gross_amount_cents),
+                w9_received === undefined ? null : !!w9_received,
+                w9_storage_url ?? null,
+            ]
+        );
+        return result.rows[0];
     } catch (err) {
         throw mapDbError(err);
     }
