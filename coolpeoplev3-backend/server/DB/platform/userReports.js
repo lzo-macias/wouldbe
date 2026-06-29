@@ -60,6 +60,17 @@ const fileUserReport = async ({
 
     const priority = CATEGORY_PRIORITY[report_category] ?? null;
     try {
+        // Can't report your OWN content either (content_items.user_id = uploader).
+        // (Reporting a non-existent content id still falls through to the FK 23503.)
+        if (reported_content_id) {
+            const owner = await client.query(
+                `SELECT user_id FROM content_items WHERE id = $1`,
+                [reported_content_id]
+            );
+            if (owner.rows.length && owner.rows[0].user_id === reporter_user_id) {
+                throw httpError(400, "you cannot report your own content");
+            }
+        }
         const { rows } = await client.query(
             `INSERT INTO user_reports
                (reporter_user_id, reported_content_id, reported_user_id,

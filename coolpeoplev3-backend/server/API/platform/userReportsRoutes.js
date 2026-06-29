@@ -7,14 +7,19 @@ const {
     resolveUserReport,
     markReportFalse,
 } = require("../../DB/platform/userReports");
-const { requireAuth, requireAdmin, recordAdminAction } = require("../../middleware");
+const { requireAuth, requireAdmin, recordAdminAction, rateLimit } = require("../../middleware");
 
 const router = express.Router();
 
 // POST /api/user-reports — file a report (community reporting).
 // reporter_user_id is taken from the token, NEVER the body.
 // Body: { reported_user_id?, reported_content_id?, report_category, description?, evidence_urls? }
-router.post("/user-reports", requireAuth, async (req, res, next) => {
+// Rate-limited (reports_per_day) so the moderation queue can't be spammed / weaponized.
+router.post(
+    "/user-reports",
+    requireAuth,
+    rateLimit({ type: "reports_per_day", windowMs: 24 * 60 * 60 * 1000, max: 20 }),
+    async (req, res, next) => {
     try {
         const row = await fileUserReport({
             reporter_user_id: req.user.id,

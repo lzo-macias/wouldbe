@@ -30,6 +30,21 @@ const assertMembership = async (conversation_id, user_id, db = client) => {
     }
 }
 
+// assertGroupAdmin — throws 403 unless user_id is an ACTIVE 'admin' participant.
+// createConversation seeds the creator (whoever started the chat) as admin, so by
+// default the chat owner is the one who can remove others. Composable (pass a tx).
+const assertGroupAdmin = async (conversation_id, user_id, db = client) => {
+    const { rows } = await db.query(
+        `SELECT 1 FROM conversation_participants
+         WHERE conversation_id = $1 AND user_id = $2 AND role = 'admin' AND left_at IS NULL
+         LIMIT 1`,
+        [conversation_id, user_id]
+    )
+    if (rows.length === 0) {
+        throw httpError(403, "only a conversation admin can remove participants")
+    }
+}
+
 // createConversation — insert the thread plus a participant row for the creator
 // (as admin) and one for every other invited user. Runs in a transaction so a
 // thread is never left without its membership rows.
@@ -179,15 +194,16 @@ const addParticipant = async ({ conversation_id, actor_user_id, user_id }) => {
     }
 }
 
-// removeParticipant — soft-removal of another member. Actor must be a member of
-// the thread; sets left_at so the thread keeps rendering for everyone else.
+// removeParticipant — soft-removal of another participant (kick). Actor must be a
+// conversation ADMIN (the creator by default); sets left_at so the thread keeps
+// rendering for everyone else. A non-admin who wants out uses leaveConversation.
 const removeParticipant = async ({ conversation_id, actor_user_id, user_id }) => {
     if (!actor_user_id) throw httpError(401, "authentication required")
     if (!conversation_id) throw httpError(400, "conversation_id is required")
     if (!user_id) throw httpError(400, "user_id is required")
     try {
         return await withTransaction(async (tx) => {
-            await assertMembership(conversation_id, actor_user_id, tx)
+            await assertGroupAdmin(conversation_id, actor_user_id, tx)
             const { rows } = await tx.query(
                 `UPDATE conversation_participants
                  SET left_at = NOW()

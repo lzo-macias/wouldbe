@@ -10,6 +10,7 @@ const {
     getEndorsementLeaderboard,
     lockFinalists,
 } = require("../../DB/content/postEndoresments");
+const { client } = require("../../DB/index");
 const {
     requireAuth,
     requireAdmin,
@@ -20,16 +21,39 @@ const {
 
 const router = express.Router();
 
+// requireEndorsementAck — resolve the post's debate (a debate_response post reaches
+// its debate via its contestant) and scope the criteria ack to THAT debate, so a
+// user can't endorse in Debate B off an ack they made for Debate A. A
+// wouldbe_campaign post has no debate, so no debate criteria ack is required.
+const requireEndorsementAck = async (req, res, next) => {
+    try {
+        const { rows } = await client.query(
+            `SELECT p.post_type, c.debate_id
+             FROM posts p
+             LEFT JOIN contestants c ON c.id = p.contestant_id
+             WHERE p.id = $1`,
+            [req.params.id]
+        );
+        const post = rows[0];
+        if (!post) return res.status(404).json({ error: "post not found" });
+        if (post.post_type === "debate_response" && post.debate_id) {
+            req.body = req.body || {};
+            req.body.debate_id = post.debate_id; // scope the ack to this post's debate
+            return requireCriteriaAck("landing_page")(req, res, next);
+        }
+        return next(); // no debate → no debate criteria ack to enforce
+    } catch (err) {
+        next(err);
+    }
+};
+
 // POST /api/posts/:id/endorsements — the 3-second-hold endorsement. endorser_user_id
-// comes from the token, NEVER the body. requireCriteriaAck('landing_page') gates it.
-// TODO: requireCriteriaAck scopes the ack by req.params.debateId / req.params.debate_id
-// / req.body.debate_id, but here the only param is a POST id. To scope the ack to the
-// right debate, this route should first resolve the post's debate_id (via the post's
-// contestant) and put it on req.body.debate_id before requireCriteriaAck runs.
+// comes from the token, NEVER the body. For debate posts the endorser must have
+// acknowledged THAT debate's criteria (requireEndorsementAck scopes it correctly).
 router.post(
     "/posts/:id/endorsements",
     requireAuth,
-    requireCriteriaAck("landing_page"),
+    requireEndorsementAck,
     async (req, res, next) => {
         try {
             const endorsement = await createEndorsement({
