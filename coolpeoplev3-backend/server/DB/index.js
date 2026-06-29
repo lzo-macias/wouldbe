@@ -104,6 +104,7 @@ const init = async () => {
         const { router: goalsRouter } = require("../API/candidacy/goalsRoutes");
         const { router: pledgesRouter } = require("../API/candidacy/pledgesRoutes");
         const { router: followsRouter } = require("../API/platform/followsRoutes");
+        const { router: userBlocksRouter } = require("../API/platform/userBlocksRoutes");
         // §6 sponsors / debates …
         const { router: sponsorsRouter } = require("../API/debate/sponsorsRoutes");
         const { router: debateRulesRouter } = require("../API/debate/debateRulesRoutes");
@@ -126,6 +127,7 @@ const init = async () => {
         const { router: wouldbeRecommendationsRouter } = require("../API/candidacy/wouldbeRecommendationsRoutes");
         const { router: postsRouter } = require("../API/content/postsRoutes");
         const { router: postEndorsementsRouter } = require("../API/content/postEndorsementsRoutes");
+        const { router: commentsRouter } = require("../API/content/commentsRoutes");
         // §11 trust & safety
         const { router: userReportsRouter } = require("../API/platform/userReportsRoutes");
         const { router: userStrikesRouter } = require("../API/platform/userStrikesRoutes");
@@ -179,6 +181,7 @@ const init = async () => {
         app.use("/api", goalsRouter);
         app.use("/api", pledgesRouter);
         app.use("/api", followsRouter);
+        app.use("/api", userBlocksRouter);
         app.use("/api", sponsorsRouter);
         app.use("/api", debateRulesRouter);
         app.use("/api", debateCriteriaRouter);
@@ -197,6 +200,7 @@ const init = async () => {
         app.use("/api", wouldbeRecommendationsRouter);
         app.use("/api", postsRouter);
         app.use("/api", postEndorsementsRouter);
+        app.use("/api", commentsRouter);
         app.use("/api", userReportsRouter);
         app.use("/api", userStrikesRouter);
         app.use("/api", accountActionsRouter);

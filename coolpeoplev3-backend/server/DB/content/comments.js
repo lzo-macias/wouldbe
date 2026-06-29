@@ -85,10 +85,12 @@ const updateComment = async ({ id, author_user_id, body = null }, db = client) =
     }
 }
 
-// softDeleteComment — stamp removed_at (and optional removed_reason). Never hard
-// deletes. Author-owned by default; pass an admin path separately if needed.
-const softDeleteComment = async ({ id, author_user_id, removed_reason = null }, db = client) => {
-    if (!author_user_id) throw httpError(401, "authentication required")
+// softDeleteComment — stamp removed_at (+ optional reason). Never hard deletes.
+// Pass author_user_id for a USER self-delete (owner-scoped — only your own
+// comment). OMIT it (null) for an ADMIN/moderator takedown of ANY comment — the
+// ROUTE must gate that path with requireAdmin(). The $3 IS NULL OR ... clause is
+// what flips between the two modes.
+const softDeleteComment = async ({ id, author_user_id = null, removed_reason = null }, db = client) => {
     if (!id) throw httpError(400, "id is required")
     try {
         const SQL = `
@@ -97,7 +99,7 @@ const softDeleteComment = async ({ id, author_user_id, removed_reason = null }, 
                 removed_reason = $1,
                 moderation_status = 'removed'
             WHERE id = $2
-              AND author_user_id = $3
+              AND ($3::uuid IS NULL OR author_user_id = $3)
               AND removed_at IS NULL
             RETURNING *;
         `
