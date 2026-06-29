@@ -1,0 +1,235 @@
+const express = require("express");
+
+const { withTransaction } = require("../../DB/index.js");
+const {
+    createDebate,
+    listCurrentDebates,
+    getDebateById,
+    updateDebate,
+    setDebateMarketingConsent,
+    publishDebate,
+    startDebate,
+    closeDebate,
+    cancelDebate,
+    getDebateLeaderboard,
+    recordSponsorFlatFeePayment,
+} = require("../../DB/debate/debates");
+const {
+    requireAuth,
+    requireAdmin,
+    recordAdminAction,
+} = require("../../middleware");
+
+const router = express.Router();
+
+// POST /api/debates — admin creates a debate (the sponsor_id is supplied in the
+// body; sponsor self-serve creation, if added later, would gate differently).
+router.post(
+    "/debates",
+    requireAuth,
+    requireAdmin(),
+    recordAdminAction("create_debate", { resourceType: "debates" }),
+    async (req, res, next) => {
+        try {
+            const debate = await createDebate({
+                sponsor_id: req.body.sponsor_id,
+                title: req.body.title,
+                description: req.body.description,
+                win_type: req.body.win_type,
+                hybrid_crowd_weight_pct: req.body.hybrid_crowd_weight_pct,
+                contribution_type: req.body.contribution_type,
+                participation_type: req.body.participation_type,
+                sponsor_contribution_cents: req.body.sponsor_contribution_cents,
+                platform_top_up_cents: req.body.platform_top_up_cents,
+                user_contributions_cents: req.body.user_contributions_cents,
+                prize_distribution_rules: req.body.prize_distribution_rules,
+                scoring_methodology: req.body.scoring_methodology,
+                status: req.body.status,
+                start_date: req.body.start_date,
+                end_date: req.body.end_date,
+                results_announce_at: req.body.results_announce_at,
+                min_age_required: req.body.min_age_required,
+                excluded_states: req.body.excluded_states,
+                free_entry_method: req.body.free_entry_method,
+            });
+            return res.status(201).json(debate);
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
+// GET /api/debates — the public list of current (non-draft, non-cancelled) debates.
+router.get("/debates", async (req, res, next) => {
+    try {
+        return res.json(await listCurrentDebates({ limit: req.query.limit }));
+    } catch (err) {
+        next(err);
+    }
+});
+
+// GET /api/debates/:id/leaderboard — per-contestant valid-vote counts (public).
+// Declared before /debates/:id so it isn't shadowed by the bare-id route.
+router.get("/debates/:id/leaderboard", async (req, res, next) => {
+    try {
+        return res.json(await getDebateLeaderboard({ debate_id: req.params.id }));
+    } catch (err) {
+        next(err);
+    }
+});
+
+// GET /api/debates/:id — a single debate (public).
+router.get("/debates/:id", async (req, res, next) => {
+    try {
+        const debate = await getDebateById({ debate_id: req.params.id });
+        if (!debate) return res.status(404).json({ error: "debate not found" });
+        return res.json(debate);
+    } catch (err) {
+        next(err);
+    }
+});
+
+// PATCH /api/debates/:id — admin partial update. If the body carries
+// marketing_consent=true we ALSO stamp marketing_consent_at, in one transaction
+// with the field update so they can't half-commit.
+router.patch(
+    "/debates/:id",
+    requireAuth,
+    requireAdmin(),
+    recordAdminAction("update_debate", { resourceType: "debates" }),
+    async (req, res, next) => {
+        try {
+            const debate = await withTransaction(async (tx) => {
+                const updated = await updateDebate(
+                    {
+                        debate_id: req.params.id,
+                        sponsor_id: req.body.sponsor_id,
+                        title: req.body.title,
+                        description: req.body.description,
+                        win_type: req.body.win_type,
+                        hybrid_crowd_weight_pct: req.body.hybrid_crowd_weight_pct,
+                        contribution_type: req.body.contribution_type,
+                        participation_type: req.body.participation_type,
+                        sponsor_contribution_cents: req.body.sponsor_contribution_cents,
+                        platform_top_up_cents: req.body.platform_top_up_cents,
+                        user_contributions_cents: req.body.user_contributions_cents,
+                        prize_distribution_rules: req.body.prize_distribution_rules,
+                        scoring_methodology: req.body.scoring_methodology,
+                        status: req.body.status,
+                        start_date: req.body.start_date,
+                        end_date: req.body.end_date,
+                        results_announce_at: req.body.results_announce_at,
+                        min_age_required: req.body.min_age_required,
+                        excluded_states: req.body.excluded_states,
+                        free_entry_method: req.body.free_entry_method,
+                        retired: req.body.retired,
+                    },
+                    tx
+                );
+                if (req.body.marketing_consent === true) {
+                    return await setDebateMarketingConsent({ debate_id: req.params.id }, tx);
+                }
+                return updated;
+            });
+            return res.json(debate);
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
+// POST /api/debates/:id/publish — admin opens the debate for entry (open_entry).
+router.post(
+    "/debates/:id/publish",
+    requireAuth,
+    requireAdmin(),
+    recordAdminAction("publish_debate", { resourceType: "debates" }),
+    async (req, res, next) => {
+        try {
+            return res.json(await publishDebate({ debate_id: req.params.id }));
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
+// POST /api/debates/:id/start — admin marks the debate live.
+router.post(
+    "/debates/:id/start",
+    requireAuth,
+    requireAdmin(),
+    recordAdminAction("start_debate", { resourceType: "debates" }),
+    async (req, res, next) => {
+        try {
+            return res.json(await startDebate({ debate_id: req.params.id }));
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
+// POST /api/debates/:id/close — admin closes the concluded debate.
+router.post(
+    "/debates/:id/close",
+    requireAuth,
+    requireAdmin(),
+    recordAdminAction("close_debate", { resourceType: "debates" }),
+    async (req, res, next) => {
+        try {
+            return res.json(await closeDebate({ debate_id: req.params.id }));
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
+// POST /api/debates/:id/cancel — admin cancels the debate.
+router.post(
+    "/debates/:id/cancel",
+    requireAuth,
+    requireAdmin(),
+    recordAdminAction("cancel_debate", { resourceType: "debates" }),
+    async (req, res, next) => {
+        try {
+            return res.json(await cancelDebate({ debate_id: req.params.id }));
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
+// POST /api/debates/:id/sponsor-fee — admin records the sponsor flat-fee payment
+// row (the Stripe charge happened elsewhere; this only writes debate_payments).
+router.post(
+    "/debates/:id/sponsor-fee",
+    requireAuth,
+    requireAdmin(),
+    recordAdminAction("record_sponsor_flat_fee", { resourceType: "debates" }),
+    async (req, res, next) => {
+        try {
+            const payment = await recordSponsorFlatFeePayment({
+                debate_id: req.params.id,
+                user_id: req.body.user_id,
+                amount_cents: req.body.amount_cents,
+                currency: req.body.currency,
+                stripe_customer_id: req.body.stripe_customer_id,
+                stripe_payment_intent_id: req.body.stripe_payment_intent_id,
+                stripe_charge_id: req.body.stripe_charge_id,
+                stripe_balance_txn_id: req.body.stripe_balance_txn_id,
+                fee_amount_cents: req.body.fee_amount_cents,
+                net_amount_cents: req.body.net_amount_cents,
+                platform_amount_cents: req.body.platform_amount_cents,
+                card_brand: req.body.card_brand,
+                card_last4: req.body.card_last4,
+                wallet_type: req.body.wallet_type,
+                status: req.body.status,
+                charged_at: req.body.charged_at,
+            });
+            return res.status(201).json(payment);
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
+module.exports = { router };

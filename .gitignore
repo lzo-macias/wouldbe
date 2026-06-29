@@ -1,0 +1,12 @@
+# dependencies (any depth: root, backend, frontend)
+node_modules/
+
+# secrets / environment (.env, .env.local, etc. at any depth)
+.env
+.env.*
+
+# OS / editor cruft
+.DS_Store
+
+# Claude Code local session data
+.claude/

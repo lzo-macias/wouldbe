@@ -1,0 +1,242 @@
+/* ============================================================================
+   Signup flow — shared styling (TOS/Privacy, Account, Profile steps)
+   Design tokens from the Figma: card border #E6EAEF / radius 12, input bg
+   #F5F7FA, secondary text #777, dark CTA #222, gold accent #D4B84D, italic
+   Poppins wordmark. Built responsive (centered card) rather than pixel-absolute.
+   ============================================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:ital,wght@1,700&display=swap');
+
+.su-page {
+  min-height: 100vh;
+  background: #ffffff;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 38px 16px 60px;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #1a1a1a;
+  box-sizing: border-box;
+}
+
+.su-card {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 730px;
+  border: 1px solid #E6EAEF;
+  border-radius: 12px;
+  padding: 28px 74px 26px;
+  background: #fff;
+}
+
+/* wordmark */
+.su-logo {
+  font-family: 'Poppins', 'Inter', sans-serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 45px;
+  line-height: 1.3;
+  text-align: center;
+  color: #000;
+  margin: 0;
+}
+.su-heading {
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 31px;
+  text-align: center;
+  letter-spacing: -0.01em;
+  color: #777;
+  margin: 4px 0 26px;
+}
+
+/* fields */
+.su-fields { display: flex; flex-direction: column; gap: 18px; }
+
+.su-field { display: flex; flex-direction: column; gap: 6px; }
+
+.su-input {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 16px;
+  gap: 15px;
+  height: 56px;
+  background: #F5F7FA;
+  border: 1px solid #E6EAEF;
+  border-radius: 12px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.su-input:focus-within { border-color: #C9B25A; box-shadow: 0 0 0 3px rgba(212,184,77,.18); }
+.su-input svg { flex: none; width: 24px; height: 24px; color: #777; }
+.su-input input,
+.su-input select {
+  flex: 1 1 auto;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  color: #1a1a1a;
+  min-width: 0;
+}
+.su-input input::placeholder { color: #777; }
+.su-input select { color: #1a1a1a; appearance: none; cursor: pointer; }
+.su-input select:invalid { color: #777; }
+.su-optional {
+  flex: none;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 14px;
+  color: #777;
+  opacity: .75;
+}
+.su-input .su-chev { margin-left: auto; opacity: .8; }
+
+/* footer */
+.su-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 30px;
+}
+.su-footer-left { display: flex; align-items: center; gap: 22px; }
+.su-cancel {
+  font-style: italic; font-weight: 500; font-size: 16px; color: #777;
+  background: none; border: none; cursor: pointer; padding: 0;
+}
+.su-signin {
+  font-weight: 500; font-size: 16px; color: #D4B84D;
+  background: none; border: none; cursor: pointer; padding: 0;
+}
+.su-signin:hover, .su-cancel:hover { text-decoration: underline; }
+
+.su-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  background: #222222;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 8px 18px;
+  min-height: 33px;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: background .15s ease, opacity .15s ease;
+}
+.su-primary:hover { background: #000; }
+.su-primary:disabled { opacity: .55; cursor: default; }
+.su-primary svg { width: 20px; height: 20px; }
+
+.su-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+
+/* ---- TOS / Privacy document step ---- */
+.su-doc {
+  height: 430px;
+  overflow-y: auto;
+  border: 1px solid #E6EAEF;
+  border-radius: 12px;
+  background: #F5F7FA;
+  padding: 18px 22px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #333;
+  text-align: left;
+}
+.su-doc h3 { font-size: 14.5px; color: #14365c; margin: 14px 0 4px; }
+.su-doc h3:first-child { margin-top: 0; }
+.su-doc p, .su-doc li { margin: 4px 0; }
+.su-doc .su-doc-banner {
+  background: #fff6e5; border: 1px solid #e6b800; color: #5a4500;
+  border-radius: 8px; padding: 8px 10px; font-size: 12px; margin-bottom: 12px;
+}
+.su-doc-link { display: inline-block; margin-top: 10px; color: #D4B84D; font-weight: 500; font-size: 13px; }
+
+.su-accept {
+  display: flex; align-items: center; gap: 10px;
+  margin: 16px 2px 0; font-size: 15px; color: #1a1a1a; cursor: pointer;
+}
+.su-accept input { width: 18px; height: 18px; accent-color: #222; cursor: pointer; }
+
+/* progress dots */
+.su-dots { display: flex; gap: 8px; justify-content: center; margin: 0 0 18px; }
+.su-dot { width: 8px; height: 8px; border-radius: 50%; background: #E6EAEF; }
+.su-dot.active { background: #D4B84D; }
+
+/* ---- profile photo (circle) ---- */
+.su-avatar-block { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
+.su-avatar {
+  position: relative;
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  background: #F5F7FA;
+  border: 1px solid #E6EAEF;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  flex: none;
+}
+.su-avatar svg { width: 40px; height: 40px; color: #777; opacity: .75; }
+.su-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.su-avatar-label { font-weight: 500; font-size: 16px; color: #777; }
+
+/* ---- Rate Your Politics slider ---- */
+.su-slider-block { margin: 8px 0 6px; }
+.su-slider-title { font-size: 18px; color: #000; margin-bottom: 12px; }
+.su-slider-row { position: relative; }
+.su-range {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 10px; border-radius: 999px;
+  background: linear-gradient(90deg, #2a6df0 0%, #9aa3ad 50%, #8C2AFF 100%);
+  outline: none; cursor: pointer;
+}
+.su-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: #fff; border: 3px solid #8C2AFF; cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+}
+.su-range::-moz-range-thumb {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: #fff; border: 3px solid #8C2AFF; cursor: pointer;
+}
+.su-bubble {
+  position: absolute; top: -34px; transform: translateX(-50%);
+  width: 30px; height: 30px; border-radius: 50%;
+  background: #8C2AFF; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 500;
+  transition: left .05s linear;
+}
+.su-ends { display: flex; justify-content: space-between; margin-top: 8px; }
+.su-ends span { font-style: italic; font-weight: 500; font-size: 16px; color: #777; }
+
+/* ---- interests dropdown ---- */
+.su-dropdown { position: relative; }
+.su-dropdown-panel {
+  border: 1px solid #E6EAEF; border-radius: 12px; background: #fff;
+  margin-top: 8px; padding: 12px 14px; max-height: 220px; overflow-y: auto;
+}
+.su-int-group { margin-bottom: 10px; }
+.su-int-group h4 { margin: 0 0 4px; font-size: 12px; text-transform: capitalize; color: #14365c; }
+.su-int-option { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #333; padding: 3px 0; cursor: pointer; }
+.su-int-option input { accent-color: #222; }
+
+@media (max-width: 640px) {
+  .su-card { padding: 24px 22px; }
+  .su-logo { font-size: 36px; }
+  .su-heading { font-size: 22px; }
+}

@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "node-pg-migrate": "^8.0.4"
+  }
+}
