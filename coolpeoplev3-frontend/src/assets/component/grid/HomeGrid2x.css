@@ -1,0 +1,536 @@
+/* Global reset */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* Reset typography */
+h1, h2, h3, h4, h5, h6, p {
+    margin: 0;
+    padding: 0;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+/* Reset lists */
+ul, ol {
+    list-style: none;
+}
+
+/* Reset buttons */
+button {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+/* Reset links */
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Reset form elements */
+input, textarea, select {
+    font: inherit;
+    color: inherit;
+}
+
+/* Make images behave */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Body defaults */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.5;
+    color: #1F1A0A;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Grid Specific Styling */
+
+.gridcontainer1 {
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    grid-auto-rows: 280px;
+    gap: 2px 5vw;
+    max-width: 99vw;
+    /* margin-left: 20px;
+    margin-right: 20px; */
+    margin: 5vw;
+    margin-top: 1vw;
+    /* margin-right: -20px; */
+    margin-right: 200px;
+    margin-left: 150px;
+    
+}
+
+.biggridcomponent {
+    grid-column: span 2;
+    grid-row: span 2;
+    /* border: .5px solid black; */
+    max-height: 64vh;
+    border-radius: 12px;
+    overflow: hidden;
+
+}
+
+.smallgridcomponent {
+    grid-row: span 1;
+    /* border: .5px solid black; */
+    border-radius: 12px;
+    max-height: 200px;
+    min-height: 200px;
+}
+
+.biggridcomponent img {
+    grid-column: span 2;
+    grid-row: span 2;
+    max-height: 64vh;
+    border-radius: 56px;
+    /* margin-top: -5px;
+    margin-left: 20px; */
+
+}
+
+.imagecontainer {
+    position: relative;
+    width: 90%;
+    /* overflow: hidden; */
+    border-radius: 16px;
+}
+.biggridcomponentcandidateimage {
+    min-width: 450px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.campaign-ribbon {
+    position: absolute;
+    top: 22px;
+    left: -50px;
+    width: 200px;
+    background: #1F1A0A;        /* dark, almost black */
+    color: white;
+    text-align: center;
+    padding: 8px 0;
+    transform: rotate(-45deg);  /* the diagonal angle */
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    font-style: italic;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+}
+
+.lowersection {
+    display: flex;
+    flex-direction: column;
+    min-height:1000px;
+    align-items: center;   
+    width: 85%;
+
+}
+.profilepicandtitlebig {
+    display: flex;
+    flex-direction: row;
+    grid-column: span 2;
+    grid-row: span 2;
+    /* margin-top: 500px; */
+    gap: 10px;
+    /* position: absolute; */
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.profilepicbig {
+    height: 20px;
+    /* margin-top: 500px; */
+    /* padding-bottom: 5px; */
+}
+
+.statpreviews {
+    margin-top: 20px;
+    /* margin-left: 40px; */
+    display: flex;
+    flex-direction: row;
+    gap: 70px;
+    width: 100%;
+    padding-left: 30px;
+
+}
+
+.statpreviews p, h3 {
+    color: #777777;
+}
+
+.review {
+    display: flex;
+    flex-direction: column;
+    align-items: center;   
+}
+
+.stars {
+    display: flex;
+    flex-direction: row;
+}
+
+.percentageofgoal {
+    margin-top: -5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center; 
+}
+
+/* .percentageofgoal h3 {
+    text-font: bold;
+} */
+
+.biggridcomponent {
+    display: flex;
+    flex-direction: column;
+    min-height:1000px;
+    /* align-items: center;    */
+}
+
+.statpreviews {
+    margin-left: 50px;
+}
+
+.timeline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;   
+
+}
+
+.clock {
+  width: 20px;
+  height: 20px;
+}
+
+/**************************************** small grid component *********************/
+
+.smallgridcomponentDebate {
+    display: flex;
+    grid-row: span 1;
+    /* border: .5px solid black; */
+    border-radius: 12px;
+    min-height: 200px;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.smallgridcomponentDebate {
+    background-color: #D4B84D;
+    /* opacity: 20%; */
+    
+}
+
+.DebateTitle {
+    color: white;
+    font-weight: 800;
+    text-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+
+}
+
+.smallgridcomponent > img:first-child  {
+    /* max-height: 100% */
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 12px;
+}
+
+.DebateTitle {
+    text-align: center;
+}
+
+.DebateLowerLevel {
+    display: flex;
+    flex-direction: row;
+    /* min-height:1000px; */
+    align-items: center;   
+    gap: 20px;
+    margin-left: 5px;
+    margin-top: 5px;
+}
+
+
+.overarchingdebatecomponent {
+    display: flex;
+    flex-direction: column;
+}
+
+.DebateLowerLevel p {
+    color: #777777;
+    font-size: 8px;
+}
+
+.money {
+    display: flex;
+    flex-direction: row;
+    gap: 2px;
+    align-items: center;
+}
+
+.team {
+    display: flex;
+    flex-direction: row;
+    gap: 2px;
+    align-items: center;
+}
+
+.debatetimeline {
+    display: flex;
+    flex-direction: row;
+    gap: 2px;
+    align-items: center;
+}
+
+.debatetimelineimg {
+    width: 15px;
+}
+
+/* .containersmallgridcomponentProfilePic {
+    max-width: 25px;
+    max-width: 25px;
+    border-radius: 50%;
+    overflow: hidden;
+} */
+.smallgridcomponentProfilePic {
+      width: 24px;
+  height: 24px;
+     object-fit: cover;
+    display: block;
+      border-radius: 50%;
+  flex-shrink: 0;
+
+}
+
+.smallgridcomponentTitleandProfile {
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.smallgridcomponentTitleandProfile h3 {
+    font-size: 8px;
+}
+
+.smallgirdcomponentstats {
+    display: flex;
+    flex-direction: row;
+    margin-top: 5px;
+    gap: 30px;
+    margin-left: 70px;
+}
+
+.smallstars {
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+    width: 10px;
+}
+
+.review {
+    display: flex;
+    flex-direction: column;
+}
+
+.smallreview {
+    font-size: 8px;
+    color: #777777;
+}
+
+.smallclock {
+    width: 10px;
+}
+
+.smalltimelinee {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.smalltimelinee p {
+    font-size: 8px;  
+    color: #777777;
+}
+
+.smallpercentagetogoal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: -4px;
+}
+
+.smallpercentagetogoal h3 {
+    font-size: 10px;
+}
+
+.smallpercentagetogoal p {
+    font-size: 10px;
+    color: #777777;
+}
+
+
+.smallimagecontainer{
+    position: relative;
+    width: 225px;
+    height: 200px;
+    overflow: hidden;
+    border-radius: 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+}
+
+.smallimageimage {
+      width: 100%;               /* fill the container */
+  height: 100%;  
+    object-fit: cover; 
+    position:relative;
+    border-radius: 12px;
+    grid-row: span 1;
+    border-radius: 12px;
+    max-height: 200px;
+    min-height: 200px;
+}
+
+.smallimagebanner{
+    position: absolute;
+    top: 22px;
+    left: -50px;
+    width: 200px;
+    background: #1F1A0A;        /* dark, almost black */
+    color: white;
+    text-align: center;
+    padding: 8px 0;
+    transform: rotate(-45deg);  /* the diagonal angle */
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    font-style: italic;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    opacity: 90%;
+}
+
+.statpreviews {
+    display: none;
+}
+
+.smallgirdcomponentstats {
+        display: none;
+}
+
+.smallgridcomponentDebate {
+    display: flex;
+    flex-direction: column;
+}
+
+.totalcashprizecontainer {
+    background-color: #8B6914;
+    display: flex;
+    flex-direction: row;
+    margin: 10px;
+    border-radius: 12px;
+    width: 180px; 
+    height: 90px;
+}
+
+.amt{
+    font-size: 12px;
+    color: #FFD844;
+    font-style: italic;
+    font-weight: bold;
+}
+
+.smalltexttotalcashprize {
+    color: #FAEBA8;
+    font-size: 12px;
+    font-weight: bold;
+    font-style: italic;
+
+}
+
+.totalcashprizecontainer {
+    margin-top: 30px;
+}
+
+.moneyicon {
+    width: 80px;
+}
+
+@media (max-width: 1393px) {
+    .lowersection { 
+        min-height:0px;
+    }
+    .profilepicandtitlebig {
+        display: flex;
+        flex-direction: row;
+        gap: 5px;
+        margin-top: 5px;
+    }
+    .profilepicandtitlebig h3 {
+       font-size: 8px;
+    }
+    .profilepicbig {
+        width: 24px;
+        height: 24px;
+        object-fit: cover;
+        display: block;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    .biggridcomponent {
+        grid-row: span 1;
+        grid-column: span 1;
+        /* border: .5px solid black; */
+        border-radius: 12px;
+        max-height: 200px;
+        min-height: 200px;
+        overflow: visible;
+}
+    /* .lowersection { 
+        position: relative;
+        top: 30px;
+        
+    } */
+    .imagecontainer {
+    width: 225px;       /* match smallimagecontainer */
+    height: 3300px;      /* match smallimagecontainer */
+    overflow: hidden;
+    border-radius: 16px;
+    overflow: hidden;
+    border-radius: 16px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .biggridcomponentcandidateimage {
+    width: 100%;
+    height: 100%;
+    min-width: 0;                /* ← reset the 450px floor */
+    max-height: none;            /* ← reset the 64vh ceiling from .biggridcomponent img */
+    object-fit: cover;
+    border-radius: 12px;
+
+}
+.biggridcomponent img {
+    border-radius: 12px;
+}
+
+
+}

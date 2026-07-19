@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import axios from 'axios'
-
-const API = import.meta.env.VITE_API_BASE_URL;
+import api from '../lib/api'
 
 // Route guard: renders children only for an authenticated admin. Verifies the
 // localStorage token against GET /api/admin/me (which is requireAuth+requireAdmin).
@@ -14,7 +12,7 @@ function RequireAdmin({ children }) {
         const token = localStorage.getItem('token');
         if (!token) { setStatus('denied'); return; }
         let cancelled = false;
-        axios.get(`${API}/api/admin/me`, { headers: { Authorization: `Bearer ${token}` } })
+        api.get(`/api/admin/me`)
             .then(() => { if (!cancelled) setStatus('ok'); })
             .catch(() => { if (!cancelled) setStatus('denied'); });
         return () => { cancelled = true; };

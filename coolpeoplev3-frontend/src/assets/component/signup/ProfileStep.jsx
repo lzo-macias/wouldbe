@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from "axios";
-import "../../styling/Signup.css";
+import api from "../../lib/api";
+import "./Signup.css";
 import { storeAuth } from "../../lib/authStorage";
 import { UserIcon, IdIcon, MailIcon, CalendarIcon, LockIcon, ArrowRight } from "./icons";
 
@@ -9,7 +9,6 @@ import { UserIcon, IdIcon, MailIcon, CalendarIcon, LockIcon, ArrowRight } from "
 // accepted_tos / accepted_privacy come DOWN as props (signed on screen 1).
 // onComplete() advances to the profile step after a successful signup + login.
 function ProfileStep({ accepted_tos, accepted_privacy, onComplete }) {
-    const API = import.meta.env.VITE_API_BASE_URL;
     const navigate = useNavigate();
 
     // backend createUsers requires: first_name, last_name, username, password, date_of_birth
@@ -40,7 +39,7 @@ function ProfileStep({ accepted_tos, accepted_privacy, onComplete }) {
             // 1) create the account — POST /api/auth/signup returns { token, user }.
             //    Persist userId (and the token) straight from this response, so a
             //    successful signup ALWAYS stores userId, independent of step 2.
-            const { data: signup } = await axios.post(`${API}/api/auth/signup`, {
+            const { data: signup } = await api.post('/api/auth/signup', {
                 first_name: firstname,
                 last_name: lastname,
                 username,
@@ -56,7 +55,7 @@ function ProfileStep({ accepted_tos, accepted_privacy, onComplete }) {
             // 2) get a refresh token (+ confirm session). Best-effort: signup already
             //    stored userId + token, so a hiccup here doesn't lose the session.
             try {
-                const { data: login } = await axios.post(`${API}/api/auth/login`, { username, password });
+                const { data: login } = await api.post('/api/auth/login', { username, password });
                 userId = storeAuth(login) || userId;
             } catch { /* non-fatal — signup response already authenticated us */ }
 

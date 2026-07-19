@@ -1,0 +1,131 @@
+/* ============================================================
+   Qualify modal — the "See what you qualify for" popup.
+   Rendered as a full-screen overlay on top of the blurred page.
+   ============================================================ */
+
+/* dim, full-screen backdrop that centers the modal */
+.qualifyOverlay {
+    position: fixed;
+    inset: 0;                       /* top/right/bottom/left: 0 */
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1000;                  /* above everything else */
+}
+
+/* the white card */
+.qualifyModal {
+    position: relative;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 28px 26px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    font-family: system-ui, -apple-system, sans-serif;
+    color: #1a1a2e;
+}
+
+/* close (x) button, top-right */
+.qualifyClose {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    font-size: 22px;
+    line-height: 1;
+    color: #6b7280;
+    cursor: pointer;
+    border-radius: 8px;
+}
+.qualifyClose:hover {
+    background: #f1f5f9;
+    color: #111827;
+}
+
+/* the explanatory blurb */
+.qualifyModal h3 {
+    margin: 4px 40px 20px 0;        /* right margin clears the x button */
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.5;
+    color: #475569;
+}
+
+/* error banner */
+.qualifyError {
+    margin: 0 0 16px;
+    padding: 10px 12px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    color: #b91c1c;
+    font-size: 14px;
+}
+
+/* the address form */
+.qualifyModal form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.qualifyModal label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    margin-top: 8px;
+}
+
+.qualifyModal input {
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 15px;
+    outline: none;
+}
+.qualifyModal input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* primary buttons (form submit + map confirm) — everything except the x */
+.qualifyModal button:not(.qualifyClose) {
+    margin-top: 16px;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 10px;
+    background: #1a1a2e;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.qualifyModal button:not(.qualifyClose):hover {
+    background: #2b2b4a;
+}
+.qualifyModal button:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+}
+
+/* pin-drop helper text */
+.pinHelp {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #475569;
+    margin: 4px 0 12px;
+}
+
+/* keep the Leaflet map inside the card's rounded corners */
+.qualifyModal .leaflet-container {
+    border-radius: 12px;
+    margin-bottom: 12px;
+}

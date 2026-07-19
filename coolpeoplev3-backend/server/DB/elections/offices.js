@@ -1,12 +1,36 @@
 const { client } = require("../index.js")
 
-//list all offices
+// The year of the soonest still-upcoming general election for an office's
+// jurisdiction. The YEAR comes from the authoritative election_cycle column (an
+// integer) — never parsed out of anchor_date, whose day may be a year-only
+// placeholder. Used by the UI as a fallback label ("2027 election") when an
+// office has no concrete upcoming filing date, so off-cycle offices show a year
+// instead of a bare "Filing date TBD".
+const NEXT_ELECTION_YEAR_SUBQUERY = `
+    (SELECT a.election_cycle
+       FROM election_date_anchors a
+      WHERE a.jurisdiction_id = o.jurisdiction_id
+        AND a.anchor_type = 'general'
+        AND a.anchor_date >= CURRENT_DATE
+      ORDER BY a.anchor_date ASC
+      LIMIT 1) AS next_election_year`
+
+//list all offices. Joins jurisdiction so each office also carries state_code +
+// jurisdiction_type (same shape as getQualifyingOffices). The frontend needs
+// state_code to scope its per-state filing-deadline fetch — without it, no
+// deadlines resolve and every office renders "Filing date TBD".
 const listOffices = async ({} = {}) => {
     try{
         const SQL = `
-            SELECT *
-            FROM office
-            ORDER BY office_name ASC
+            SELECT
+                o.*,
+                j.name AS jurisdiction_name,
+                j.type AS jurisdiction_type,
+                j.state_code,
+                ${NEXT_ELECTION_YEAR_SUBQUERY}
+            FROM office o
+            JOIN jurisdiction j ON j.id = o.jurisdiction_id
+            ORDER BY o.office_name ASC
         `
 
         const listOfOffices = await client.query(SQL)
@@ -172,7 +196,8 @@ const getQualifyingOffices = async ({ userId }) => {
                 o.*,
                 j.name AS jurisdiction_name,
                 j.type AS jurisdiction_type,
-                j.state_code
+                j.state_code,
+                ${NEXT_ELECTION_YEAR_SUBQUERY}
             FROM office o
             JOIN jurisdiction j ON j.id = o.jurisdiction_id
             CROSS JOIN u
@@ -200,6 +225,66 @@ const getQualifyingOffices = async ({ userId }) => {
                     WHEN 'school_board_district'   THEN 11
                     ELSE 12
                 END,
+                o.office_name
+        `
+        const result = await client.query(SQL, [userId])
+        return result.rows
+    } catch (err) {
+        console.error(err)
+        throw err
+    }
+}
+
+// getRelevantOffices({ userId }) — the SUPERSET of getQualifyingOffices: the same
+// national ∪ statewide(by state) ∪ district(user_jurisdictions) union, but WITHOUT
+// the age gate, so we can also show offices the user doesn't yet qualify for. Each
+// row is annotated:
+//   qualifies       — bool, does the user currently meet the office's min_age
+//   relevance_tier  — 'district' (their own districts) | 'statewide' (their state)
+//                     | 'national' (President)
+// Ordered qualified-first, then their own districts (by required age), then their
+// state, then national — which is exactly how the feed groups them. Deadline
+// filtering (hide-if-passed) still happens in the UI, per office.jurisdiction_id.
+const getRelevantOffices = async ({ userId }) => {
+    try {
+        if (!userId) return []
+        const SQL = `
+            WITH u AS (
+                SELECT state, EXTRACT(YEAR FROM age(date_of_birth))::int AS age
+                FROM users WHERE id = $1
+            ),
+            uj AS (
+                SELECT jurisdiction_id FROM user_jurisdictions WHERE user_id = $1
+            )
+            SELECT
+                o.*,
+                j.name AS jurisdiction_name,
+                j.type AS jurisdiction_type,
+                j.state_code,
+                ${NEXT_ELECTION_YEAR_SUBQUERY},
+                (o.min_age IS NULL OR u.age >= o.min_age) AS qualifies,
+                CASE
+                    WHEN o.resolution_method IN ('geocodio_district', 'point_in_polygon')
+                        THEN 'district'
+                    WHEN o.resolution_method = 'statewide' THEN 'statewide'
+                    WHEN o.resolution_method = 'national'  THEN 'national'
+                    ELSE 'other'
+                END AS relevance_tier
+            FROM office o
+            JOIN jurisdiction j ON j.id = o.jurisdiction_id
+            CROSS JOIN u
+            WHERE (o.resolution_method IN ('geocodio_district', 'point_in_polygon')
+                       AND o.jurisdiction_id IN (SELECT jurisdiction_id FROM uj))
+               OR (o.resolution_method = 'statewide' AND j.state_code = u.state)
+               OR  o.resolution_method = 'national'
+            ORDER BY
+                (o.min_age IS NULL OR u.age >= o.min_age) DESC,   -- qualified first
+                CASE
+                    WHEN o.resolution_method IN ('geocodio_district','point_in_polygon') THEN 0
+                    WHEN o.resolution_method = 'statewide' THEN 1
+                    ELSE 2
+                END,                                              -- own districts, then state, then national
+                COALESCE(o.min_age, 0),                           -- by required age (18, 25, 30…)
                 o.office_name
         `
         const result = await client.query(SQL, [userId])
@@ -338,5 +423,6 @@ module.exports = {
     getOfficesByState,
     getOfficeEligibility,
     getQualifyingOffices,
+    getRelevantOffices,
     upsertOffice,
 }

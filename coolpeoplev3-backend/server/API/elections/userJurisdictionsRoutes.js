@@ -24,6 +24,23 @@ router.get("/users/me/jurisdictions", authed, async (req, res, next) => {
     }
 });
 
+// POST /users/me/jurisdictions/resolve — the authed user resolves their OWN
+// jurisdictions from an address. The address is a transient body param: geocoded
+// in memory, used to derive district/state layers, then discarded (never stored;
+// see setUserJurisdictionsFromGeocode, which NULLs address + coords). Returns
+// { status: 'resolved' | 'pending_local' | 'needs_manual_pin', layers, council }.
+router.post("/users/me/jurisdictions/resolve", authed, async (req, res, next) => {
+    try {
+        const result = await setUserJurisdictionsFromGeocode({
+            userId: req.user.id,
+            address: req.body?.address,
+        });
+        return res.json(result);
+    } catch (err) {
+        next(err);
+    }
+});
+
 // GET /users/:id/jurisdictions — admin view of any user's layers.
 router.get("/users/:id/jurisdictions", adminOnly, async (req, res, next) => {
     try {

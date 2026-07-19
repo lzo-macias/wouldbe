@@ -21,6 +21,7 @@
 const { pool, close } = require('./db');
 const fec = require('./sources/fec');
 const nyc = require('./sources/local/nyc');
+const futureAnchors = require('./sources/local/futureCycleAnchors');
 const primaries = require('./sources/statePrimaries2026');
 const stateLegs = require('./sources/states/_stateLegislatures');
 const stateLegElig = require('./sources/states/_stateLegEligibility');
@@ -99,6 +100,10 @@ async function run() {
         if (args.source === 'nyc-deadlines' || args.source === 'all') {
             log('NYC deadlines (BOE/CFB calendar)…');
             await nyc.seedDeadlines(client, { cycle: 2025, log });
+        }
+        if (args.source === 'future-anchors' || args.source === 'all') {
+            log('Future-cycle election anchors (off-cycle legs + President + NYC)…');
+            await futureAnchors.seed(client, { log });
         }
 
         if (args.dryRun) {

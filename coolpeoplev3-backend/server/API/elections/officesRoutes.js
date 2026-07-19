@@ -7,6 +7,7 @@ const {
     getOfficesByState,
     getOfficeEligibility,
     getQualifyingOffices,
+    getRelevantOffices,
     upsertOffice,
 } = require("../../DB/elections/offices");
 
@@ -34,6 +35,19 @@ router.get("/offices", async (req, res, next) => {
 router.get("/offices/qualifying", authed, async (req, res, next) => {
     try {
         const rows = await getQualifyingOffices({ userId: req.user.id });
+        return res.json(rows);
+    } catch (err) {
+        next(err);
+    }
+});
+
+// GET /offices/relevant — superset of /qualifying: every office in the user's
+// districts + their state + national, WITHOUT the age gate. Each row carries
+// `qualifies` and `relevance_tier` so the feed can show "you qualify" alongside
+// "you don't qualify yet (age 25)" and remaining statewide offices.
+router.get("/offices/relevant", authed, async (req, res, next) => {
+    try {
+        const rows = await getRelevantOffices({ userId: req.user.id });
         return res.json(rows);
     } catch (err) {
         next(err);

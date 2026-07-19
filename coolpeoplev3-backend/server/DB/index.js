@@ -51,7 +51,10 @@ const PORT = process.env.PORT || 3000;
 // attestation/audit rows). Safe locally too.
 app.set("trust proxy", 1);
 app.use(cors());
-app.use(express.json());
+// Capture the raw request body so webhook routes (Stripe, Twitch EventSub) can
+// verify HMAC signatures over the exact bytes — express.json() otherwise consumes
+// the stream. Handlers read req.rawBody (a Buffer); normal JSON parsing is unchanged.
+app.use(express.json({ verify: (req, _res, buf) => { req.rawBody = buf; } }));
 
 const init = async () => {
     try {
@@ -146,6 +149,24 @@ const init = async () => {
         // §17 notifications
         const { router: notificationCriteriaRouter } = require("../API/platform/notificationCriteriaRoutes");
         const { router: notificationsRouter } = require("../API/platform/notificationsRoutes");
+        // §10 moderation (records/queues/appeals/dmca — vendor callbacks still stubbed)
+        const { router: contentItemsRouter } = require("../API/platform/contentItemsRoutes");
+        const { router: moderationEventsRouter } = require("../API/platform/moderationEventsRoutes");
+        const { router: moderationQueueRouter } = require("../API/platform/moderationQueueRoutes");
+        const { router: moderationAppealsRouter } = require("../API/platform/moderationAppealsRoutes");
+        const { router: dmcaRouter } = require("../API/platform/dmcaRoutes");
+        // §13 payments + §9 prize pool/payouts + DU sponsor payouts (Stripe — adapter-stubbed)
+        const { router: tipsRouter } = require("../API/payments/tipsRoutes");
+        const { router: postPaymentsRouter } = require("../API/payments/postPaymentsRoutes");
+        const { router: subscriptionsRouter } = require("../API/payments/subscriptionsRoutes");
+        const { router: stripeWebhookRouter } = require("../API/payments/stripeWebhookRoutes");
+        const { router: debatePaymentsRouter } = require("../API/payments/debatePaymentsRoutes");
+        const { router: prizePoolRouter } = require("../API/payments/prizePoolRoutes");
+        const { router: payoutAccountsRouter } = require("../API/payments/payoutAccountsRoutes");
+        const { router: debatePayoutsRouter } = require("../API/payments/debatePayoutsRoutes");
+        // Debate-Update livestream layer (Twitch/R2 — adapter-stubbed)
+        const { router: twitchRouter } = require("../API/debate/twitchRoutes");
+        const { router: debateStreamsRouter } = require("../API/debate/debateStreamsRoutes");
         app.use("/api/auth", authRouter);
         app.use("/api/users", userRouter);
         app.use("/api", consentRouter);
@@ -214,6 +235,21 @@ const init = async () => {
         app.use("/api", systemJobsRouter);
         app.use("/api", notificationCriteriaRouter);
         app.use("/api", notificationsRouter);
+        app.use("/api", contentItemsRouter);
+        app.use("/api", moderationEventsRouter);
+        app.use("/api", moderationQueueRouter);
+        app.use("/api", moderationAppealsRouter);
+        app.use("/api", dmcaRouter);
+        app.use("/api", tipsRouter);
+        app.use("/api", postPaymentsRouter);
+        app.use("/api", subscriptionsRouter);
+        app.use("/api", stripeWebhookRouter);
+        app.use("/api", debatePaymentsRouter);
+        app.use("/api", prizePoolRouter);
+        app.use("/api", payoutAccountsRouter);
+        app.use("/api", debatePayoutsRouter);
+        app.use("/api", twitchRouter);
+        app.use("/api", debateStreamsRouter);
 
         // Central JSON error handler (routes call next(err)).
         app.use((err, _req, res, _next) => {

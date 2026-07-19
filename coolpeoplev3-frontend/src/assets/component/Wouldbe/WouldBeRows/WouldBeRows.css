@@ -1,0 +1,186 @@
+.wouldBeRowsMainContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 50px;
+}
+
+.wouldbeCard {
+    display: flex;
+    flex-direction: column;
+    background-color: #000000;
+    width: 60vw;
+    /* margin-right: 200px; */
+    color: white;
+    margin-bottom: 40px;
+    border-radius: 12px;
+    height: 150px;
+}
+
+.deadlineAndAmount {
+    display: flex;
+    flex-direction: row;
+    margin: 20px;
+    gap: 20px;
+}
+
+.deadline {
+    color: #FFFFFF;
+}
+
+.redCircle{
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #E12D39
+}
+
+.amount {
+    color: #E12D39
+}
+
+.officeOrWouldbeName {
+    font-size: 30px;
+    color: white;
+    margin-left: 30px;
+    font-style: bold;
+}
+
+.blurred {
+    backdrop-filter: blur(6px);
+    background: rgba(0, 0, 0, 0.3); 
+}
+/* Relevant-mode grouped feed: section + age-interval headers, empty/no-qualify
+   notes. Added for the qualify-aware WouldBe view. */
+.wouldbeSectionHeader {
+    grid-column: 1 / -1;
+    margin: 20px 0 8px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1a1a2e;
+}
+.wouldbeAgeHeader {
+    grid-column: 1 / -1;
+    margin: 12px 0 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #6b6b7b;
+}
+.wouldbeEmptyNote {
+    grid-column: 1 / -1;
+    margin: 12px 0;
+    color: #5b5b6b;
+    line-height: 1.4;
+}
+
+.hoveredWouldBeCard {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(90deg, rgba(153, 153, 153, 0.1) 0%, rgba(204, 204, 204, 0.2) 17.79%, rgba(204, 204, 204, 0.2) 58.89%, rgba(153, 153, 153, 0.1) 100%);
+    width: 60vw;
+    /* margin-right: 200px; */
+    color: black;
+    margin-bottom: 40px;
+    border-radius: 12px;
+    height: 150px;          /* same fixed size as the collapsed .wouldbeCard */
+    overflow: hidden;
+    z-index: 1;
+}
+
+/* ---- hover timeline ------------------------------------------------------ */
+.hoveredWouldBeName {
+    margin: 12px 0 0 18px;
+    font-size: 16px;
+    font-style: italic;
+    font-weight: 700;
+    color: #000000;
+}
+.wouldbeTimelineWrap {
+    padding: 6px 40px;
+}
+/* goal pinned to the top-right so it costs no vertical space in the fixed card */
+.wouldbeGoal {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    font-style: italic;
+    color: #000000;
+}
+.wouldbeTimeline {
+    position: relative;
+    height: 62px;
+    margin-top: 34px;   /* room for the "you" badge floating above the line */
+}
+.wouldbeTimelineLine {
+    position: absolute;
+    top: 13px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #000000;
+}
+.wouldbeTick {
+    position: absolute;
+    top: 13px;                 /* start at the axis line, grow downward */
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 60px;
+}
+/* short uniform line from the axis down to its label */
+.wouldbeTickMark {
+    width: 1px;
+    height: 16px;
+    background: #000000;
+    flex-shrink: 0;
+}
+/* always-on label: name(s) on top, date beneath, small enough to stay legible */
+.wouldbeTickLabel {
+    margin-top: 3px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 8px;
+    line-height: 1.25;
+    font-weight: 700;
+    font-style: italic;
+    text-align: center;
+    color: #000000;
+}
+.wouldbeTickDate {
+    font-weight: 400;
+    color: #444444;
+    white-space: nowrap;
+}
+.wouldbeTickToday .wouldbeTickMark {
+    background: #FF2A55;
+}
+.wouldbeTickToday .wouldbeTodayText {
+    color: #FF2A55;
+}
+/* red "you" pill floating above the Today marker */
+.wouldbeYouBadge {
+    position: absolute;
+    bottom: 100%;
+    margin-bottom: 3px;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #FF2A55;
+    color: #FFFFFF;
+    border-radius: 360px;
+    font-size: 9px;
+    font-weight: 700;
+    font-style: italic;
+}

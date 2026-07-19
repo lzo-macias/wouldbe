@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from "react-router-dom";
-import axios from "axios"
-import "../../styling/Signup.css";
+import api from "../../lib/api"
+import "./Signup.css";
 import { CameraIcon, MapPinIcon, TagIcon, TextIcon, ChevronDown, ArrowRight } from "./icons";
 
 const US_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
@@ -11,12 +11,9 @@ const US_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","
 // account step. Saves profile fields → PUT /api/users/update/:id and interests →
 // PUT /api/users/:id/interests. The whole step is skippable.
 function AdditionalInfo() {
-    const API = import.meta.env.VITE_API_BASE_URL;
     const navigate = useNavigate();
 
     const userId = localStorage.getItem("userId");
-    const token = localStorage.getItem("token");
-    const auth = { headers: { Authorization: `Bearer ${token}` } };
 
     const [photoUrl, setPhotoUrl] = useState("");
     const [showPhotoInput, setShowPhotoInput] = useState(false);
@@ -32,28 +29,27 @@ function AdditionalInfo() {
 
     // issue-category vocabulary for the interests picker (public endpoint)
     useEffect(() => {
-        axios.get(`${API}/api/categories`)
+        api.get(`/api/categories`)
             .then((res) => setCategories(res.data || []))
             .catch(() => setCategories([]));
-    }, [API]);
+    }, []);
 
     function toggleInterest(key) {
         setInterests((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]);
     }
 
     async function save() {
-        await axios.put(
-            `${API}/api/users/update/${userId}`,
+        await api.put(
+            `/api/users/update/${userId}`,
             {
                 profile_photo_url: photoUrl || null,
                 state: state || null,
                 bio: bio || null,
                 political_lean: Number(lean),
-            },
-            auth
+            }
         );
         if (interests.length) {
-            await axios.put(`${API}/api/users/${userId}/interests`, { category_keys: interests }, auth);
+            await api.put(`/api/users/${userId}/interests`, { category_keys: interests });
         }
     }
 

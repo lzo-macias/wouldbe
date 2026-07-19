@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import "../../styling/Signup.css";
+import "./Signup.css";
 import { ArrowRight } from "./icons";
 
 // Screen 1 of signup: the two documents the user signs — Terms of Service, then

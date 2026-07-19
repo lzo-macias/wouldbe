@@ -1,5 +1,7 @@
 const express = require("express");
+const crypto = require("crypto");
 
+const r2 = require("../../services/r2");
 const {
     createPost,
     getPostById,
@@ -30,17 +32,17 @@ router.post("/posts", requireAuth, async (req, res, next) => {
     }
 });
 
-// POST /api/posts/upload-url — issue a presigned URL for a direct browser->R2
-// upload. R2 is an EXTERNAL Cloudflare service and is NOT part of the DB layer.
-// TODO(R2): wire @aws-sdk/client-s3 getSignedUrl (PutObjectCommand) against the
-// R2 bucket (endpoint = https://<account>.r2.cloudflarestorage.com, S3-compatible)
-// and return { uploadUrl, objectKey, publicUrl }. Stubbed until then.
+// POST /api/posts/upload-url — presigned URL for a direct browser->R2 upload.
+// Object key is namespaced per uploader (from the token). r2.getUploadUrl throws
+// 503 "not configured" until the R2_* env vars are set — same adapter pattern as
+// Stripe; no more hardcoded 501.
 router.post("/posts/upload-url", requireAuth, async (req, res, next) => {
     try {
-        return res.status(501).json({
-            error: "R2 presigned upload not yet implemented",
-            todo: "wire @aws-sdk/client-s3 getSignedUrl for the R2 bucket",
-        });
+        const ext = String(req.body?.ext || "mp4").replace(/[^a-z0-9]/gi, "").slice(0, 8) || "mp4";
+        const contentType = req.body?.contentType || "video/mp4";
+        const objectKey = `posts/${req.user.id}/${crypto.randomUUID()}.${ext}`;
+        const uploadUrl = await r2.getUploadUrl({ key: objectKey, contentType });
+        return res.json({ uploadUrl, objectKey });
     } catch (err) {
         next(err);
     }

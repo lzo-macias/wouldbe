@@ -17,6 +17,7 @@ const { recordConsent } = require("../../DB/platform/consent");
 const { recordAttestation } = require("../../DB/platform/attestation");
 const { getCurrentLegalDoc } = require("../../DB/platform/legalDocs");
 const { requireAuth, rateLimit } = require("../../middleware");
+const { hasUserJurisdictions } = require("../../DB/elections/userJurisdictions");
 
 const router = express.Router();
 
@@ -196,6 +197,24 @@ router.post("/login", async (req, res, next) => {
 // ============================================================================
 router.post("/logout", requireAuth, (_req, res) => {
     return res.status(200).json({ message: "Logged out" });
+});
+
+// ============================================================================
+// GET /me
+//   Return the currently authenticated user. requireAuth verifies the Bearer
+//   access token and attaches req.user (id, username, email, first_name,
+//   last_name), so we just hand that back. The frontend uses this to decide
+//   logged-in vs logged-out on page load. We also fold in has_jurisdictions — a
+//   first-class profile flag for "has this user resolved their address→districts
+//   yet?" — so any screen can gate on it without a separate request.
+// ============================================================================
+router.get("/me", requireAuth, async (req, res, next) => {
+    try {
+        const has_jurisdictions = await hasUserJurisdictions({ userId: req.user.id });
+        return res.status(200).json({ ...req.user, has_jurisdictions });
+    } catch (err) {
+        next(err);
+    }
 });
 
 // ============================================================================

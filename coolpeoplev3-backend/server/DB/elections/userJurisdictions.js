@@ -162,12 +162,23 @@ async function setUserJurisdictionsFromGeocode({ userId, address }) {
         return { status: 'needs_manual_pin', accuracy: geo.accuracy ?? 0 };
     }
 
-    // store derived geodata; NULL the address so it is never persisted.
+    // Persist NOTHING that can re-identify the user: NULL the address AND the
+    // coordinates. We keep only the derived jurisdiction links (coarse district
+    // ids). geo.lat/lng live only in-memory for the rest of this request (used by
+    // resolveCouncil below) and are never written to the DB.
+    // NOTE: dropping stored coords disables the deferred council backfill in
+    // load-boundaries (it reads users.latitude/longitude, now always NULL) —
+    // pending_local users are re-resolved via the by-state re-prompt flow instead.
+    // Also set users.state from the geocode: statewide offices (US Senate,
+    // Governor) match on users.state, not on jurisdiction links, so without this
+    // the caller resolves districts but qualifies for no statewide seats.
+    // COALESCE keeps any existing value if the geocode somehow lacks a state.
     await client.query(
-        `UPDATE users SET latitude = $2, longitude = $3, geocoded_at = now(),
-                          geocode_accuracy = $4, address = NULL
+        `UPDATE users SET geocoded_at = now(), geocode_accuracy = $2,
+                          state = COALESCE($3, state),
+                          address = NULL, latitude = NULL, longitude = NULL
          WHERE id = $1`,
-        [userId, geo.lat, geo.lng, geo.accuracy]
+        [userId, geo.accuracy, geo.state ?? null]
     );
 
     // resolvable layers (state/county/cd/sldu/sldl) — create-on-miss + link.
@@ -387,6 +398,18 @@ async function getUserJurisdictions({ userId }) {
     return rows;
 }
 
+// hasUserJurisdictions({ userId }) — cheap boolean source of truth: has this user
+// completed the address→district resolution? True iff they have ANY
+// user_jurisdictions row. Used to expose has_jurisdictions on the profile (/me)
+// so the app can tell "resolved" from "not yet" without loading the full layers.
+async function hasUserJurisdictions({ userId }) {
+    const { rows } = await client.query(
+        `SELECT EXISTS (SELECT 1 FROM user_jurisdictions WHERE user_id = $1) AS has`,
+        [userId]
+    );
+    return rows[0].has;
+}
+
 // ---------------------------------------------------------------------------
 // Notifier fan-out — who do we reach for an event scoped to a jurisdiction?
 // The resolver links a user to EVERY layer they belong to (state→county→cd→
@@ -473,6 +496,7 @@ module.exports = {
     markPlaceCouncilStructure,
     getPendingLocalForPlace,
     getUserJurisdictions,
+    hasUserJurisdictions,
     // notifier fan-out
     findUsersInJurisdiction,
     findUsersInJurisdictionTree,
