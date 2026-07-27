@@ -1,0 +1,35 @@
+/* ============================================================================
+   CSS 05 — transition + :hover     (mirrors .wouldbeCard / .hoveredWouldBeCard)
+   ----------------------------------------------------------------------------
+   `transition: <prop> <duration> <easing>` tells the browser to animate changes
+   to <prop> instead of snapping. Put it on the BASE rule (not only on :hover) so
+   it animates on the way IN and on the way OUT.
+   `:hover` is a pseudo-class — a rule that only applies while the pointer is over
+   the element. `overflow: hidden` clips anything taller than the box, so the
+   revealed content stays hidden until the height grows.
+
+   Note: in the real app the class SWAPS (wouldbeCard -> hoveredWouldBeCard) but
+   it's the same DOM node, so putting `transition` on both classes animates the
+   height either way — the same idea as one `:hover` rule here.
+
+   Fill the TODOs under `.yours`.
+   ============================================================================ */
+
+.yours .card {
+    /* TODO: 120px tall, clip overflow, and animate height changes (.25s ease) */
+    background: #111;
+    color: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    height: 120px;
+    overflow: hidden;
+    transition: height 0.25s ease
+}
+
+.yours .card:hover {
+    /* TODO: grow to 190px */
+    height: 190px;
+}
+
+.yours .name { font-weight: 700; }
+.yours .extra { margin-top: 14px; color: #f5d76e; font-size: 13px; }

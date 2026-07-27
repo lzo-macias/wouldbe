@@ -7,6 +7,14 @@
     min-height: 100vh;
 }
 
+/* Header + split fill the viewport as a column so the split (below the header)
+   can own the remaining height and scroll its own right column. */
+.wouldbeContent {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
 /* applied to the header+rows wrapper while the Qualify modal is open */
 .blurred {
     filter: blur(4px);

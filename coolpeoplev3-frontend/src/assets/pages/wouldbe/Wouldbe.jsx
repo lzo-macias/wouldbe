@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import Header from '../../component/header/Header'
 import WouldBeHeader from '../../component/header/WouldBeHeader'
-import WouldBeRows from '../../component/WouldBeRows/WouldBeRows'
+import WouldBeRows from '../../component/Wouldbe/WouldBeRows/WouldBeRows'
 import Qualify from '../../component/Qualify/Qualify'
 import api from '../../lib/api'
 import './Wouldbe.css'
@@ -50,7 +50,7 @@ function Wouldbe() {
   return (
     <div className='wouldbePage'>
         {/* <Header></Header> */}
-        <div className= {showQualifyScreen ? 'blurred' : ''}>
+        <div className={`wouldbeContent${showQualifyScreen ? ' blurred' : ''}`}>
           <WouldBeHeader onQualifyClick ={() => setShowQualifyScreen(true)} />
           {!checkingJurisdictions && <WouldBeRows offices = {qualifiedOffices}/>}
         </div>

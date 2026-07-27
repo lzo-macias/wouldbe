@@ -1,0 +1,75 @@
+/* Regulations panel — self-contained so it fits whatever container it's mounted
+   in (the WouldBe left panel today; reused elsewhere). It never forces its own
+   width: it fills the parent and wraps long content, so a narrow column can't
+   clip the heading or the source URL. */
+.RegualtionsMainContainerTwo {
+    display: flex;
+    min-width: 0;          /* allow shrinking inside a flex column */
+}
+
+.RegualtionsMainContainer {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 10px 0;
+}
+
+.RegualtionsMainContainer h2 {
+    font-style: italic;
+    font-weight: 700;
+    color: #000000;
+    font-size: 30px;
+    padding-bottom: 10px;
+}
+
+/* long eligibility URL wraps instead of pushing the column wider */
+.RegualtionsMainContainer a {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.regulationsIdentifiers {
+    padding-bottom: 50px;
+}
+
+.regulationsSubContainer {
+    padding-left: 20px;
+}
+
+/* one editable line + its inline "report an issue" form (shown in edit mode) */
+.editableField {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.inlineEditForm {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.hoverinput {
+    border: none;
+}
+
+/* edit toggle button + its hover hint / send status */
+.editbutnandtext {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+.editbtn {
+    padding-top: 20px;
+}
+.reportStatus {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+/* muted hint text shown while reporting a correction */
+.redtext {
+    color: gray;
+    opacity: 0.7;
+    font-style: italic;
+}

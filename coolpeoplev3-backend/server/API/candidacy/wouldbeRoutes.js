@@ -11,6 +11,7 @@ const {
     getWouldbeRankings,
     recordWouldbeCreationPayment,
     getWouldbeCreationPayment,
+    createWouldbeCreationPaymentIntent,
     setContributionProcessor,
     recordGoalReached,
     getRecommendedWouldbes,
@@ -21,9 +22,10 @@ const { requireAuth, requireAttestation, requireInternal } = require("../../midd
 const router = express.Router();
 
 const authed = [requireAuth];
-// Creating a campaign asserts candidacy eligibility (ATT). 'us_citizen' is the
-// candidacy attestation; swap/extend if the product gates on a different one.
-const candidate = [requireAuth, requireAttestation("us_citizen")];
+// Creating a campaign asserts candidacy eligibility (ATT). Requires BOTH the
+// adult age attestation ('age_18', recorded at signup for 18+ — minors only hold
+// 'age_13', so this blocks them) AND the 'us_citizen' candidacy attestation.
+const candidate = [requireAuth, requireAttestation("age_18"), requireAttestation("us_citizen")];
 
 // 400 for validation throws, 404 for not-found throws, else pass to the handler.
 const mapErr = (err, res, next) => {
@@ -43,9 +45,11 @@ router.post("/wouldbes", candidate, async (req, res, next) => {
 });
 
 // GET /wouldbes — live campaigns (non-retired), newest first.
-router.get("/wouldbes", async (_req, res, next) => {
+// GET /wouldbes?office_id=<uuid> — same, scoped to one office: only the WouldBes
+// actively running for that office right now (retired ones are excluded).
+router.get("/wouldbes", async (req, res, next) => {
     try {
-        return res.json(await listWouldbes());
+        return res.json(await listWouldbes({ office_id: req.query.office_id }));
     } catch (err) {
         next(err);
     }
@@ -106,6 +110,26 @@ router.get("/wouldbes/:id", async (req, res, next) => {
         return res.json(wouldbe);
     } catch (err) {
         next(err);
+    }
+});
+
+// POST /wouldbes/:id/creation-payment-intent — create the $5 Stripe PaymentIntent
+// for the creation fee and return its client_secret (owner only). Inserts a
+// 'pending' row; the webhook (metadata.kind "wouldbe_creation") confirms it and
+// stamps creation_fee_paid_at. INERT (503) until STRIPE_SECRET_KEY is set.
+router.post("/wouldbes/:id/creation-payment-intent", authed, async (req, res, next) => {
+    try {
+        const wb = await getWouldbeById({ id: req.params.id });
+        if (!wb) return res.status(404).json({ error: "WouldBe not found" });
+        if (wb.user_id !== req.user.id) return res.status(403).json({ error: "Not your WouldBe" });
+        const result = await createWouldbeCreationPaymentIntent({
+            wouldbe_id: req.params.id,
+            user_id: req.user.id,
+            stripe_customer_id: req.body?.stripe_customer_id ?? null,
+        });
+        return res.status(201).json(result);
+    } catch (err) {
+        mapErr(err, res, next);
     }
 });
 

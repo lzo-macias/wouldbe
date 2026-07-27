@@ -146,6 +146,9 @@ const dispatchStripeEvent = async (event) => {
                 case "debate_entry_one_off":
                     await require("./debatePayments").confirmDebatePayment(common);
                     return { handled: true };
+                case "wouldbe_creation":
+                    await require("../candidacy/wouldbe").confirmWouldbeCreationPayment(common);
+                    return { handled: true };
                 default:
                     // Unknown/absent kind — record but don't guess.
                     return { handled: false };

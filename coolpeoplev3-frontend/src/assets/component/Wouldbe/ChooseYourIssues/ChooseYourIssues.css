@@ -1,0 +1,310 @@
+.firstScreenBigContainer {
+  padding: 100px;
+  padding-top: 50px;
+  position:relative
+}
+
+.bigAttestationContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  padding-bottom: 50px;
+}
+
+.attestationContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+}
+
+.ageAttestationInput {
+  border-radius: 50%;
+}
+
+.eligibleAttestationInput { 
+
+}
+
+
+.visilble {
+  /* position: relative; */
+  max-width: 100%;
+}
+
+.interestsContainer {
+  padding-top: 50px;
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  gap: 25px;
+  
+}
+
+.interest {
+  background-color: var(--panel);      /* soft off-white */
+  color: var(--ink-2);                 /* dark text = high contrast, readable */
+  border: 1px solid var(--line);
+  padding: 6px 14px;
+  border-radius: 999px;                /* pill */
+  list-style: none;
+  cursor: pointer;
+  transition: background var(--ease), border-color var(--ease), color var(--ease);
+}
+.interest:hover {
+  border-color: var(--muted);
+  color: var(--ink);
+}
+
+/* selected = near-black chip, white text — grayscale, clearly "on" */
+.selectedInterest {
+  background-color: var(--ink);        /* #111114 */
+  color: var(--paper);                 /* white */
+  border: 1px solid var(--ink);
+  padding: 6px 14px;
+  border-radius: 999px;
+  list-style: none;
+  cursor: pointer;
+  transition: background var(--ease), border-color var(--ease), color var(--ease);
+}
+.MAINCONTINER {
+  position: relative;
+}
+.foot {
+  position: fixed;          /* anchored to the viewport, not the page */
+  bottom: 0;
+  left: 0;
+  right: 0;                 /* span the full width */
+  z-index: 100;            /* sit above page content */
+
+  display: flex;
+  justify-content: flex-end;   /* push the Skip button to the right */
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s4) var(--s8);
+
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+  /* soft lift so content scrolling under it reads as "behind" */
+  box-shadow: 0 -2px 12px rgba(16, 16, 20, 0.06);
+}
+
+.eligibleAttestationInput,
+.ageAttestationInput {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  border-radius: 50%;
+
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border: 2px solid var(--line);
+  cursor: pointer;
+  transition: background var(--ease), border-color var(--ease), box-shadow var(--ease);
+}
+
+/* checked = solid gold fill that glows */
+.ageAttestationInput:checked,
+.eligibleAttestationInput:checked {
+  background: var(--gold);
+  border-color: var(--gold);
+  /* layered halo: a tight bright ring + a soft wide bloom = "glowing gold" */
+  box-shadow:
+    0 0 0 3px var(--gold-soft),
+    0 0 10px 2px rgba(201, 164, 55, 0.75),
+    0 0 22px 4px rgba(201, 164, 55, 0.45);
+}
+
+.grayedOut {
+  pointer-events: none;
+  filter: blur(.5px);
+  user-select: none;
+  opacity: 0.5;
+}
+
+.grayedOutSkip {
+  pointer-events: none;
+  user-select: none;
+  filter: blur(.5px);
+
+}
+
+/* ---- Rate Your Politics slider ---- */
+.su-slider-block { margin: 8px 0 6px; }
+.su-slider-title { font-size: 18px; color: #000; margin-bottom: 12px; }
+.su-slider-row { position: relative; }
+.su-range {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 10px; border-radius: 999px;
+  background: linear-gradient(90deg, #111114,  #c9a437 100%);
+  outline: none; cursor: pointer;
+}
+.su-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: #fff; border: 3px solid var(--thumb, var(--gold)); cursor: grab;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  /* butter: ease the ring color + a gentle grow, no easing on left/position
+     so tracking the finger stays 1:1 while everything else glides */
+  transition: border-color .12s linear, transform .15s ease, box-shadow .15s ease;
+}
+.su-range::-moz-range-thumb {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: #fff; border: 3px solid var(--thumb, var(--gold)); cursor: grab;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  transition: border-color .12s linear, transform .15s ease, box-shadow .15s ease;
+}
+/* tactile feedback — grow + lift on hover, "press" on grab */
+.su-range:hover::-webkit-slider-thumb { transform: scale(1.08); box-shadow: 0 2px 8px rgba(0,0,0,.22); }
+.su-range:active::-webkit-slider-thumb { transform: scale(1.14); cursor: grabbing; }
+.su-range:hover::-moz-range-thumb { transform: scale(1.08); box-shadow: 0 2px 8px rgba(0,0,0,.22); }
+.su-range:active::-moz-range-thumb { transform: scale(1.14); cursor: grabbing; }
+.su-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--gold-soft); }
+.su-range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(--gold-soft); }
+
+.planOfActionContainer {
+  padding: 140px;
+  padding-top: 50px;
+  z-index: 1;
+}
+
+.planofaction {
+  font-size: 46px;
+  font-weight: 400;
+}
+
+.planofactiondecriptor {
+  padding-top: 5px;
+  font-style: italic;
+  margin-bottom: 20px;
+}
+
+.categoryslider{
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  /* horizontal scroll — the dropdown is portaled to <body>, so this clipping
+     no longer swallows the flyout */
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.categoryslider > * {
+  flex: 0 0 auto;
+}
+
+
+.categoryslider {
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* old Edge/IE */
+}
+.categoryslider::-webkit-scrollbar {
+  display: none;                /* Chrome, Safari, new Edge */
+}
+
+
+.categoryDropdown {
+  /* padding-top: 20px; */
+}
+
+.selectedCategory {
+  background-color: var(--ink);        /* #111114 */
+  color: var(--paper);                 /* white */
+  border: 1px solid var(--ink);
+  padding: 6px 14px;
+  border-radius: 999px;
+  list-style: none;
+  cursor: pointer;
+  transition: background var(--ease), border-color var(--ease), color var(--ease);
+  position: relative
+}
+
+/* the per-category wrapper must be positioned so the absolute dropdown
+   anchors to IT, not to the page */
+.categoryDropdownWrap {
+  position: relative;
+  z-index: 100;
+
+}
+
+.categoryDropdown {
+  /* portaled to <body>; JS sets top/left from the chip's rect */
+  position: fixed;
+  z-index: 1000;
+  margin-top: 6px;              /* small gap under the chip */
+  padding: 8px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 12px 34px rgba(16, 16, 20, 0.14);
+}
+
+.planDiv {
+  display: flex;
+  flex-direction: column;
+  /* border: 1px solid var(--muted); */
+  margin-bottom: 20px;
+}
+
+/* .planInput {
+  height: 400px;
+  position: sticky;
+  appearance: none;
+  border: none
+}
+
+.planInput::after {
+  height: 400px;
+  position: sticky;
+  appearance: none;
+  border: none
+} */
+
+.planInput {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;      
+  outline: none;      
+  background: transparent;
+  border: .5px solid var(--muted);
+  border-radius: 6px;
+  padding: 5px;
+}
+
+.x {
+  margin-left: auto;
+  padding-right: 10px;
+}
+
+.topicEntries {
+  padding-top: 20px;
+}
+
+
+.displayTopic {
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .su-range::-webkit-slider-thumb,
+  .su-range::-moz-range-thumb { transition: none; }
+}
+.su-bubble {
+  position: absolute; top: -34px; transform: translateX(-50%);
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--gold); color: var(--gold-ink);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 500;
+  transition: left .05s linear;
+  display: none;
+}
+.su-ends { display: flex; justify-content: space-between; margin-top: 8px; }
+.su-ends span { font-style: italic; font-weight: 500; font-size: 16px; color: #777; }

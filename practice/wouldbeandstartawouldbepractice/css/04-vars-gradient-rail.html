@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSS 04 — Custom properties + gradient rail</title>
+<link rel="stylesheet" href="./04-vars-gradient-rail.css">
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;background:#fafafa;color:#111}
+  h1{font-size:18px;margin:0 0 4px}
+  .goal{background:#fff8e1;border:1px solid #f0e0a8;border-radius:8px;padding:12px 16px;font-size:14px;margin:12px 0 20px;max-width:820px}
+  .goal code{background:#00000010;padding:1px 5px;border-radius:4px}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#888;margin:20px 0 8px}
+  .frame{border:1px dashed #ccc;border-radius:8px;padding:16px;background:#fff}
+  .row{margin:14px 0;font-size:12px;color:#888}
+
+  /* ---------- TARGET reference ---------- */
+  .target .rail{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--gold) 0%,var(--gold) var(--progress),var(--track) var(--progress),var(--track) 100%)}
+  .target{--gold:#c9a437;--track:#e7e7ea}
+</style>
+</head>
+<body>
+  <h1>CSS 04 — Progress rail from a CSS variable (the timeline rail)</h1>
+  <div class="goal">
+    The gold "how far to Today" rail is ONE gradient whose fill point is a variable the React code sets
+    inline: <code>style={{ '--progress': '57%' }}</code>. Recreate it: a <code>linear-gradient(90deg, …)</code>
+    that is gold from 0 to <code>var(--progress)</code> then gray from <code>var(--progress)</code> to 100%.
+    Two color stops at the SAME position make a hard edge (no blend). Define <code>--gold</code> and
+    <code>--track</code> once on <code>.yours</code> and reference them with <code>var()</code>. The per-rail
+    <code>--progress</code> is already set inline on each bar. Edit <code>04-vars-gradient-rail.css</code>.
+  </div>
+
+  <h2>Target</h2>
+  <div class="frame target">
+    <div class="row">--progress: 30%</div><div class="rail" style="--progress:30%"></div>
+    <div class="row">--progress: 57%</div><div class="rail" style="--progress:57%"></div>
+    <div class="row">--progress: 90%</div><div class="rail" style="--progress:90%"></div>
+  </div>
+
+  <h2>Yours</h2>
+  <div class="frame yours">
+    <div class="row">--progress: 30%</div><div class="rail" style="--progress:30%"></div>
+    <div class="row">--progress: 57%</div><div class="rail" style="--progress:57%"></div>
+    <div class="row">--progress: 90%</div><div class="rail" style="--progress:90%"></div>
+  </div>
+</body>
+</html>

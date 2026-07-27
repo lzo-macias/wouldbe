@@ -1,0 +1,54 @@
+/* ============================================================================
+   CSS 01 — flex split + min-width:0     (mirrors .mainContainer in WouldBeRows.css)
+   ----------------------------------------------------------------------------
+   The `flex` shorthand is: flex: <grow> <shrink> <basis>.
+     • flex: 0 0 160px  -> don't grow, don't shrink, start at 160px  = FIXED width
+     • flex: 1 1 0      -> grow to fill, may shrink, basis 0          = FLEXIBLE
+   THE GOTCHA you already hit for real: a flex item's default min-width is `auto`,
+   meaning it refuses to shrink below its content's intrinsic width. A long,
+   unbreakable URL then forces the whole column wider (and gets clipped by any
+   scroll ancestor). Fix: min-width:0 on the flexible item, plus overflow-wrap on
+   the URL so the text itself is allowed to break.
+
+   Fill in the TODOs. Only style under `.yours` so you don't touch the Target.
+   ============================================================================ */
+
+.yours .split {
+    /* TODO: lay the two children out in a row with a 16px gap */
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+}
+
+.yours .panel {
+    /* TODO: fixed 160px — no grow, no shrink */
+    background: #eef2ff;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 13px;
+    flex: 0 0 160px;
+}
+
+.yours .feed {
+    /* TODO: take the remaining space (grow 1, shrink 1, basis 0)
+       AND allow shrinking below content width so the URL can wrap */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.yours .card {
+    background: #111;
+    color: #fff;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 13px;
+}
+
+.yours .card a {
+    color: #f5d76e;
+    /* TODO: let the long URL break onto the next line instead of overflowing */
+    overflow-wrap: break-word;
+}

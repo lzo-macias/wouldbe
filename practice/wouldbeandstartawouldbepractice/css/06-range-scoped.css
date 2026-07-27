@@ -1,0 +1,54 @@
+/* ============================================================================
+   CSS 06 — range input pseudo-elements + scoping
+            (mirrors .goalSlider / .StartAWouldBeMainContainer input[type=range])
+   ----------------------------------------------------------------------------
+   Form controls are drawn by the OS until you opt out:
+     appearance: none;  (+ -webkit-appearance: none;)
+   Then the <input> element itself is the TRACK, and the draggable knob is a
+   pseudo-element you must style per-engine:
+     ::-webkit-slider-thumb   (Chrome/Safari — also needs its OWN appearance:none)
+     ::-moz-range-thumb       (Firefox)
+
+   SCOPING: every rule here starts with `.yours ` on purpose. An unscoped
+   `input[type=range] { … }` is a GLOBAL rule — it would repaint every slider on
+   every page. Scoping under a root class keeps component styles from leaking.
+
+   Fill the TODOs (keep them under `.yours`).
+   ============================================================================ */
+
+.yours input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    /* TODO: full width, 6px tall, pill radius, gray (#3a3a40) track, no outline */
+    width: 100%;
+    height: 6px;
+    border-radius: 9999px;
+    background-color: gray;
+    border: none;
+    outline: none;
+}
+
+.yours input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    /* TODO: 22px gold circle with a soft ring
+       (box-shadow: 0 0 0 5px rgba(201,164,55,.22)) and a pointer cursor */
+    height: 22px;
+    width: 22px;
+    background: #c9a437;
+    border-radius: 50%;
+    box-shadow: 0 0 0 5px rgba(201,164,55,.22);
+    cursor: pointer;
+}
+
+.yours input[type=range]::-moz-range-thumb {
+    /* TODO: same knob for Firefox (no border) */
+    -moz-range-appearance: none;
+    appearance: none;
+    height: 22px;
+    width: 22px;
+    background: #c9a437;
+    border-radius: 50%;
+    box-shadow: 0 0 0 5px rgba(201,164,55,.22);
+    cursor: pointer;
+}

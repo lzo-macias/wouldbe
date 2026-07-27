@@ -22,7 +22,7 @@ function App() {
         <Route path = "/signup" element = {<Signup/>} />
         <Route path = "/admin" element = {<RequireAdmin><Admin/></RequireAdmin>} />
         <Route path = '/wouldbe' element = {<Wouldbe/>}/>
-        <Route path = '/wouldbe/jurisdiction_id/officeId' element = {<StartAnOffice/>}/>
+        <Route path = '/wouldbe/:jurisdiction_id/:officeId' element = {<StartAnOffice/>}/>
       </Routes>
     </>
   )

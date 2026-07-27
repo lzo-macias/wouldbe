@@ -1,0 +1,94 @@
+/* ============================================================================
+   CSS 07 — CAPSTONE: sticky nav + clamp headline + wrapping URL
+            (mirrors WouldBeNavHeader.css + StartAWouldBe hero)
+   ----------------------------------------------------------------------------
+   position: sticky  — the element scrolls normally until it hits `top: 0`, then
+                       "sticks" there while its scroll container keeps scrolling.
+   backdrop-filter   — blurs whatever is BEHIND the element (needs a translucent
+                       background to show through). (≠ `filter`, which blurs the
+                       element itself.)
+   margin-left: auto — in a flex row, an auto margin eats all free space on that
+                       side, shoving the item (auth buttons) to the far edge.
+   clamp(min, pref, max) — a fluid value fenced by a floor and ceiling; here
+                       `5vw` grows with the window between 26px and 52px.
+   0.5em             — half the element's own font-size (so the subtitle scales
+                       with the headline).
+
+   Fill the TODOs under `.yours`.
+   ============================================================================ */
+
+.yours .scroller {
+    height: 260px;
+    overflow: auto;
+    background: radial-gradient(600px 200px at 80% -10%, #fbf6e6, transparent 60%), #fff;
+}
+
+.yours .nav {
+    /* TODO: stick to the top of the scroller; row layout, centered items, gap 14px,
+       58px tall, translucent white background with a backdrop blur, bottom border */
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    height: 58px;
+    background-color: rgba(255, 255, 255, 0.7);;
+    border-bottom: 1px solid black;
+    backdrop-filter: blur(10px);  
+}
+
+.yours .logo { font-weight: 800; font-style: italic; font-size: 20px; }
+
+.yours .search {
+    /* TODO: flex-grow to fill, but cap at 300px */
+    background: #f6f6f4;
+    border: 1px solid #e7e7ea;
+    border-radius: 999px;
+    padding: 8px 14px;
+    color: #8a8a93;
+    font-size: 13px;
+    flex: 1 0 0;
+    max-width: 300px;
+}
+
+.yours .auth {
+    /* TODO: push this group to the far right */
+    display: flex;
+    gap: 8px;
+    font-size: 13px;
+    color: #3a3a40;
+    margin-left: auto;
+}
+.yours .login { border: 1.5px solid #111; border-radius: 999px; padding: 5px 14px; }
+
+.yours .headline {
+    /* TODO: fluid size clamp(26px, 5vw, 52px); italic 800; lay logo + subtitle in a
+       baseline-aligned row that can wrap */
+    letter-spacing: -0.03em;
+    margin: 22px 16px 8px;
+    font-size: clamp(26px, 5vw, 52px);
+    font-style: italic;
+    font-weight: 800;
+    overflow-wrap: break-word;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    position: relative;
+}
+
+.yours .headline .sub {
+    /* TODO: half the headline size, upright, normal weight, gray */
+    font-size: 50%;
+    font-style: normal;
+    color: gray;
+    font-weight: 400;
+}
+
+.yours .src { margin: 0 16px 16px; }
+.yours .src a {
+    color: #b48f22;
+    /* TODO: let the long URL wrap */
+    overflow-wrap: break-word;
+}

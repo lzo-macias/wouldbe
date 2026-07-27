@@ -1,6 +1,10 @@
-import React, { useState, useEffect, useNavigate } from 'react'
+import React, { useState, useEffect } from 'react'
+import DeadlineTimeline from './DeadlineTimeline';
+import { DEADLINE_LABELS, formatDeadlineDate, formatUSD } from './deadlineFormat';
 import api from '../../../lib/api';
 import "./WouldBeRows.css"
+import { useNavigate } from 'react-router-dom';
+import Regulations from '../Regulations/Regulations';
 
 // Show the offices we hold data for, ranked by how many recommendations the
 // caller has received for each office (most-recommended first). Each card shows
@@ -12,7 +16,6 @@ import "./WouldBeRows.css"
 // Offices with no state (e.g. President, which is national) sink to the bottom.
 // office_name is the final tiebreak so ordering within a state stays stable.
 
-const navigate = useNavigate()
 
 function byStateThenName(a, b) {
     const sa = a.state_code || null;
@@ -23,39 +26,12 @@ function byStateThenName(a, b) {
     return sa.localeCompare(sb) || a.office_name.localeCompare(b.office_name);
 }
 
-// Human-readable label for each deadline_type, for the hover breakdown.
-const DEADLINE_LABELS = {
-    petition_circulation_start: "Petitioning opens",
-    petition_filing_deadline: "Petition due",
-    filing_close: "Filing closes",
-    primary_date: "Primary",
-    general_date: "General election",
-    fec_quarterly_q1: "FEC Q1 report",
-    fec_quarterly_q2: "FEC Q2 report",
-    fec_quarterly_q3: "FEC Q3 report",
-    fec_pre_primary_report: "FEC pre-primary report",
-    fec_pre_general_report: "FEC pre-general report",
-    fec_post_general_report: "FEC post-general report",
-    fec_year_end: "FEC year-end report",
-};
+// DEADLINE_LABELS, formatDeadlineDate and formatUSD now live in ./deadlineFormat
+// (shared with DeadlineTimeline) — imported above.
 
 // The deadline types that actually gate candidacy — an office is shown only if one
 // of these is still upcoming, and the soonest drives the card's headline date.
 const ACTIONABLE_DEADLINES = new Set(["filing_close", "petition_filing_deadline"]);
-
-// Format a bare YYYY-MM-DD as "Mar 15, 2026". Appending T00:00:00 forces LOCAL
-// time so a date-only value doesn't slip a day backward in a negative-offset TZ.
-function formatDeadlineDate(iso) {
-    const d = new Date(`${String(iso).slice(0, 10)}T00:00:00`);
-    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-}
-
-// Recommended-goal cents -> "$30,000". No fractional dollars — goals are round.
-function formatUSD(cents) {
-    return (cents / 100).toLocaleString("en-US", {
-        style: "currency", currency: "USD", maximumFractionDigits: 0,
-    });
-}
 
 // The candidacy milestones we plot on the hover timeline (in chronological order).
 // The FEC financial-report dates are intentionally excluded — they'd crowd the
@@ -68,64 +44,85 @@ const TIMELINE_TYPES = [
     "general_date",
 ];
 
+// The hover card in the WouldBe list plots ONLY these milestones (+ Today, which
+// the timeline adds itself). StartAnOffice shows every deadline instead.
+const HOVER_DEADLINE_TYPES = ["filing_close", "petition_filing_deadline", "primary_date", "general_date"];
+
 
 
 // A timeline of ALL an office's deadlines in chronological order, with a "Today"
 // marker in its place. Points are spaced EVENLY (not by real date) so that with
 // every name + date always shown, no two labels ever overlap — the card stays the
 // fixed size of a collapsed card. Same-day deadlines collapse into one line.
-function DeadlineTimeline({ deadlines, goalCents }) {
-    const today = new Date().toISOString().slice(0, 10);
-    const ms = (iso) => new Date(`${iso}T00:00:00`).getTime();
 
-    // group every deadline by date so same-day deadlines share one line
-    const byDate = new Map();
-    for (const d of deadlines ?? []) {
-        const label = DEADLINE_LABELS[d.type] ?? d.type;
-        if (byDate.has(d.date)) byDate.get(d.date).labels.push(label);
-        else byDate.set(d.date, { date: d.date, labels: [label], isToday: false });
+
+// Headline date for a card: soonest upcoming filing/petition deadline (else a
+// year fallback / TBD).
+function formatDeadline(office, deadlineByJurisdiction) {
+    const iso = deadlineByJurisdiction[office.jurisdiction_id];
+    if (iso) return formatDeadlineDate(iso);
+    if (office.next_election_year) return `${office.next_election_year} election`;
+    return "Filing date TBD";
+}
+
+// One office card. HOVER shows this office's regulations (onHover) and lazily
+// loads its recommended goal; CLICK opens the full StartAWouldBe flow (onOpen).
+// Defined at MODULE scope (not inside WouldBeRows) so that selecting an office —
+// a parent re-render — doesn't change this component's identity and remount every
+// card, which would wipe each card's local `hovered` state mid-hover.
+function RenderCard({ office, count, deadlineByJurisdiction, onHover, onOpen }) {
+    const [hovered, setHovered] = useState(false);
+    // undefined = not fetched yet, null = none on record, number = cents
+    const [goalCents, setGoalCents] = useState(undefined);
+    const recd = count > 0;
+
+    async function handleEnter() {
+        setHovered(true);
+        onHover(office);                 // load THIS office's regulations into the panel
+        if (goalCents !== undefined) return;
+        try {
+            const res = await api.get(`/api/offices/${office.id}/recommended-goal`);
+            setGoalCents(res.data?.recommended_goal_cents ?? null);
+        } catch (err) {
+            console.error(err);
+            setGoalCents(null);
+        }
     }
-    // fold Today in — reuse the line if a deadline already lands on today's date
-    if (byDate.has(today)) byDate.get(today).isToday = true;
-    else byDate.set(today, { date: today, labels: [], isToday: true });
-
-    const points = [...byDate.values()].sort((a, b) => ms(a.date) - ms(b.date));
-    const n = points.length;
-    // even spacing across the track, in chronological order
-    const leftPct = (i) => (n === 1 ? 50 : (i / (n - 1)) * 100);
 
     return (
-        <div className="wouldbeTimelineWrap">
-            {goalCents != null && (
-                <div className="wouldbeGoal">Recommended financing goal: {formatUSD(goalCents)}</div>
-            )}
-            <div className="wouldbeTimeline">
-                <div className="wouldbeTimelineLine" />
-                {points.map((p, i) => (
-                    <div
-                        key={p.date}
-                        className={`wouldbeTick${p.isToday ? " wouldbeTickToday" : ""}`}
-                        style={{ left: `${leftPct(i)}%` }}
-                    >
-                        {p.isToday && <span className="wouldbeYouBadge">you</span>}
-                        <span className="wouldbeTickMark" />
-                        <span className="wouldbeTickLabel">
-                            {p.isToday ? (
-                                <span className="wouldbeTodayText">Today</span>
-                            ) : (
+        <div
+            className={hovered ? 'hoveredWouldBeCard' : "wouldbeCard"}
+            onMouseEnter={handleEnter}
+            onMouseLeave={() => setHovered(false)}
+        >
+            {hovered ? (
+                <div onClick={() => onOpen(office)}>
+                    {goalCents != null && (
+                        <div className='hoveredGoalChip'>Recommended financing goal <b>{formatUSD(goalCents)}</b></div>
+                    )}
+                    <h3 className='hoveredWouldBeName'>{office.state_code}:     {office.office_name}</h3>
+                    <DeadlineTimeline deadlines={office.deadlines} allowedTypes={HOVER_DEADLINE_TYPES} />
+                </div>
+            ) : (
+                <>
+                    <div className='deadlineAmtIncumbent'>
+                        <div className='deadlineAndAmount'>
+                            <h3 className='deadline'>{formatDeadline(office, deadlineByJurisdiction)}   </h3>
+                            {recd && (
                                 <>
-                                    {p.labels.map((l, j) => <span key={j}>{l}</span>)}
-                                    <span className="wouldbeTickDate">{formatDeadlineDate(p.date)}</span>
+                                    <span className='redCircle'></span>
+                                    <h3 className='amount'>{count} ppl  recommended you</h3>
                                 </>
                             )}
-                        </span>
+                        </div>
+                        <div className='Incumbent'></div>
                     </div>
-                ))}
-            </div>
+                    <h3 className='officeOrWouldbeName'>{office.state_code}:    {office.office_name}</h3>
+                </>
+            )}
         </div>
     );
 }
-
 
 function WouldBeRows({ offices: officesProp }) {
     const [recommendations, setRecommendations] = useState([]);
@@ -141,8 +138,8 @@ function WouldBeRows({ offices: officesProp }) {
     // list so we can tell "too young" apart from "qualified, but windows have closed."
     const [anyQualified, setAnyQualified] = useState(false);
     const [loggedin, setLoggedIn] = useState(false);
-
-    useEffect(() => {
+    const navigate = useNavigate()
+        useEffect(() => {
         async function loadData() {
             try {
                 let [recRes, offRes] = [{}, {}]
@@ -252,75 +249,52 @@ function WouldBeRows({ offices: officesProp }) {
             }
         }
         loadData();
+
 // and add officesProp to the effect's dependency array so it re-runs when it arrives:
     }, [officesProp]);
 
-    // Headline date for a card: the soonest upcoming filing/petition deadline (a
-    // specific date like "Mar 15, 2026"). Displayed offices always have one — the
-    // runnable filter guarantees it — so the year/TBD fallbacks are last resorts.
-    function formatDeadline(office) {
-        const iso = deadlineByJurisdiction[office.jurisdiction_id];
-        if (iso) return formatDeadlineDate(iso);
-        if (office.next_election_year) return `${office.next_election_year} election`;
-        return "Filing date TBD";
-    }
+    // The office whose Regulations panel is shown beside the list (null = none yet).
+    const [selectedOffice, setSelectedOffice] = useState(null)
 
-    // One office card: deadline/next-election label, optional "recommended you"
-    // tally, and the office name.
-    function RenderCard({ office, count }) {
-        const [hovered, setHovered] = useState(false);
-        // undefined = not fetched yet, null = none on record, number = cents
-        const [goalCents, setGoalCents] = useState(undefined);
-        const recd = count > 0;
-
-        // Lazily pull the recommended financing goal the first time the card is
-        // hovered — no need to fetch a goal for every card up front.
-        async function handleEnter() {
-            setHovered(true);
-            if (goalCents !== undefined) return;
-            try {
-                const res = await api.get(`/api/offices/${office.id}/recommended-goal`);
-                setGoalCents(res.data?.recommended_goal_cents ?? null);
-            } catch (err) {
-                console.error(err);
-                setGoalCents(null);
-            }
+    // Hovering a card selects its office and loads THAT office's eligibility, then
+    // shapes the object into what <Regulations> expects:
+    //   - regulations: the eligibility row (Regulations reads office.regulations.*)
+    //   - deadlines:   WouldBeRows carries { type, date }; Regulations wants
+    //                  { deadline_type, deadline_date } — normalize so its filing
+    //                  line renders. Defaults keep Regulations from crashing on a
+    //                  missing eligibility row (fields just render blank).
+    async function selectOffice(office) {
+        const deadlines = (office.deadlines ?? []).map((d) => ({
+            deadline_type: d.type,
+            deadline_date: d.date,
+        }))
+        try {
+            const eligRes = await api.get(`/api/offices/${office.id}/eligibility`)
+            setSelectedOffice({ ...office, regulations: eligRes.data ?? {}, deadlines })
+        } catch (err) {
+            console.error(err)
+            setSelectedOffice({ ...office, regulations: {}, deadlines })
         }
-
-        return (
-            <div
-                key = {office.id}
-                className = {hovered ? 'hoveredWouldBeCard' : "wouldbeCard"}
-                onMouseEnter = {handleEnter}
-                onMouseLeave = {() => setHovered(false)}
-            >
-                {hovered ? (
-                    <>
-                        <div onClick={navigate(`/wouldbe/${office.id}`)}>
-                            <h3 className='hoveredWouldBeName'>{office.state_code}:     {office.office_name}</h3>
-                            <DeadlineTimeline deadlines={office.deadlines} goalCents=   {goalCents} />
-                        </div>
-                    </>
-                ): (
-                    <>
-                        <div className='deadlineAmtIncumbent'>
-                            <div className='deadlineAndAmount'>
-                                <h3 className='deadline'>{formatDeadline(office)}   </h3>
-                                {recd && (
-                                    <>
-                                    <span className='redCircle'></span>
-                                        <h3 className='amount'>{count} ppl  recommended you</h3>
-                                    </>
-                                )}
-                            </div>
-                            <div className='Incumbent'></div>
-                        </div>
-                        <h3 className='officeOrWouldbeName'>{office.state_code}:    {office.office_name}</h3>                  
-                    </>
-                )}
-            </div>
-        )
     }
+
+
+    // Click a card -> full StartAWouldBe flow for that office.
+    function openOffice(office) {
+        navigate(`/wouldbe/${office.jurisdiction_id}/${office.id}`);
+    }
+
+    // One mapped card, wired to hover->show-regulations and click->open. Pass this
+    // straight to .map so every list renders identical, correctly-wired cards.
+    const renderOfficeCard = (o) => (
+        <RenderCard
+            key={o.id}
+            office={o}
+            count={counts[o.id]}
+            deadlineByJurisdiction={deadlineByJurisdiction}
+            onHover={selectOffice}
+            onOpen={openOffice}
+        />
+    );
 
     // Bucket offices by required age, ascending -> [{ age, list }], so the UI can
     // show "Eligible at age 18 / 25 / 30 …" sub-sections.
@@ -338,6 +312,27 @@ function WouldBeRows({ offices: officesProp }) {
 
     if (loading) return <div>Loading…</div>;
 
+    // The Regulations panel shown to the LEFT of the list. Its jurisdiction fields
+    // come straight off the office row (listOffices joins the jurisdiction in), so
+    // no extra jurisdiction fetch is needed. Continue proceeds to the full flow.
+    const selectedJurisdiction = selectedOffice
+        ? { state_code: selectedOffice.state_code, name: selectedOffice.jurisdiction_name, type: selectedOffice.jurisdiction_type }
+        : null;
+
+    const regulationsPanel = (
+        <div className="regulationContainer">
+            {selectedOffice ? (
+                <Regulations
+                    office={selectedOffice}
+                    jurisdiction={selectedJurisdiction}
+                    onComplete={() => navigate(`/wouldbe/${selectedOffice.jurisdiction_id}/${selectedOffice.id}`)}
+                />
+            ) : (
+                <p className="regulationsPlaceholder">Hover an office to see its rules.</p>
+            )}
+        </div>
+    );
+
     // "Relevant" mode: the parent handed us offices annotated with qualifies /
     // relevance_tier (a logged-in, address-resolved user). Show what they qualify
     // for, then what they don't yet (by required age) in their own districts, then
@@ -349,24 +344,16 @@ function WouldBeRows({ offices: officesProp }) {
         if (!offices.length && loggedin == true) return <div>no qualified offices at this moment</div>;
         const visibleOffices = offices.slice(0, visibleCount);
         return (
-            <div id="wouldBeRowsMainContainer" className='wouldBeRowsMainContainer'>
-                {visibleOffices.map((o) => (
-                    <RenderCard key ={o.id} office = {o} count = {counts[o.id]} />
-                ))}
-                {(offices.length > visibleOffices.length ) && ( // why doesnt this button work
-                    <>
+            <div className='mainContainer'>
+                {regulationsPanel}
+                <div id="wouldBeRowsMainContainer" className='wouldBeRowsMainContainer'>
+                    {visibleOffices.map(renderOfficeCard)}
+                    {(offices.length > visibleOffices.length ) && (
                         <button className='loadmorebutton' onClick={() => setVisibleCount((c) => c + 10)}>
                         load more
-                        </button>                       
-                    </>
-                )}
-                {/* {(loggedin = true) && (
-                    <>
-                        <button className='loadmorebutton' onClick={() => setVisibleCount((c) => c + 10)}>
-                        load more
-                        </button>                       
-                    </>
-                )} */}
+                        </button>
+                    )}
+                </div>
             </div>
         );
     }
@@ -388,11 +375,13 @@ function WouldBeRows({ offices: officesProp }) {
     }
 
     return loggedin ? (
+        <div className='mainContainer'>
+            {regulationsPanel}
             <div id="wouldBeRowsMainContainer" className='wouldBeRowsMainContainer'>
             {qualified.length > 0 ? (
                 <>
                     <h2 className='wouldbeSectionHeader'>Offices you can run for</h2>
-                    {qualified.map(renderCard)}
+                    {qualified.map(renderOfficeCard)}
                 </>
             ) : anyQualified ? (
                 <p className='wouldbeEmptyNote'>
@@ -412,9 +401,7 @@ function WouldBeRows({ offices: officesProp }) {
                     {groupByAge(districtLater).map(({ age, list }) => (
                         <React.Fragment key={`d-${age}`}>
                             <h3 className='wouldbeAgeHeader'>Eligible at age {age}</h3>
-                            {list.map((o) => (
-                                <RenderCard key ={o.id} office = {o} count = {counts[o.id]}/>
-                            ))}
+                            {list.map(renderOfficeCard)}
                         </React.Fragment>
                     ))}
                 </>
@@ -426,23 +413,25 @@ function WouldBeRows({ offices: officesProp }) {
                     {groupByAge(stateLater).map(({ age, list }) => (
                         <React.Fragment key={`s-${age}`}>
                             <h3 className='wouldbeAgeHeader'>Eligible at age {age}</h3>
-                            {list.map((o) => (
-                                <RenderCard key ={o.id} office = {o} count = {counts[o.id]}/>
-                            ))}                        
+                            {list.map(renderOfficeCard)}                        
                         </React.Fragment>
                     ))}
                 </>
             )}
         </div>
+    </div>
         ):(
+        <div className='mainContainer'>
+            {regulationsPanel}
             <div id="wouldBeRowsMainContainer" className='wouldBeRowsMainContainer'>
             {offices.length > 0 && (
                 <>
                     <h2 className='wouldbeSectionHeader'>Offices you can run for</h2>
-                    {offices.map(renderCard)}
+                    {offices.map(renderOfficeCard)}
                 </>
             )}
             </div>
+        </div>
     )
 }
 

@@ -1,0 +1,33 @@
+/* ============================================================================
+   CSS 04 — custom properties + gradient hard-stops    (mirrors .dlRail / .rail)
+   ----------------------------------------------------------------------------
+   A CSS custom property is just `--name: value`, read back with `var(--name)`
+   (optionally `var(--name, fallback)`). They cascade and inherit, so React can
+   set `--progress` inline on ONE element and your gradient reads it.
+
+   `linear-gradient(90deg, c1 0%, c1 X, c2 X, c2 100%)` puts TWO stops of
+   different colors at the SAME position X — that produces a crisp edge instead
+   of a fade. Here X is `var(--progress)`, so the gold length is data-driven.
+
+   Fill the TODOs under `.yours`. `--progress` is provided per-bar inline.
+   ============================================================================ */
+
+.yours {
+    /* TODO: define the two palette variables used below */
+    /* --gold: ...; --track: ...; */
+    --gold: #c9a437;
+    --track: #8a8a93;
+}
+
+.yours .rail {
+    height: 8px;
+    border-radius: 4px;
+    /* TODO: gold from 0 to var(--progress), then var(--track) to 100%,
+       using a hard stop (two stops at var(--progress)) */
+    background: linear-gradient(
+        to right,
+        var(--gold) var(--progress),
+        var(--track) var(--progress),
+        var(--track) 100%
+    );
+}

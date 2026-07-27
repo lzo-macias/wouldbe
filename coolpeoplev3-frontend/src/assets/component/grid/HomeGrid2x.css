@@ -66,11 +66,12 @@ body {
     /* margin-left: 20px;
     margin-right: 20px; */
     margin: 5vw;
-    margin-top: 1vw;
+    margin-top: 25px;
     /* margin-right: -20px; */
     margin-right: 200px;
     margin-left: 150px;
-    
+      max-width: 1180px;
+    margin: 0 auto;
 }
 
 .biggridcomponent {
@@ -230,12 +231,13 @@ body {
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    max-width: 220px;
 }
 
 .smallgridcomponentDebate {
     background-color: #D4B84D;
     /* opacity: 20%; */
-    
+
 }
 
 .DebateTitle {
@@ -448,7 +450,7 @@ body {
     flex-direction: row;
     margin: 10px;
     border-radius: 12px;
-    width: 180px; 
+    width: 180px;
     height: 90px;
 }
 
@@ -475,7 +477,7 @@ body {
     width: 80px;
 }
 
-@media (max-width: 1393px) {
+@media (max-width: 2093px) {
     .lowersection { 
         min-height:0px;
     }

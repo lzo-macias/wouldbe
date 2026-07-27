@@ -1,0 +1,73 @@
+/* ============================================================================
+   CSS 03 — absolute positioning + translate centering
+            (mirrors .dlRail / .dlPin / .dlYouflag / .hoveredGoalChip)
+   ----------------------------------------------------------------------------
+   `position: absolute` takes an element OUT of normal flow and positions it by
+   top/right/bottom/left against its nearest positioned ancestor (an ancestor
+   with position relative/absolute/fixed/sticky). So the parent gets
+   `position: relative` to become that anchor.
+
+   Centering trick: offsets place an element's EDGE. To center it ON a point,
+   move the edge to the point, then shift back half the element's own width:
+       left: 40%; transform: translateX(-50%);
+   For dead-center on a line use translate(-50%, -50%).
+
+   Fill the TODOs under `.yours`.
+   ============================================================================ */
+
+.yours .card {
+    /* TODO: become the positioning anchor for the children below */
+    height: 130px;
+    background: #f5f7fa;
+    border: 1px solid #e7e7ea;
+    border-radius: 12px;
+    position: relative;
+}
+
+.yours .chip {
+    /* TODO: pin to the top-right corner (12px down, 16px in) */
+    font-size: 11px;
+    color: #8a8a93;
+    position: absolute;
+    top: 12px;
+    left: 16px;
+}
+.yours .chip b { color: #c9a437; font-size: 13px; }
+
+.yours .rail {
+    /* TODO: a 3px horizontal line, inset 18px on left AND right, 80px from top */
+    background: #e7e7ea;
+    border-radius: 2px;
+    position: absolute;
+    top: 80px;
+    height: 3px;
+    left: 18px;
+    right: 18px;
+}
+
+.yours .marker {
+    /* TODO: a 13px rose dot centered ON the rail at 40% across
+       (hint: left/top to the point, then translate(-50%,-50%)) */
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #f5385d;
+    z-index: 2;
+    position: absolute;
+    left: 40%;
+    transform: translate(-50%, -50%)
+}
+
+.yours .bubble {
+    /* TODO: the YOU pill, horizontally centered at 40%, sitting above the rail */
+    background: #f5385d;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 999px;
+    position: absolute;
+    left: 40%;
+    top: 50px;
+    transform: translateX(-50%);
+}

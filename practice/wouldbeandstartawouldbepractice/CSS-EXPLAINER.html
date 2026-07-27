@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CSS Explainer — Wouldbe &amp; StartAWouldBe</title>
+<style>
+  @page { size: letter; margin: 16mm 15mm; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font: 13px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1a1a1e; margin: 0; }
+  h1 { font-size: 30px; letter-spacing: -0.02em; margin: 0 0 4px; }
+  h1 .it { font-style: italic; }
+  h2 { font-size: 19px; letter-spacing: -0.01em; margin: 26px 0 8px; padding-bottom: 5px; border-bottom: 2px solid #c9a437; page-break-after: avoid; }
+  h3 { font-size: 14.5px; margin: 16px 0 5px; color: #0d0d0f; page-break-after: avoid; }
+  p { margin: 6px 0; }
+  .lead { color: #444; font-size: 14px; }
+  .sub { color: #6b6b73; font-size: 12px; margin-top: 2px; }
+  code { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px; background: #f2f2ef; padding: 1px 5px; border-radius: 4px; color: #7a4b00; }
+  pre { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 11px; line-height: 1.5; background: #0d0d12; color: #e8e8ea; padding: 11px 13px; border-radius: 8px; overflow-x: auto; margin: 8px 0; }
+  pre .c { color: #8a8f98; }        /* comment */
+  pre .k { color: #f5d76e; }        /* keyword/prop */
+  pre .v { color: #8fd6a0; }        /* value */
+  section { page-break-inside: avoid; }
+  .card { border: 1px solid #e7e7ea; border-radius: 10px; padding: 12px 14px; margin: 10px 0; page-break-inside: avoid; }
+  .where { background: #f7f6f1; border-left: 3px solid #c9a437; padding: 7px 11px; border-radius: 0 6px 6px 0; font-size: 12px; margin: 8px 0; }
+  .where b { color: #b48f22; }
+  .gotcha { background: #fdf1f2; border-left: 3px solid #f5385d; padding: 7px 11px; border-radius: 0 6px 6px 0; font-size: 12px; margin: 8px 0; }
+  .gotcha b { color: #d81f45; }
+  table { border-collapse: collapse; width: 100%; font-size: 11.5px; margin: 8px 0; }
+  th, td { border: 1px solid #e2e2e5; padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #f2f2ef; }
+  .tag { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #b48f22; background: #f5ecd0; padding: 2px 7px; border-radius: 999px; }
+  .toc { columns: 2; font-size: 12px; margin: 10px 0 4px; }
+  .toc a { color: #1a1a1e; text-decoration: none; }
+  hr { border: none; border-top: 1px solid #e7e7ea; margin: 22px 0; }
+  .footer { margin-top: 24px; color: #8a8a93; font-size: 11px; text-align: center; }
+</style>
+</head>
+<body>
+
+<h1><span class="it">would be</span> — the CSS behind the two pages</h1>
+<p class="lead">Every layout tool used in <code>Wouldbe.jsx</code>, <code>StartAnOffice.jsx</code>,
+<code>StartAWouldBe.jsx</code> and their components — what it does, the exact commands, where it
+lives in the real code, and the trap that bit us. Pair each section with its <code>css/NN-*.html</code>
+practice page.</p>
+
+<div class="toc">
+  1. The mental model (cascade + box model)<br>
+  2. Units: px · % · vw · em · rem · fr · clamp<br>
+  3. Flexbox — the split &amp; the columns<br>
+  4. Grid — proportional tracks<br>
+  5. Positioning + centering + z-index<br>
+  6. Overflow — the clipping bug<br>
+  7. Custom properties (the JS→CSS boundary)<br>
+  8. Gradients — the progress rail<br>
+  9. Transitions &amp; :hover<br>
+  10. Selectors, specificity &amp; scoping<br>
+  11. Typography &amp; text wrapping<br>
+  12. Pseudo-elements — styling the slider<br>
+  13. Borders, radius, shadows, pills<br>
+  14. filter vs backdrop-filter<br>
+  15. Media queries<br>
+  16. Map of the real files
+</div>
+
+<hr>
+
+<section>
+<h2>1 · The mental model</h2>
+<h3>The cascade &amp; specificity</h3>
+<p>When two rules touch the same element, the winner is decided by (1) importance, (2)
+<b>specificity</b> — an inline style beats an id beats a class beats a tag — then (3) source
+order (last wins on a tie). Two of your bugs were cascade bugs: <code>.blurred</code> defined in
+three files all hitting one element, and an inline <code>align-items: baseline</code> quietly
+overriding a class's <code>center</code>.</p>
+<h3>The box model</h3>
+<p>Every element is a box: <code>content → padding → border → margin</code>. Widths get confusing
+because by default <code>width</code> means the <i>content</i> width, so padding+border are added
+<i>on top</i>. Fix it globally so <code>width</code> means the whole box:</p>
+<pre><span class="c">/* used at the top of StartAWouldBe.css */</span>
+<span class="k">*</span> { <span class="k">box-sizing</span>: <span class="v">border-box</span>; }</pre>
+<div class="where"><b>In the code:</b> <code>box-sizing: border-box</code> on the scoped root so
+padding never blows a panel past its column width.</div>
+</section>
+
+<section>
+<h2>2 · Units</h2>
+<table>
+<tr><th>Unit</th><th>Means</th><th>Used for</th></tr>
+<tr><td><code>px</code></td><td>absolute pixels</td><td>borders, small fixed sizes, pin sizes</td></tr>
+<tr><td><code>%</code></td><td>percent of the <i>parent</i></td><td>rail insets (<code>left: 5.5%</code>), widths</td></tr>
+<tr><td><code>vw / vh</code></td><td>1% of viewport width / height</td><td>the fluid part of <code>clamp()</code>; full-screen heights</td></tr>
+<tr><td><code>em</code></td><td>× the element's own font-size</td><td>subtitle <code>0.55em</code>, logo <code>1.1em</code></td></tr>
+<tr><td><code>rem</code></td><td>× the <i>root</i> font-size</td><td>section headers (<code>1.1rem</code>)</td></tr>
+<tr><td><code>fr</code></td><td>a share of grid free space</td><td>the 3 columns <code>305fr 280fr 377fr</code></td></tr>
+</table>
+<pre><span class="c">/* fluid, but fenced: min 28px, grows with the window, never past 46px */</span>
+<span class="k">font-size</span>: <span class="v">clamp(28px, 4vw, 46px)</span>;</pre>
+<div class="where"><b>In the code:</b> the headline uses <code>clamp()</code>; the gray subtitle is
+<code>0.55em</code> of it, so shrinking the headline shrinks the subtitle with it. <span class="tag">practice 06 + 07</span></div>
+</section>
+
+<section>
+<h2>3 · Flexbox — one-dimensional layout</h2>
+<p>Turn a container into a flex row/column, then each child gets a <code>flex</code> shorthand:
+<code>flex: &lt;grow&gt; &lt;shrink&gt; &lt;basis&gt;</code>.</p>
+<pre><span class="c">/* the WouldBe two-column split */</span>
+<span class="k">.mainContainer</span> { <span class="k">display</span>: <span class="v">flex</span>; <span class="k">gap</span>: <span class="v">32px</span>; }
+<span class="k">.regulationContainer</span> { <span class="k">flex</span>: <span class="v">0 0 360px</span>; }   <span class="c">/* fixed: no grow/shrink, 360px */</span>
+<span class="k">.wouldBeRowsMainContainer</span> { <span class="k">flex</span>: <span class="v">1 1 0</span>; <span class="k">min-width</span>: <span class="v">0</span>; }  <span class="c">/* fill the rest */</span></pre>
+<p>Alignment: <code>align-items</code> is the cross axis (<code>stretch</code> makes children equal
+height), <code>justify-content</code> is the main axis (<code>space-between</code> pushes first to
+one end, last to the other). <code>margin-left: auto</code> on one child eats the free space and
+shoves it to the far edge (how the nav's auth buttons sit right).</p>
+<div class="gotcha"><b>The trap:</b> a flex item's default is <code>min-width: auto</code> — it
+<i>won't</i> shrink below its content. A long word/URL then forces the column wider. Add
+<code>min-width: 0</code> to let it shrink (then <code>overflow-wrap</code> breaks the text).
+<span class="tag">practice 01</span></div>
+</section>
+
+<section>
+<h2>4 · Grid — two-dimensional / proportional tracks</h2>
+<p>Grid defines columns up front. <code>fr</code> units hold a <i>ratio</i> at any width — no vw
+math, no media query to keep proportions.</p>
+<pre><span class="k">.grid</span> {
+  <span class="k">display</span>: <span class="v">grid</span>;
+  <span class="k">grid-template-columns</span>: <span class="v">305fr 280fr 377fr</span>;  <span class="c">/* keeps the ratio */</span>
+  <span class="k">gap</span>: <span class="v">22px</span>;
+  <span class="k">align-items</span>: <span class="v">stretch</span>;              <span class="c">/* all columns = tallest one */</span>
+}</pre>
+<div class="where"><b>In the code:</b> the StartAWouldBe 3-up. When the column count is dynamic (the
+timeline), the template is set <i>inline</i> from React: <code>repeat(${n}, 1fr)</code> — a
+static <code>.css</code> can't know <code>n</code>. <span class="tag">practice 02</span></div>
+</section>
+
+<section>
+<h2>5 · Positioning &amp; centering</h2>
+<table>
+<tr><th>value</th><th>behavior</th></tr>
+<tr><td><code>static</code></td><td>normal flow (default)</td></tr>
+<tr><td><code>relative</code></td><td>stays in flow, but becomes an <b>anchor</b> for absolute children; can nudge with top/left</td></tr>
+<tr><td><code>absolute</code></td><td>out of flow, placed against the nearest positioned ancestor</td></tr>
+<tr><td><code>sticky</code></td><td>flows until it hits <code>top:0</code>, then pins while the container scrolls</td></tr>
+<tr><td><code>fixed</code></td><td>pinned to the viewport</td></tr>
+</table>
+<pre><span class="c">/* center a marker ON a point: edge to the point, then pull back half its size */</span>
+<span class="k">.marker</span> { <span class="k">position</span>: <span class="v">absolute</span>; <span class="k">left</span>: <span class="v">40%</span>; <span class="k">transform</span>: <span class="v">translateX(-50%)</span>; }</pre>
+<p><b>z-index</b> only reorders <i>overlapping, positioned</i> boxes (who paints on top). It is
+<u>not</u> about clipping — see §6.</p>
+<div class="where"><b>In the code:</b> the timeline card is <code>relative</code>; the rail, pins, the
+rose YOU flag and the corner goal chip are all <code>absolute</code> inside it. The nav is
+<code>sticky</code>. <span class="tag">practice 03 + 07</span></div>
+</section>
+
+<section>
+<h2>6 · Overflow — and the clipping bug you hit</h2>
+<p><code>overflow</code> controls what happens to content bigger than its box:
+<code>visible</code> (spills, default), <code>hidden</code> (clipped), <code>auto/scroll</code>
+(scrollbars). Two axes: <code>overflow-x</code>, <code>overflow-y</code>.</p>
+<div class="gotcha"><b>The bug:</b> the regulations text was cut off. Cause: an inner block had
+<code>min-width: 70vw</code>, far wider than its ~32% column, and the column had
+<code>overflow-y: auto</code>. <b>Setting one axis to <code>auto</code> forces the other from
+<code>visible</code> to <code>auto</code> too</b> — so the too-wide content was clipped on the
+x-axis. <code>z-index</code> can't fix clipping. The fix was <code>min-width: 0</code> +
+<code>width: 100%</code> + wrapping the URL.</div>
+</section>
+
+<section>
+<h2>7 · Custom properties — the JS → CSS boundary</h2>
+<p>A variable is <code>--name: value</code>, read with <code>var(--name, fallback)</code>. They
+cascade and inherit, so React can set one inline and your stylesheet reads it. This is the clean
+seam between "compute in JS" and "paint in CSS".</p>
+<pre><span class="c">/* React sets the number: */</span>  &lt;div className=<span class="v">"rail"</span> style={{ <span class="v">'--progress'</span>: `${progress}%` }} /&gt;
+<span class="c">/* CSS consumes it (see §8) */</span></pre>
+<p>Design tokens work the same way — <code>--gold</code>, <code>--ink</code>, <code>--line</code>
+declared once on the scoped root, reused everywhere, so a palette change is one edit.</p>
+<div class="where"><b>In the code:</b> <code>--progress</code> drives the rail; the color tokens live
+on <code>.StartAWouldBeMainContainer</code> and <code>.wbNav</code>. <span class="tag">practice 04</span></div>
+</section>
+
+<section>
+<h2>8 · Gradients</h2>
+<p><code>linear-gradient(angle, stops…)</code> paints along a line. The trick for a hard progress
+bar: put <b>two stops at the same position</b> so there's no blend — a crisp edge.</p>
+<pre><span class="k">background</span>: <span class="v">linear-gradient</span>(<span class="v">90deg</span>,
+  <span class="v">#c9a437 0%, #c9a437 var(--progress)</span>,      <span class="c">/* gold up to progress */</span>
+  <span class="v">#e7e7ea var(--progress), #e7e7ea 100%</span>);    <span class="c">/* gray after — hard edge */</span></pre>
+<p><code>radial-gradient</code> makes the soft warm glow behind the hero
+(<code>radial-gradient(1200px 600px at 82% -8%, …)</code>).</p>
+<div class="where"><b>In the code:</b> the timeline rail (both the StartAWouldBe and the hover
+card) and the hero background. <span class="tag">practice 04</span></div>
+</section>
+
+<section>
+<h2>9 · Transitions &amp; :hover</h2>
+<p><code>transition: &lt;prop&gt; &lt;duration&gt; &lt;easing&gt;</code> animates a change instead of
+snapping. Put it on the <b>base</b> rule so it eases in <i>and</i> out. <code>:hover</code> is a
+pseudo-class — only active while the pointer is over the element.</p>
+<pre><span class="k">.wouldbeCard</span> { <span class="k">height</span>: <span class="v">130px</span>; <span class="k">transition</span>: <span class="v">height 0.2s ease</span>; }
+<span class="k">.hoveredWouldBeCard</span> { <span class="k">height</span>: <span class="v">165px</span>; <span class="k">transition</span>: <span class="v">height 0.2s ease</span>; <span class="k">overflow</span>: <span class="v">hidden</span>; }</pre>
+<div class="where"><b>In the code:</b> the card grows on hover. React swaps the class, but it's the
+same DOM node, so putting <code>transition</code> on both classes animates either way.
+<span class="tag">practice 05</span></div>
+</section>
+
+<section>
+<h2>10 · Selectors, specificity &amp; scoping</h2>
+<p>Component CSS leaks globally unless you scope it. A bare <code>input[type=range] { … }</code>
+or <code>button { … }</code> restyles <i>every</i> such element in the app. Prefix every rule with
+a component root:</p>
+<pre><span class="k">.StartAWouldBeMainContainer input[type=range]</span> { … }   <span class="c">/* scoped: can't leak */</span>
+<span class="k">.wbNav-qualify</span> { … }                              <span class="c">/* component-prefixed class */</span></pre>
+<div class="gotcha"><b>The trap:</b> <code>.blurred</code> was defined in three stylesheets and all
+loaded on the page, so the winner was just "last file in". Consolidating to one definition (and
+scoping the rest) is why the consolidation pass mattered. <span class="tag">practice 06</span></div>
+</section>
+
+<section>
+<h2>11 · Typography &amp; text wrapping</h2>
+<p>Key properties: <code>font-family</code>, <code>font-size</code>, <code>font-weight</code>
+(400 normal / 700–800 bold), <code>font-style</code> (<code>italic</code> — <b>not</b>
+<code>bold</code>; a real bug we fixed was <code>font-style: bold</code>), <code>line-height</code>,
+<code>letter-spacing</code>, <code>text-transform</code>.</p>
+<pre><span class="c">/* let a long unbreakable URL wrap instead of forcing the column wider */</span>
+<span class="k">a</span> { <span class="k">word-break</span>: <span class="v">break-word</span>; <span class="k">overflow-wrap</span>: <span class="v">anywhere</span>; }</pre>
+<div class="where"><b>In the code:</b> the eligibility source URL in Regulations; the clamp headline.
+<span class="tag">practice 01 + 07</span></div>
+</section>
+
+<section>
+<h2>12 · Pseudo-elements — styling a range input</h2>
+<p>Form controls are OS-drawn until you opt out with <code>appearance: none</code>. Then the
+<code>&lt;input&gt;</code> is the track and the knob is a per-engine pseudo-element.</p>
+<pre><span class="k">input[type=range]</span> { <span class="k">-webkit-appearance</span>: <span class="v">none</span>; <span class="k">appearance</span>: <span class="v">none</span>; <span class="k">height</span>: <span class="v">6px</span>; <span class="k">background</span>: <span class="v">#3a3a40</span>; }
+<span class="k">input[type=range]::-webkit-slider-thumb</span> { <span class="k">-webkit-appearance</span>: <span class="v">none</span>; <span class="k">width</span>: <span class="v">22px</span>; <span class="k">height</span>: <span class="v">22px</span>; <span class="k">border-radius</span>: <span class="v">50%</span>; <span class="k">background</span>: <span class="v">#c9a437</span>; }
+<span class="k">input[type=range]::-moz-range-thumb</span> { … }   <span class="c">/* Firefox needs its own */</span></pre>
+<p>Related: <code>::before</code>/<code>::after</code> inject decorative content; pseudo-classes
+like <code>:hover</code>, <code>:last-child</code>, <code>:disabled</code> match by state/position.</p>
+<div class="where"><b>In the code:</b> the goal slider on StartAWouldBe. <span class="tag">practice 06</span></div>
+</section>
+
+<section>
+<h2>13 · Borders, radius, shadows, pills</h2>
+<pre><span class="k">border-radius</span>: <span class="v">999px</span>;                 <span class="c">/* fully-rounded pill (NO INCUMBENT, chips) */</span>
+<span class="k">box-shadow</span>: <span class="v">0 12px 34px rgba(16,16,20,.06)</span>;  <span class="c">/* soft lift on cards */</span>
+<span class="k">box-shadow</span>: <span class="v">0 0 0 5px rgba(201,164,55,.22)</span>;   <span class="c">/* a RING (no offset/blur) around the slider knob */</span></pre>
+<p><code>box-shadow: x y blur spread color</code>. A shadow with only spread and no blur reads as a
+solid ring — used for the slider thumb and the rose caret.</p>
+</section>
+
+<section>
+<h2>14 · filter vs backdrop-filter</h2>
+<p><code>filter: blur(4px)</code> blurs the <b>element itself</b> (used to blur the page behind the
+Qualify modal). <code>backdrop-filter: blur(10px)</code> blurs whatever is <b>behind</b> a
+translucent element (the frosted sticky nav). Easy to confuse; they do opposite things.</p>
+<div class="where"><b>In the code:</b> <code>.blurred</code> (modal) = <code>filter</code>;
+<code>.wbNav</code> (header) = <code>backdrop-filter</code>. <span class="tag">practice 07</span></div>
+</section>
+
+<section>
+<h2>15 · Media queries</h2>
+<pre><span class="k">@media</span> (<span class="v">max-width: 900px</span>) {
+  <span class="k">.grid</span> { <span class="k">grid-template-columns</span>: <span class="v">1fr</span>; }   <span class="c">/* 3-up collapses to a stack */</span>
+  <span class="k">.wbNav-search</span> { <span class="k">display</span>: <span class="v">none</span>; }
+}</pre>
+<p>A breakpoint re-declares only what must change below a width. Because <code>fr</code> and
+<code>clamp()</code> already flex, you need <i>fewer</i> of these than you'd think.</p>
+</section>
+
+<section>
+<h2>16 · Map of the real files</h2>
+<table>
+<tr><th>Concept</th><th>Where it lives</th></tr>
+<tr><td>flex split, min-width:0, card sizing, hover transition</td><td><code>WouldBeRows.css</code></td></tr>
+<tr><td>compact timeline (rail/pins/YOU), gradient, absolute</td><td><code>WouldBeRows.css</code> (<code>.dl*</code>)</td></tr>
+<tr><td>modal blur (<code>filter</code>) + full-height column</td><td><code>Wouldbe.css</code></td></tr>
+<tr><td>scoped tokens, grid fr, clamp, positioned timeline, scoped slider</td><td><code>StartAWouldBe.css</code></td></tr>
+<tr><td>sticky nav, backdrop-filter, margin-left:auto</td><td><code>WouldBeNavHeader.css</code></td></tr>
+<tr><td>self-contained panel, wrapping URL, moved-from-inline classes</td><td><code>Regulations.css</code></td></tr>
+</table>
+</section>
+
+<div class="footer">Practice set: <b>wouldbeandstartawouldbepractice</b> · pair each section with its <code>css/NN-*.html</code> · answers in <code>SOLUTIONS.md</code></div>
+
+</body>
+</html>

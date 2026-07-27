@@ -11,6 +11,7 @@ function Debate() {
 
     <div className='debategradient'>
         <Header/>
+
         <div className='maincontainer'>
             <div className='masonryOrStreamOrPostsOrGrid'>
               <img 

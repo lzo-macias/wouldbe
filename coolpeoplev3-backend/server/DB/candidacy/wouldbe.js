@@ -1,4 +1,5 @@
 const { client } = require("../index.js")
+const stripe = require("../../services/stripe")
 
 // POST /wouldbes createWouldbe 🔲 (compliance gate; entry_path , starts launch status=draft ; enforce $5K–$1M) A, ATT 🔲
 
@@ -20,10 +21,21 @@ const createWouldbeV2 = async ({
     contest_external_ids = null,
 }) => {
     try {
-        // Required fields (the rest are nullable or DB-defaulted).
-        if (!title || !description || !user_id || goal_cents == null || !deadline) {
-            throw new Error("title, description, user_id, goal_cents and deadline are required")
+        // Required fields (the rest are nullable or DB-defaulted). race_id is
+        // required: every WouldBe runs for a specific race, and the race is the
+        // single source of truth for the election cycle (races.election_cycle /
+        // general_date). Without it we can't tell which cycle a WouldBe belongs
+        // to, so past-cycle campaigns couldn't be aged out of the feed.
+        if (!title || !description || !user_id || goal_cents == null || !deadline || !race_id) {
+            throw new Error("title, description, user_id, goal_cents, deadline and race_id are required")
         }
+
+        // The race owns the office too, so derive office_id from it rather than
+        // trusting the caller — keeps wouldbe.office_id and races.office_id from
+        // ever diverging.
+        const raceRow = await client.query(`SELECT office_id FROM races WHERE id = $1`, [race_id])
+        if (!raceRow.rows.length) throw new Error("race_id does not match any race")
+        office_id = raceRow.rows[0].office_id
 
         // Enforce the $5K–$1M goal window.
         const goal = Number(goal_cents)
@@ -89,16 +101,32 @@ const createWouldbeV2 = async ({
 // GET /wouldbes listWouldbes 🔲— 🔲
 // Public list = LIVE campaigns (non-retired), newest first. (Was filtering
 // `retired = true`, which returned only the dead ones.)
-const listWouldbes = async ({} = {}) => {
+// listWouldbes({ office_id }) — live campaigns for the CURRENT cycle, newest
+// first. "Current" is enforced two ways:
+//   1. retired IS NOT TRUE           — manual/auto retirement (missed filing
+//                                       proof, eliminated in primary, etc.)
+//   2. r.general_date >= CURRENT_DATE — the race's general election hasn't
+//                                       happened yet. Once it passes, that cycle
+//                                       is over for the office and its WouldBes
+//                                       drop off automatically, while a newer
+//                                       cycle's WouldBes (later general_date)
+//                                       keep showing. This is the backstop for
+//                                       when the auto-retire jobs haven't run.
+// office_id optional: pass it to scope to one office. Filtering on r.office_id
+// (NOT NULL, authoritative) rather than w.office_id keeps office + cycle aligned.
+const listWouldbes = async ({ office_id = null } = {}) => {
     try{
         const SQL = `
-            SELECT *
-            FROM wouldbe
-            WHERE retired IS NOT TRUE
-            ORDER BY created_at DESC
+            SELECT w.*, r.election_cycle, r.general_date
+            FROM wouldbe w
+            JOIN races r ON r.id = w.race_id
+            WHERE w.retired IS NOT TRUE
+              AND r.general_date >= CURRENT_DATE
+              AND ($1::uuid IS NULL OR r.office_id = $1)
+            ORDER BY w.created_at DESC
         `
 
-        const result = await client.query(SQL)
+        const result = await client.query(SQL, [office_id])
 
         return result.rows
 
@@ -526,6 +554,100 @@ const checkWouldbeCanPostVideos = async ({ wouldbeId }) => {
     return rows[0];
 };
 
+// ---------------------------------------------------------------------------
+// $5 creation fee — Stripe PaymentIntent flow (mirrors post_payments).
+//   createWouldbeCreationPaymentIntent → creates the PaymentIntent and inserts a
+//   'pending' row carrying the pi_ id. The webhook (metadata.kind ===
+//   "wouldbe_creation") flips it to 'succeeded'/'failed' via
+//   confirmWouldbeCreationPayment and stamps wouldbe.creation_fee_paid_at on
+//   success. INERT until STRIPE_SECRET_KEY is set (services/stripe throws 503).
+// ---------------------------------------------------------------------------
+const WOULDBE_CREATION_FEE_CENTS = 500  // $5
+
+const createWouldbeCreationPaymentIntent = async ({
+    wouldbe_id,
+    user_id,
+    amount_cents = WOULDBE_CREATION_FEE_CENTS,
+    currency = "usd",
+    stripe_customer_id = null,
+} = {}) => {
+    if (!wouldbe_id || !user_id) throw new Error("wouldbe_id and user_id are required")
+    if (!amount_cents || amount_cents <= 0) throw new Error("amount_cents must be a positive integer")
+
+    const intent = await stripe.createPaymentIntent({
+        amount_cents,
+        currency,
+        customer: stripe_customer_id || undefined,
+        metadata: { kind: "wouldbe_creation", wouldbe_id, user_id },
+    })
+
+    try {
+        const { rows } = await client.query(
+            `INSERT INTO wouldbe_creation_payments (
+                id, wouldbe_id, user_id, amount_cents, currency,
+                stripe_customer_id, stripe_payment_intent_id, status
+             ) VALUES (
+                uuid_generate_v4(), $1, $2, $3, $4, $5, $6, 'pending'
+             )
+             RETURNING *`,
+            [wouldbe_id, user_id, amount_cents, currency, stripe_customer_id ?? null, intent?.id ?? null]
+        )
+        return { payment: rows[0], client_secret: intent?.client_secret ?? null }
+    } catch (err) {
+        if (err.code === "23505") throw new Error("a creation payment already exists for this payment intent")
+        if (err.code === "23503") throw new Error("wouldbe_id or user_id does not exist")
+        console.error(err)
+        throw err
+    }
+}
+
+const confirmWouldbeCreationPayment = async ({
+    stripe_payment_intent_id,
+    status = "succeeded",
+    stripe_charge_id = null,
+    failure_reason = null,
+} = {}) => {
+    if (!stripe_payment_intent_id) throw new Error("stripe_payment_intent_id is required")
+    try {
+        // Flip the pending row (idempotent — only matches while still 'pending')
+        // and stamp the wouldbe's creation_fee_paid_at on success.
+        const SQL = `
+            WITH pay AS (
+                UPDATE wouldbe_creation_payments
+                   SET status = $2,
+                       stripe_charge_id = COALESCE($3, stripe_charge_id),
+                       failure_reason = COALESCE($4, failure_reason),
+                       charged_at = CASE WHEN $2 = 'succeeded' THEN NOW() ELSE charged_at END
+                 WHERE stripe_payment_intent_id = $1
+                   AND status = 'pending'
+                RETURNING *
+            ),
+            stamp AS (
+                UPDATE wouldbe
+                   SET creation_fee_paid_at = NOW()
+                 WHERE id = (SELECT wouldbe_id FROM pay)
+                   AND $2 = 'succeeded'
+                   AND creation_fee_paid_at IS NULL
+                RETURNING id
+            )
+            SELECT * FROM pay;
+        `
+        const upd = await client.query(SQL, [stripe_payment_intent_id, status, stripe_charge_id, failure_reason])
+        if (upd.rows.length) return upd.rows[0]
+
+        // Already processed (or unknown) — return the existing row idempotently.
+        const { rows } = await client.query(
+            `SELECT * FROM wouldbe_creation_payments WHERE stripe_payment_intent_id = $1`,
+            [stripe_payment_intent_id]
+        )
+        if (!rows.length) throw new Error("no creation payment for this payment intent")
+        return rows[0]
+    } catch (err) {
+        console.error(err)
+        throw err
+    }
+}
+
 module.exports = {
     createWouldbeV2,
     listWouldbes,
@@ -538,6 +660,8 @@ module.exports = {
     // Debate Update
     recordWouldbeCreationPayment,
     getWouldbeCreationPayment,
+    createWouldbeCreationPaymentIntent,
+    confirmWouldbeCreationPayment,
     setContributionProcessor,
     recordGoalReached,
     // §6 remaining

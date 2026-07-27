@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSS 01 — Flex split + min-width:0</title>
+<link rel="stylesheet" href="./01-flex-split-minwidth.css">
+<style>
+  /* ---------- page chrome (ignore) ---------- */
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:24px;background:#fafafa;color:#111}
+  h1{font-size:18px;margin:0 0 4px}
+  .goal{background:#fff8e1;border:1px solid #f0e0a8;border-radius:8px;padding:12px 16px;font-size:14px;margin:12px 0 20px;max-width:820px}
+  .goal code{background:#00000010;padding:1px 5px;border-radius:4px}
+  .lane{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 380px;min-width:0}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#888;margin:0 0 8px}
+  .frame{border:1px dashed #ccc;border-radius:8px;padding:10px;background:#fff}
+
+  /* ---------- TARGET reference — peeking here == reading SOLUTIONS ---------- */
+  .target .split{display:flex;gap:16px}
+  .target .panel{flex:0 0 160px;background:#eef2ff;border-radius:8px;padding:12px;font-size:13px}
+  .target .feed{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:10px}
+  .target .card{background:#111;color:#fff;border-radius:8px;padding:12px;font-size:13px}
+  .target .card a{color:#f5d76e;word-break:break-word;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+  <h1>CSS 01 — Two-column flex split (the WouldBe layout)</h1>
+  <div class="goal">
+    Build a <b>fixed left panel + flexible right feed</b>, matching <b>Target</b>.
+    Rules: the panel is exactly <code>160px</code> and never shrinks; the feed takes the rest and its
+    long URL must <b>wrap</b> instead of pushing the layout wider. The trick that makes wrapping work:
+    a flex item defaults to <code>min-width:auto</code> (won't shrink below its content) — set
+    <code>min-width:0</code> so it can. Edit <code>01-flex-split-minwidth.css</code>; style only under <code>.yours</code>.
+  </div>
+  <div class="lane">
+    <div class="col"><h2>Target</h2>
+      <div class="frame target">
+        <div class="split">
+          <div class="panel">Regulations panel<br>(fixed 160px)</div>
+          <div class="feed">
+            <div class="card">LA: US Representative LA-1</div>
+            <div class="card">Source: <a href="#">https://constitution.congress.gov/constitution/article-1/section-2/</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col"><h2>Yours</h2>
+      <div class="frame yours">
+        <div class="split">
+          <div class="panel">Regulations panel<br>(fixed 160px)</div>
+          <div class="feed">
+            <div class="card">LA: US Representative LA-1</div>
+            <div class="card">Source: <a href="#">https://constitution.congress.gov/constitution/article-1/section-2/</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

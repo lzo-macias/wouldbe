@@ -1,20 +1,57 @@
+/* The split: fills the height left under the header, two columns side by side.
+   LEFT = fixed-width regulations panel, RIGHT = scrollable office-card column. */
+.mainContainer {
+    display: flex;
+    flex: 1;
+    min-height: 0;      /* let children scroll instead of growing the row */
+    gap: 32px;
+    overflow: hidden;
+    padding: 0 32px;
+}
+
+/* LEFT — fixed width, always visible. Scrolls internally if its own content is
+   taller than the viewport; does NOT move when the list on the right scrolls. */
+.regulationContainer {
+    flex: 0 0 360px;
+    height: 100%;
+    overflow-y: auto;
+    padding: 24px 8px;
+    box-sizing: border-box;
+    min-width: 500px; 
+    margin-left: 100px;
+    margin-top: 100px;
+}
+
+.regulationsPlaceholder {
+    color: #6b6b7b;
+    font-style: italic;
+}
+
+/* RIGHT — the scrollable column of office cards. */
 .wouldBeRowsMainContainer {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: 50px;
+    gap: 20px;
+    padding: 24px 0;
 }
 
 .wouldbeCard {
     display: flex;
     flex-direction: column;
     background-color: #000000;
-    width: 60vw;
-    /* margin-right: 200px; */
+    width: 100%;
+    max-width: 760px;
     color: white;
-    margin-bottom: 40px;
+    margin-bottom: 24px;
     border-radius: 12px;
-    height: 150px;
+    height: 130px;
+    flex-shrink: 0;   /* don't let the flex column squish cards into slivers */
+    transition: height 0.2s ease;   /* animate the grow/shrink on hover */
 }
 
 .deadlineAndAmount {
@@ -43,13 +80,9 @@
     font-size: 30px;
     color: white;
     margin-left: 30px;
-    font-style: bold;
+    font-weight: 700;
 }
 
-.blurred {
-    backdrop-filter: blur(6px);
-    background: rgba(0, 0, 0, 0.3); 
-}
 /* Relevant-mode grouped feed: section + age-interval headers, empty/no-qualify
    notes. Added for the qualify-aware WouldBe view. */
 .wouldbeSectionHeader {
@@ -80,14 +113,16 @@
     display: flex;
     flex-direction: column;
     background: linear-gradient(90deg, rgba(153, 153, 153, 0.1) 0%, rgba(204, 204, 204, 0.2) 17.79%, rgba(204, 204, 204, 0.2) 58.89%, rgba(153, 153, 153, 0.1) 100%);
-    width: 60vw;
-    /* margin-right: 200px; */
+    width: 100%;
+    max-width: 760px;       /* identical footprint to the collapsed .wouldbeCard */
     color: black;
-    margin-bottom: 40px;
+    margin-bottom: 24px;
     border-radius: 12px;
-    height: 150px;          /* same fixed size as the collapsed .wouldbeCard */
+    height: 165px;          /* a little taller than the collapsed 130px */
     overflow: hidden;
     z-index: 1;
+    flex-shrink: 0;         /* don't let the flex column squish it into a sliver */
+    transition: height 0.2s ease;   /* sleek expand from the collapsed card */
 }
 
 /* ---- hover timeline ------------------------------------------------------ */
@@ -98,89 +133,113 @@
     font-weight: 700;
     color: #000000;
 }
-.wouldbeTimelineWrap {
-    padding: 6px 40px;
-}
-/* goal pinned to the top-right so it costs no vertical space in the fixed card */
-.wouldbeGoal {
+/* recommended financing goal, pinned to the top-right of the hovered card */
+.hoveredGoalChip {
     position: absolute;
-    top: 14px;
-    right: 18px;
-    background: #FFFFFF;
-    border-radius: 12px;
-    padding: 5px 12px;
-    font-size: 12px;
-    font-weight: 700;
-    font-style: italic;
-    color: #000000;
+    top: 12px;
+    right: 16px;
+    z-index: 2;
+    font-size: 11px;
+    font-weight: 600;
+    color: #8a8a93;
 }
-.wouldbeTimeline {
+.hoveredGoalChip b {
+    color: #c9a437;
+    font-size: 13px;
+}
+/* ---- hover timeline: matches StartAWouldBe (gold rail, round pins, rose YOU
+   flag) but compact and with NO per-deadline amounts ---------------------- */
+.dlTimeline {
+    overflow-x: auto;
+    padding: 8px 26px 6px;
+}
+.dlTrack {
     position: relative;
-    height: 62px;
-    margin-top: 34px;   /* room for the "you" badge floating above the line */
+    display: grid;
+    align-items: start;     /* every pin sits on the rail regardless of label length */
 }
-.wouldbeTimelineLine {
+.dlRail {
     position: absolute;
-    top: 13px;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: #000000;
+    left: 5.5%;
+    right: 5.5%;
+    top: 37px;
+    height: 3px;
+    border-radius: 2px;
+    /* --progress is set per-render to the "Today" pin position */
+    background: linear-gradient(
+        90deg,
+        #c9a437 0%,
+        #c9a437 var(--progress, 0%),
+        #e7e7ea var(--progress, 0%),
+        #e7e7ea 100%
+    );
 }
-.wouldbeTick {
-    position: absolute;
-    top: 13px;                 /* start at the axis line, grow downward */
-    transform: translateX(-50%);
+.dlNode {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 60px;
-}
-/* short uniform line from the axis down to its label */
-.wouldbeTickMark {
-    width: 1px;
-    height: 16px;
-    background: #000000;
-    flex-shrink: 0;
-}
-/* always-on label: name(s) on top, date beneath, small enough to stay legible */
-.wouldbeTickLabel {
-    margin-top: 3px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    font-size: 8px;
-    line-height: 1.25;
-    font-weight: 700;
-    font-style: italic;
     text-align: center;
-    color: #000000;
+    padding: 0 5px;
 }
-.wouldbeTickDate {
-    font-weight: 400;
-    color: #444444;
+.dlPin {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #e7e7ea;
+    margin-top: 33px;       /* pin center (~38px) lands on the rail */
+    position: relative;
+    z-index: 2;
+}
+.dlNode.dlDone .dlPin {
+    border-color: #c9a437;
+    background: #c9a437;
+}
+.dlNode.dlToday .dlPin {
+    border-color: #f5385d;
+    background: #f5385d;
+}
+.dlLabel {
+    font-size: 10px;
+    font-weight: 700;
+    color: #0d0d0f;
+    margin-top: 9px;
+    line-height: 1.2;
+}
+.dlNode.dlToday .dlLabel {
+    color: #f5385d;
+}
+.dlDate {
+    font-size: 9.5px;
+    color: #8a8a93;
+    margin-top: 2px;
     white-space: nowrap;
 }
-.wouldbeTickToday .wouldbeTickMark {
-    background: #FF2A55;
-}
-.wouldbeTickToday .wouldbeTodayText {
-    color: #FF2A55;
-}
-/* red "you" pill floating above the Today marker */
-.wouldbeYouBadge {
+/* rose "YOU" flag hanging in the empty area above the today pin, stem to rail */
+.dlYouflag {
     position: absolute;
-    bottom: 100%;
-    margin-bottom: 3px;
-    width: 26px;
-    height: 26px;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 33px;           /* spans from node top down to the pin */
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    background: #FF2A55;
-    color: #FFFFFF;
-    border-radius: 360px;
-    font-size: 9px;
-    font-weight: 700;
-    font-style: italic;
+    z-index: 3;
 }
+.dlBubble {
+    background: #f5385d;
+    color: #fff;
+    font-weight: 800;
+    font-size: 9.5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    box-shadow: 0 4px 12px rgba(245, 56, 93, 0.4);
+}
+.dlStem {
+    width: 2px;
+    flex: 1;                /* fills the gap down to the pin */
+    background: #f5385d;
+}
+
