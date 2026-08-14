@@ -67,7 +67,10 @@ function StartAWouldBe({ office, jurisdiction, onComplete }) {
 
 const startACampaign = async () => {
     const userId = localStorage.getItem("userId")
-    if (userId) onComplete()
+    // The goal chosen on this screen goes UP to the parent — the campaign row
+    // can't be created here, because POST /api/wouldbes is gated on attestations
+    // that the next screen records.
+    if (userId) onComplete(goalCents)
     else navigate("/login")
   }
   return (

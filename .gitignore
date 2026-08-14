@@ -1,5 +1,8 @@
 # dependencies (any depth: root, backend, frontend)
 node_modules/
+practice/
+legal/
+docs/
 
 # secrets / environment (.env, .env.local, etc. at any depth)
 .env
@@ -10,3 +13,4 @@ node_modules/
 
 # Claude Code local session data
 .claude/
+

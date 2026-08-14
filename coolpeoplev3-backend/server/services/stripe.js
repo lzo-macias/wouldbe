@@ -24,9 +24,76 @@ const createPaymentIntent = async ({ amount_cents, currency = "usd", metadata = 
     return stripe.paymentIntents.create({ amount: amount_cents, currency, metadata, customer });
 };
 
+// retrievePaymentIntent — read a PaymentIntent back from Stripe. Used to confirm
+// a payment SERVER-SIDE: the browser reports "it succeeded", and we go ask Stripe
+// whether that's true before recording anything. Trusting the client here would
+// let anyone mark their own debate as paid with a crafted request.
+const retrievePaymentIntent = async ({ payment_intent_id } = {}) => {
+    if (!ENABLED) throw notConfigured();
+    return stripe.paymentIntents.retrieve(payment_intent_id);
+};
+
+// updatePaymentIntent — change an UNCONFIRMED intent's amount/metadata. Lets a
+// sponsor switch tiers without stranding a PaymentIntent per click. Stripe
+// rejects this once the intent has succeeded, which is the correct guard.
+const updatePaymentIntent = async ({ payment_intent_id, amount_cents, metadata = {} } = {}) => {
+    if (!ENABLED) throw notConfigured();
+    return stripe.paymentIntents.update(payment_intent_id, { amount: amount_cents, metadata });
+};
+
 const createRefund = async ({ payment_intent_id, amount_cents } = {}) => {
     if (!ENABLED) throw notConfigured();
     return stripe.refunds.create({ payment_intent: payment_intent_id, amount: amount_cents });
+};
+
+// ---- save-now / charge-later (sponsor payment mandate) ----------------------
+// The pair behind "collect the card at submission, charge it when an admin
+// approves". A SetupIntent moves NO money and places NO authorization hold, so
+// it has no expiry — unlike a manual-capture PaymentIntent, whose card
+// authorization dies in ~7 days and would void itself if review ran long.
+
+const createCustomer = async ({ email = null, name = null, metadata = {} } = {}) => {
+    if (!ENABLED) throw notConfigured();
+    return stripe.customers.create({ email, name, metadata });
+};
+
+// usage: 'off_session' is what lets the saved card be charged later with no
+// cardholder present. Stripe requires the amount + timing be disclosed to the
+// customer at this point; we record that disclosure as the mandate.
+const createSetupIntent = async ({ customer, metadata = {} } = {}) => {
+    if (!ENABLED) throw notConfigured();
+    return stripe.setupIntents.create({ customer, usage: "off_session", metadata });
+};
+
+// chargeSavedPaymentMethod — the approval-time charge. confirm:true executes
+// immediately; off_session:true tells Stripe no one is at the keyboard, which
+// also makes it surface `authentication_required` instead of silently hanging
+// when the issuer wants 3DS. Callers must handle that by asking the sponsor to
+// re-confirm on-session.
+const chargeSavedPaymentMethod = async ({
+    amount_cents,
+    currency = "usd",
+    customer,
+    payment_method,
+    metadata = {},
+} = {}) => {
+    if (!ENABLED) throw notConfigured();
+    return stripe.paymentIntents.create({
+        amount: amount_cents,
+        currency,
+        customer,
+        payment_method,
+        off_session: true,
+        confirm: true,
+        metadata,
+    });
+};
+
+// detachPaymentMethod — on denial we never charge, so drop the saved card
+// rather than keeping a chargeable method on file for a debate that won't run.
+const detachPaymentMethod = async ({ payment_method_id } = {}) => {
+    if (!ENABLED) throw notConfigured();
+    return stripe.paymentMethods.detach(payment_method_id);
 };
 
 const createSubscription = async ({ customer, price_id, metadata = {} } = {}) => {
@@ -67,7 +134,13 @@ const constructWebhookEvent = ({ rawBody, signature } = {}) => {
 module.exports = {
     ENABLED,
     createPaymentIntent,
+    retrievePaymentIntent,
+    updatePaymentIntent,
     createRefund,
+    createCustomer,
+    createSetupIntent,
+    chargeSavedPaymentMethod,
+    detachPaymentMethod,
     createSubscription,
     cancelSubscription,
     createConnectAccount,

@@ -1,0 +1,125 @@
+/* Connect-Twitch step — the screen between "submit for review" and paying.
+   Tokens (--gold, --ink-soft, --radius…) are declared on .applyPage in
+   ApplyForDebateCasual.css and inherit down; this file must not redeclare
+   them or the two screens drift apart. */
+
+.applyPage .twitchStep {
+  margin-top: 18px;
+  padding: 20px;
+  border: 1px solid var(--gold-line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.applyPage .twitchStepHead h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold-deep);
+}
+/* color:inherit — the app-wide `p` rule would otherwise repaint these. */
+.applyPage .twitchStepHead p {
+  margin: 6px 0 16px;
+  max-width: 62ch;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+/* Twitch purple, deliberately NOT a gold token: this button represents another
+   company's identity, and a recoloured one reads as "some button" rather than
+   "sign in with Twitch". */
+.applyPage .twitchConnect {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 18px;
+  border: 1px solid #772ce8;
+  border-radius: var(--radius);
+  background: #9146ff;
+  color: #fff;
+  cursor: pointer;
+  transition: background .12s;
+}
+.applyPage .twitchConnect:hover { background: #772ce8; }
+.applyPage .twitchConnect:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(145, 70, 255, 0.35);
+}
+
+.applyPage .twitchConnected {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.applyPage .twitchConnected strong { color: var(--gold-ink); font-weight: 600; }
+
+/* The step's own field rows sit inside a card, not the form grid, so the
+   132px label column from ApplyForDebateCasual.css would leave them
+   hanging. Single column here. */
+.applyPage .twitchStep .regularLabelAndInput {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  padding: 16px 0 0;
+  border-top: none;
+}
+.applyPage .twitchStep .regularLabelAndInput > label { padding-top: 0; }
+.applyPage .twitchStep input[type="text"],
+.applyPage .twitchStep input[type="number"] { max-width: 320px; }
+
+.applyPage .twitchSave {
+  margin-top: 20px;
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 20px;
+  border: 1px solid var(--gold-deep);
+  border-radius: var(--radius);
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+  cursor: pointer;
+}
+.applyPage .twitchSave:disabled { opacity: .55; cursor: default; }
+
+/* Seat count is derived from the debate's max contestants, so it reads as a
+   statement rather than a field. */
+.applyPage .twitchSeats {
+  margin: 18px 0 0;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--gold-pale);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.applyPage .twitchSeats strong { color: var(--gold-ink); font-weight: 600; }
+
+/* Two actions, weighted: saving is the recommended path, skipping is available
+   but not competing for attention. */
+.applyPage .twitchActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.applyPage .twitchSkip {
+  font: inherit;
+  font-size: 13px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: border-color .12s, color .12s;
+}
+.applyPage .twitchSkip:hover:not(:disabled) {
+  border-color: var(--gold-line);
+  color: var(--gold-ink);
+}
+.applyPage .twitchSkip:disabled { opacity: .55; cursor: default; }
+.applyPage .twitchSkip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(201,164,55,0.3);
+}

@@ -193,6 +193,28 @@
 .su-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .su-avatar-label { font-weight: 500; font-size: 16px; color: #777; }
 
+/* drag-and-drop affordance (desktop) */
+.su-avatar.is-dragover { border-color: #34C759; background: #F1FBF4; }
+.su-avatar:focus-visible { outline: 2px solid #34C759; outline-offset: 2px; }
+
+/* upload progress veil — sits over the preview while the file is in flight */
+.su-avatar-veil {
+  position: absolute;
+  inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, .45);
+  color: #fff;
+  font-size: 12px; font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* moderation state under the label: pending review / rejected / upload failed */
+.su-avatar-meta { display: flex; flex-direction: column; gap: 2px; }
+.su-avatar-note { font-size: 12px; font-weight: 500; }
+.su-avatar-note.is-info  { color: #777; }
+.su-avatar-note.is-warn  { color: #B7791F; }
+.su-avatar-note.is-error { color: #D64545; }
+
 /* ---- Rate Your Politics slider ---- */
 .su-slider-block { margin: 8px 0 6px; }
 .su-slider-title { font-size: 18px; color: #000; margin-bottom: 12px; }

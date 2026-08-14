@@ -1,0 +1,108 @@
+/* Share bar — a row of icon buttons.
+
+   Icons are <img>, so they can't inherit currentColor. They render in the
+   brand's own black; the CIRCLE behind them carries the theme instead. That's
+   the trade for using the files in /public rather than inlining every path. */
+
+.shareBar {
+  --gold:      #c9a437;
+  --gold-deep: #8a6a12;
+  --gold-soft: #f6eccf;
+  --gold-line: #e3d3a0;
+  --ink:       #241d0c;
+  --ink-soft:  #6d5c33;
+  --surface:   #fffdf7;
+
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  /* flex-wrap: wrap; */
+  overflow: clip;
+  scroll: auto;
+}
+
+.shareBar .shareBarLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  display: none;
+}
+
+.shareBar .shareList {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* flex-wrap: wrap; */
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* IE / old Edge */
+  -ms-overflow-style: none;
+
+}
+
+.shareBar .shareList::-webkit-scrollbar {
+  display: none;
+}
+
+/* One rule for both <a> and <button> — they must be visually identical, since
+   the difference between them is an implementation detail (some platforms take
+   a URL, some need the native sheet). */
+.shareBar .shareBtn {
+  position: relative;          /* anchors the toast */
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  /* border: 1px solid t; */
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  transition: background .12s, border-color .12s, transform .12s;
+}
+.shareBar .shareBtn:hover {
+  /* background: var(--gold-soft);
+  border-color: var(--gold); */
+  transform: translateY(-1px);
+}
+.shareBar .shareBtn:active { transform: translateY(0); }
+.shareBar .shareBtn:focus-visible {
+  outline: none;
+  /* box-shadow: 0 0 0 3px rgba(201, 164, 55, 0.4); */
+}
+
+.shareBar .shareBtn img {
+  width: 18px;
+  height: 18px;
+  display: block;
+  /* The brand marks are pure black; 80% keeps them from out-shouting the
+     gold page without distorting the logo itself. */
+  opacity: 0.8;
+}
+.shareBar .shareBtn:hover img { opacity: 1; }
+
+/* Confirmation, anchored above the button that was pressed. */
+.shareBar .shareToast {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@media (max-width: 480px) {
+  .shareBar { gap: 10px; }
+  .shareBar .shareBtn { width: 36px; height: 36px; }
+  .shareBar .shareBtn img { width: 16px; height: 16px; }
+}

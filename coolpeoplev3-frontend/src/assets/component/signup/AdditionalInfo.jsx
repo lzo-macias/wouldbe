@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from "react-router-dom";
 import api from "../../lib/api"
+import { uploadAvatar, getAvatarStatus, describeAvatarStatus, ACCEPTED_IMAGE_TYPES } from "../../lib/avatarUpload";
 import "./Signup.css";
 import { CameraIcon, MapPinIcon, TagIcon, TextIcon, ChevronDown, ArrowRight } from "./icons";
 
@@ -15,8 +16,16 @@ function AdditionalInfo() {
 
     const userId = localStorage.getItem("userId");
 
-    const [photoUrl, setPhotoUrl] = useState("");
-    const [showPhotoInput, setShowPhotoInput] = useState(false);
+    // Profile photo. `preview` is a local object URL shown the instant a file is
+    // picked — the real one is only published once moderation clears it, and we
+    // don't make the user stare at an empty circle until then.
+    const fileInputRef = useRef(null);
+    const [preview, setPreview] = useState("");
+    const [photoStatus, setPhotoStatus] = useState(null);   // content_item.moderation_status
+    const [photoBusy, setPhotoBusy] = useState("");         // preparing|requesting|uploading|registering
+    const [photoError, setPhotoError] = useState(null);
+    const [dragOver, setDragOver] = useState(false);
+
     const [state, setState] = useState("");
     const [bio, setBio] = useState("");
     const [lean, setLean] = useState(5);                  // 1 conservative … 10 progressive
@@ -34,15 +43,62 @@ function AdditionalInfo() {
             .catch(() => setCategories([]));
     }, []);
 
+    // Release the object URL when it's replaced or the screen unmounts —
+    // otherwise every re-pick leaks the decoded image for the tab's lifetime.
+    useEffect(() => {
+        if (!preview) return;
+        return () => URL.revokeObjectURL(preview);
+    }, [preview]);
+
+    // Poll while a verdict is outstanding. Stops on any terminal state, and on
+    // unmount, so leaving the screen mid-review doesn't leave a timer running.
+    useEffect(() => {
+        const waiting = ["pending_moderation", "pending_human_review", "flagged"];
+        if (!waiting.includes(photoStatus)) return;
+
+        let cancelled = false;
+        const id = setInterval(async () => {
+            try {
+                const item = await getAvatarStatus();
+                if (cancelled) return;
+                if (item?.moderation_status) setPhotoStatus(item.moderation_status);
+            } catch {
+                /* transient — the next tick retries */
+            }
+        }, 5000);
+
+        return () => { cancelled = true; clearInterval(id); };
+    }, [photoStatus]);
+
+    async function handlePhoto(file) {
+        if (!file) return;
+        setPhotoError(null);
+        setPhotoStatus(null);
+        setPreview((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return URL.createObjectURL(file);
+        });
+        try {
+            const item = await uploadAvatar(file, { onProgress: setPhotoBusy });
+            setPhotoStatus(item.moderation_status);
+        } catch (err) {
+            setPhotoError(err.response?.data?.error || err.message || "Could not upload that photo");
+            setPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return ""; });
+        } finally {
+            setPhotoBusy("");
+        }
+    }
+
     function toggleInterest(key) {
         setInterests((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]);
     }
 
     async function save() {
+        // profile_photo_url is deliberately absent: the server rejects it here and
+        // sets it itself once the uploaded photo clears moderation.
         await api.put(
             `/api/users/update/${userId}`,
             {
-                profile_photo_url: photoUrl || null,
                 state: state || null,
                 bio: bio || null,
                 political_lean: Number(lean),
@@ -83,20 +139,53 @@ function AdditionalInfo() {
 
                 {error && <p className="su-error">{error}</p>}
 
-                {/* profile photo */}
+                {/* profile photo — accept="image/*" is what makes the OS offer
+                    Camera / Photo Library / Files on mobile and the native picker
+                    on desktop. No `capture` attribute on purpose: it would force
+                    the camera and remove the library option entirely. */}
                 <div className="su-avatar-block">
-                    <div className="su-avatar" onClick={() => setShowPhotoInput((s) => !s)} title="Add a profile photo">
-                        {photoUrl ? <img src={photoUrl} alt="profile" onError={() => setPhotoUrl("")} /> : <CameraIcon />}
+                    <div
+                        className={`su-avatar${dragOver ? " is-dragover" : ""}`}
+                        role="button"
+                        tabIndex={0}
+                        title="Add a profile photo"
+                        onClick={() => fileInputRef.current?.click()}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInputRef.current?.click(); }
+                        }}
+                        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                        onDragLeave={() => setDragOver(false)}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            setDragOver(false);
+                            handlePhoto(e.dataTransfer.files?.[0]);
+                        }}
+                        onPaste={(e) => handlePhoto(e.clipboardData?.files?.[0])}
+                    >
+                        {preview ? <img src={preview} alt="profile" /> : <CameraIcon />}
+                        {photoBusy && <span className="su-avatar-veil">{photoBusy}…</span>}
                     </div>
-                    <span className="su-avatar-label">profile photo</span>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept={ACCEPTED_IMAGE_TYPES}
+                        hidden
+                        onChange={(e) => {
+                            handlePhoto(e.target.files?.[0]);
+                            e.target.value = "";   // so re-picking the same file fires onChange
+                        }}
+                    />
+                    <div className="su-avatar-meta">
+                        <span className="su-avatar-label">profile photo</span>
+                        {photoError
+                            ? <span className="su-avatar-note is-error">{photoError}</span>
+                            : describeAvatarStatus(photoStatus).label
+                                ? <span className={`su-avatar-note is-${describeAvatarStatus(photoStatus).tone}`}>
+                                    {describeAvatarStatus(photoStatus).label}
+                                  </span>
+                                : null}
+                    </div>
                 </div>
-                {showPhotoInput && (
-                    <div className="su-field" style={{ marginBottom: 18 }}>
-                        <div className="su-input">
-                            <input placeholder="Paste an image URL" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} />
-                        </div>
-                    </div>
-                )}
 
                 {/* state */}
                 <div className="su-field" style={{ marginBottom: 18 }}>

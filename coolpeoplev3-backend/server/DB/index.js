@@ -112,6 +112,8 @@ const init = async () => {
         const { router: sponsorsRouter } = require("../API/debate/sponsorsRoutes");
         const { router: debateRulesRouter } = require("../API/debate/debateRulesRoutes");
         const { router: debateCriteriaRouter } = require("../API/debate/debateCriteriaRoutes");
+        // pre-disclosed criteria catalog, keyed to a debate's category
+        const { router: categoryCriteriaRouter } = require("../API/debate/categoryCriteriaRoutes");
         const { router: contestantsRouter } = require("../API/debate/contestantsRoutes");
         const { router: debateJudgesRouter } = require("../API/debate/debateJudgesRoutes");
         // §7 — debate entry, prompts, voting, ranked choice, criteria acks
@@ -122,6 +124,8 @@ const init = async () => {
         const { router: criteriaAcksRouter } = require("../API/debate/criteriaAcksRoutes");
         // §6/§9 debate lifecycle + results
         const { router: debatesRouter } = require("../API/debate/debatesRoutes");
+        // sponsor-facing debate submission + the admin review inbox
+        const { router: debateApplicationsRouter } = require("../API/debate/debateApplicationsRoutes");
         const { router: debateResultsRouter } = require("../API/debate/debateResultsRoutes");
         const { router: contestWinnersRouter } = require("../API/debate/contestWinnersRoutes");
         const { router: contestRegistrationsRouter } = require("../API/debate/contestRegistrationsRoutes");
@@ -133,6 +137,7 @@ const init = async () => {
         const { router: commentsRouter } = require("../API/content/commentsRoutes");
         // §11 trust & safety
         const { router: userReportsRouter } = require("../API/platform/userReportsRoutes");
+        const { router: reviewsRouter } = require("../API/platform/reviewsRoutes");
         const { router: userStrikesRouter } = require("../API/platform/userStrikesRoutes");
         const { router: accountActionsRouter } = require("../API/platform/accountActionsRoutes");
         const { router: coordinatedBehaviorRouter } = require("../API/platform/coordinatedBehaviorRoutes");
@@ -151,6 +156,7 @@ const init = async () => {
         const { router: notificationsRouter } = require("../API/platform/notificationsRoutes");
         // §10 moderation (records/queues/appeals/dmca — vendor callbacks still stubbed)
         const { router: contentItemsRouter } = require("../API/platform/contentItemsRoutes");
+        const { router: avatarRouter } = require("../API/platform/avatarRoutes");
         const { router: moderationEventsRouter } = require("../API/platform/moderationEventsRoutes");
         const { router: moderationQueueRouter } = require("../API/platform/moderationQueueRoutes");
         const { router: moderationAppealsRouter } = require("../API/platform/moderationAppealsRoutes");
@@ -206,6 +212,7 @@ const init = async () => {
         app.use("/api", sponsorsRouter);
         app.use("/api", debateRulesRouter);
         app.use("/api", debateCriteriaRouter);
+        app.use("/api", categoryCriteriaRouter);
         app.use("/api", contestantsRouter);
         app.use("/api", debateJudgesRouter);
         app.use("/api", debateEntriesRouter);
@@ -213,6 +220,7 @@ const init = async () => {
         app.use("/api", debateVotesRouter);
         app.use("/api", rankedVotesRouter);
         app.use("/api", criteriaAcksRouter);
+        app.use("/api", debateApplicationsRouter);
         app.use("/api", debatesRouter);
         app.use("/api", debateResultsRouter);
         app.use("/api", contestWinnersRouter);
@@ -223,6 +231,7 @@ const init = async () => {
         app.use("/api", postEndorsementsRouter);
         app.use("/api", commentsRouter);
         app.use("/api", userReportsRouter);
+        app.use("/api", reviewsRouter);
         app.use("/api", userStrikesRouter);
         app.use("/api", accountActionsRouter);
         app.use("/api", coordinatedBehaviorRouter);
@@ -236,6 +245,7 @@ const init = async () => {
         app.use("/api", notificationCriteriaRouter);
         app.use("/api", notificationsRouter);
         app.use("/api", contentItemsRouter);
+        app.use("/api", avatarRouter);
         app.use("/api", moderationEventsRouter);
         app.use("/api", moderationQueueRouter);
         app.use("/api", moderationAppealsRouter);

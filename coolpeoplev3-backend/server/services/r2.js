@@ -16,6 +16,13 @@ const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = re
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const s3 = ENABLED ? new S3Client({ region: "auto",
     endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    // REQUIRED for presigned PUTs. Since v3.729 the SDK defaults to
+    // "WHEN_SUPPORTED", which makes the presigner bake an x-amz-checksum-crc32
+    // into the signed query string — computed over the EMPTY body it has at
+    // signing time (the giveaway is `x-amz-checksum-crc32=AAAAAA==`). The browser
+    // then PUTs real bytes, R2 checks them against that checksum, and rejects the
+    // upload. "WHEN_REQUIRED" omits it so the signature covers only the host.
+    requestChecksumCalculation: "WHEN_REQUIRED",
     credentials: { accessKeyId: process.env.R2_ACCESS_KEY_ID, secretAccessKey: process.env.R2_SECRET_ACCESS_KEY } }) : null;
 
 const notConfigured = () => {
@@ -41,4 +48,18 @@ const deleteObject = async ({ key } = {}) => {
     return s3.send(new DeleteObjectCommand({ Bucket: process.env.R2_BUCKET, Key: key }));
 };
 
-module.exports = { ENABLED, getUploadUrl, getDownloadUrl, deleteObject };
+// Stable public URL for an object served from the bucket's public domain
+// (custom domain or r2.dev). Used for content that is meant to be world-readable
+// once moderation clears it — avatars, thumbnails — so we don't have to re-sign a
+// GET on every page render. Returns null when no public domain is configured;
+// callers then fall back to getDownloadUrl.
+//
+// NOTE: this only produces a URL. Whether the object is actually readable is a
+// property of the bucket, not of this function.
+const getPublicUrl = ({ key } = {}) => {
+    const base = process.env.R2_PUBLIC_BASE_URL;
+    if (!base || !key) return null;
+    return `${base.replace(/\/+$/, "")}/${String(key).replace(/^\/+/, "")}`;
+};
+
+module.exports = { ENABLED, getUploadUrl, getDownloadUrl, getPublicUrl, deleteObject };

@@ -26,6 +26,9 @@ const httpError = (status, message) => {
 const PARENT_TYPES = [
     "profile", "wouldbe_post", "debate_response", "comment",
     "review", "message", "prompt_response",
+    // optional image attached to a plan-of-action position
+    // (added with the CHECK in migration 1782300000000)
+    "plan_component",
 ];
 const CONTENT_TYPES = ["video", "image", "text", "audio"];
 const MODERATION_STATUSES = [
@@ -62,6 +65,22 @@ const getContentItemById = async ({ id }) => {
         if (err.status) throw err;
         throw err;
     }
+};
+
+// getLatestProfileImage — the caller's most recent avatar upload, whatever state
+// it's in. This is what the "pending review" badge polls: the user needs to know
+// their photo is in the queue, and if it was rejected they need to be told rather
+// than left staring at an avatar that silently never appeared.
+const getLatestProfileImage = async ({ user_id }) => {
+    if (!user_id) throw httpError(400, "user_id is required");
+    const { rows } = await client.query(
+        `SELECT ${COLS} FROM content_items
+          WHERE user_id = $1 AND parent_type = 'profile' AND content_type = 'image'
+          ORDER BY created_at DESC
+          LIMIT 1`,
+        [user_id]
+    );
+    return rows[0] || null;
 };
 
 // ---- mutations -------------------------------------------------------------
@@ -225,12 +244,108 @@ const removeContentItem = async ({ id, removed_reason }) => {
               RETURNING ${COLS}`,
             [id, removed_reason]
         );
+        // takedowns bypass setModerationStatus, so the avatar retraction has to
+        // be repeated here or a removed photo stays live on the profile
+        if (rows[0]) {
+            await syncProfilePhoto(rows[0], client);
+            await syncPlanComponentImage(rows[0], client);
+        }
         return rows[0] || null;
     } catch (err) {
         if (err.code === "23514") throw httpError(400, "removal violates a database constraint");
         if (err.code === "22P02") throw httpError(400, "id must be a valid uuid");
         if (err.status) throw err;
         throw err;
+    }
+};
+
+// syncProfilePhoto — the ONE place a moderated avatar reaches users.profile_photo_url.
+//
+// WHY IT LIVES HERE: this is the moment the verdict is known, and it is the only
+// moment. Promoting from the route layer would mean every caller (auto-decision,
+// admin approve, admin remove) has to remember to do it, and the one that forgets
+// is the one that publishes an unreviewed photo. Hanging it off the status write
+// makes "approved" and "visible" the same event.
+//
+// Runs on the caller's connection so it commits with the status change: a photo
+// can never be live without its approval, or approved without going live.
+//
+// Both directions matter. approved → publish. rejected/removed → retract, but
+// ONLY if this exact object is the one currently on the profile; a takedown of an
+// old avatar must not wipe the newer one that replaced it.
+const syncProfilePhoto = async (item, db) => {
+    if (!item || item.parent_type !== "profile" || item.content_type !== "image") return;
+
+    if (item.moderation_status === "approved" && item.storage_url) {
+        await db.query(
+            `UPDATE users SET profile_photo_url = $2, updated_at = now() WHERE id = $1`,
+            [item.user_id, item.storage_url]
+        );
+        // a public avatar is public; keep the item's own visibility honest.
+        // The values are copied back onto `item` because callers return the row
+        // they were handed — without this the API response says 'private' for a
+        // row that is public in the table, and an admin console believes it.
+        const { rows } = await db.query(
+            `UPDATE content_items
+                SET visibility = 'public',
+                    published_at = COALESCE(published_at, now())
+              WHERE id = $1
+              RETURNING visibility, published_at`,
+            [item.id]
+        );
+        if (rows[0]) {
+            item.visibility = rows[0].visibility;
+            item.published_at = rows[0].published_at;
+        }
+        return;
+    }
+
+    if (["rejected", "removed", "flagged", "pending_human_review"].includes(item.moderation_status)) {
+        await db.query(
+            `UPDATE users
+                SET profile_photo_url = NULL, updated_at = now()
+              WHERE id = $1 AND profile_photo_url IS NOT DISTINCT FROM $2`,
+            [item.user_id, item.storage_url]
+        );
+    }
+};
+
+// syncPlanComponentImage — the plan-position twin of syncProfilePhoto, and it
+// exists for the same reason: "approved" and "visible" have to be one event, or
+// some caller eventually publishes an image the scanner never cleared.
+//
+// parent_id is the plan_components row. Retraction is guarded on the URL matching
+// so taking down a superseded image can't blank the replacement.
+const syncPlanComponentImage = async (item, db) => {
+    if (!item || item.parent_type !== "plan_component" || item.content_type !== "image") return;
+
+    if (item.moderation_status === "approved" && item.storage_url) {
+        await db.query(
+            `UPDATE plan_components SET image_url = $2 WHERE id = $1`,
+            [item.parent_id, item.storage_url]
+        );
+        const { rows } = await db.query(
+            `UPDATE content_items
+                SET visibility = 'public',
+                    published_at = COALESCE(published_at, now())
+              WHERE id = $1
+              RETURNING visibility, published_at`,
+            [item.id]
+        );
+        if (rows[0]) {
+            item.visibility = rows[0].visibility;
+            item.published_at = rows[0].published_at;
+        }
+        return;
+    }
+
+    if (["rejected", "removed", "flagged", "pending_human_review"].includes(item.moderation_status)) {
+        await db.query(
+            `UPDATE plan_components
+                SET image_url = NULL
+              WHERE id = $1 AND image_url IS NOT DISTINCT FROM $2`,
+            [item.parent_id, item.storage_url]
+        );
     }
 };
 
@@ -241,6 +356,9 @@ const removeContentItem = async ({ id, removed_reason }) => {
 //
 // If the status moves to 'removed', a removed_reason may be supplied and
 // removed_at is stamped. Returns null if the row doesn't exist.
+//
+// Side effect, deliberately: a 'profile' image reaching a terminal verdict syncs
+// users.profile_photo_url (see syncProfilePhoto).
 const setModerationStatus = async ({ id, moderation_status, removed_reason = null }, db = client) => {
     if (!id) throw httpError(400, "id is required");
     if (!MODERATION_STATUSES.includes(moderation_status)) {
@@ -264,6 +382,10 @@ const setModerationStatus = async ({ id, moderation_status, removed_reason = nul
               RETURNING ${COLS}`,
             [id, moderation_status, removed_reason]
         );
+        if (rows[0]) {
+            await syncProfilePhoto(rows[0], db);
+            await syncPlanComponentImage(rows[0], db);
+        }
         return rows[0] || null;
     } catch (err) {
         if (err.code === "23514") throw httpError(400, "moderation status violates a database constraint");
@@ -281,6 +403,7 @@ module.exports = {
     AGE_RESTRICTIONS,
     REMOVED_REASONS,
     getContentItemById,
+    getLatestProfileImage,
     createPendingContentItem,
     markUploadComplete,
     updateVisibility,

@@ -1,9 +1,11 @@
 const express = require("express");
 
 const { withTransaction } = require("../../DB/index.js");
+const { findUserByToken } = require("../../DB/platform/auth");
 const {
     createDebate,
     listCurrentDebates,
+    listSponsoredDebates,
     getDebateById,
     updateDebate,
     setDebateMarketingConsent,
@@ -60,10 +62,50 @@ router.post(
 );
 
 // GET /api/debates — the public list of current (non-draft, non-cancelled) debates.
+// ?sort=featured orders by cash prize then nominations (the home page's ordering);
+// the default is by field size.
 router.get("/debates", async (req, res, next) => {
     try {
-        return res.json(await listCurrentDebates({ limit: req.query.limit }));
+        return res.json(
+            await listCurrentDebates({ limit: req.query.limit, sort: req.query.sort })
+        );
     } catch (err) {
+        next(err);
+    }
+});
+
+// GET /api/users/:userId/sponsored-debates — debates this user HOSTS, reached via
+// debates.sponsor_id -> sponsors.user_id. Distinct from /users/:userId/debates and
+// /debate-history, which both join `contestants` — hosting and competing are
+// different relationships, and a sponsor's own debates were previously unreachable
+// through the API.
+//
+// Visibility mirrors GET /api/debates for everyone EXCEPT the sponsor themselves:
+// drafts, cancellations and retired rows are hidden from other viewers, and
+// returned in full to the owner (that's the only way back to an unpublished
+// draft). Auth is therefore OPTIONAL — a token upgrades the view rather than
+// gating it, so public profiles keep working logged-out. A bad/expired token is
+// treated as logged-out rather than 401, since the public view is still valid.
+router.get("/users/:userId/sponsored-debates", async (req, res, next) => {
+    try {
+        let isOwner = false;
+        if (req.headers.authorization) {
+            try {
+                const viewer = await findUserByToken(req.headers.authorization);
+                isOwner = !!viewer && viewer.id === req.params.userId;
+            } catch {
+                isOwner = false;
+            }
+        }
+        return res.json(
+            await listSponsoredDebates({
+                userId: req.params.userId,
+                includeUnlisted: isOwner,
+                limit: req.query.limit,
+            })
+        );
+    } catch (err) {
+        if (err.code === "22P02") return res.status(400).json({ error: "userId must be a valid uuid" });
         next(err);
     }
 });

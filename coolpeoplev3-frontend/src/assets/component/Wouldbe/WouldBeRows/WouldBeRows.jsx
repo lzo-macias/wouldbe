@@ -29,6 +29,24 @@ function byStateThenName(a, b) {
 // DEADLINE_LABELS, formatDeadlineDate and formatUSD now live in ./deadlineFormat
 // (shared with DeadlineTimeline) — imported above.
 
+// ⚠️ ─────────────────── TEMPORARY DEV SCAFFOLD — DELETE ME ───────────────────
+// Set to false (or delete this const and the two blocks marked "DEV SCAFFOLD"
+// below) to restore normal behaviour.
+//
+// WHY IT'S HERE: as of 2026-08-10 EVERY seeded filing deadline is in the past —
+// the last filing_close nationally was 2026-08-07 — and no 2027/2028 calendars
+// are seeded yet. The deadline filter is working correctly and hiding all 7,400+
+// offices, which leaves nothing to click through and no way to practise the
+// WouldBe creation flow from the feed.
+//
+// Nothing on the backend blocks creation: getReadiness gates on race_open
+// (general_date >= today), and general dates ARE still upcoming. So bypassing
+// this filter surfaces offices that the rest of the stack will happily accept.
+//
+// REMOVE ONCE the 2027+ filing deadlines are seeded.
+const DEV_SHOW_OFFICES_WITH_PASSED_DEADLINES = true;
+// ⚠️ ───────────────────────────────────────────────────────────────────────────
+
 // The deadline types that actually gate candidacy — an office is shown only if one
 // of these is still upcoming, and the soonest drives the card's headline date.
 const ACTIONABLE_DEADLINES = new Set(["filing_close", "petition_filing_deadline"]);
@@ -195,8 +213,11 @@ function WouldBeRows({ offices: officesProp }) {
                 //               later. Drives the card's headline date AND the gate below.
                 const fullDlMap = {};
                 const dlMap = {};
+                const lackingDeadlines = {}
                 for (const d of deadlines) {
-                    if (!d.deadline_date) continue;
+                    if (!d.deadline_date) {
+                        (lackingDeadlines[d.jurisdiction_id]??= []).push({message: "no deadline"});continue
+                    }
                     const date = dateOf(d);
                     (fullDlMap[d.jurisdiction_id] ??= []).push({ type: d.deadline_type, date });
                     if (ACTIONABLE_DEADLINES.has(d.deadline_type)) {
@@ -213,10 +234,15 @@ function WouldBeRows({ offices: officesProp }) {
                 // already passed, the ballot window is missed even when filing_close is
                 // later — so hide it. Offices with no filing/petition data seeded yet
                 // (off-cycle seats) have no binding deadline, so they're hidden too.
-                const runnable = offs.filter((o) => {
-                    const binding = dlMap[o.jurisdiction_id];
-                    return binding && binding >= today;
-                });
+                // ⚠️ DEV SCAFFOLD — the `DEV_...` branch is temporary; delete it and
+                // keep the .filter() to restore normal behaviour. See the flag's
+                // comment at the top of this file.
+                const runnable = DEV_SHOW_OFFICES_WITH_PASSED_DEADLINES
+                    ? offs
+                    : offs.filter((o) => {
+                        const binding = dlMap[o.jurisdiction_id];
+                        return binding && binding >= today;
+                    });
 
                 // rank by recommendation count (desc), then by state (nulls last)
                 let ranked = []
@@ -319,8 +345,18 @@ function WouldBeRows({ offices: officesProp }) {
         ? { state_code: selectedOffice.state_code, name: selectedOffice.jurisdiction_name, type: selectedOffice.jurisdiction_type }
         : null;
 
+    // ⚠️ DEV SCAFFOLD — delete this const and its use below. It exists so the
+    // bypass is impossible to miss on screen (and impossible to ship by accident).
+    const devBanner = DEV_SHOW_OFFICES_WITH_PASSED_DEADLINES ? (
+        <div className="devDeadlineBypassBanner">
+            ⚠️ DEV: showing offices whose filing deadlines have already passed.
+            Set <code>DEV_SHOW_OFFICES_WITH_PASSED_DEADLINES = false</code> in WouldBeRows.jsx to disable.
+        </div>
+    ) : null;
+
     const regulationsPanel = (
         <div className="regulationContainer">
+            {devBanner}
             {selectedOffice ? (
                 <Regulations
                     office={selectedOffice}
@@ -339,9 +375,15 @@ function WouldBeRows({ offices: officesProp }) {
     // statewide/national. Otherwise fall back to the flat ranked list (guest / the
     // full office browse).
     const isRelevant = offices.length > 0 && typeof offices[0].qualifies === 'boolean';
+    const noDeadlines = offices.filter(o => !o.deadline_date)
 
     if (!isRelevant) {
-        if (!offices.length && loggedin == true) return <div>no qualified offices at this moment</div>;
+        if (!offices.length && loggedin == true) {
+            return <div>
+               <p>no qualified offices at this moment</p>
+               <p>{noDeadlines.map(renderOfficeCard)}</p>
+            </div>;
+        }
         const visibleOffices = offices.slice(0, visibleCount);
         return (
             <div className='mainContainer'>

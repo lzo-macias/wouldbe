@@ -9,6 +9,7 @@
     "seed": "node ./server/seed.js",
     "seed:reference": "node ./server/seed/reference/run.js",
     "bootstrap:admin": "node ./server/seed/bootstrapAdmin.js",
+    "simulate:payment": "node ./server/seed/simulateSponsorPayment.js",
     "migrate": "node-pg-migrate"
   },
   "keywords": [],

@@ -2,6 +2,7 @@ const express = require("express");
 
 const {
     upsertTwitchConnection,
+    getTwitchConnectionByUser,
     verifyVodStorage,
     createEventSubSubscription,
     deleteEventSubSubscription,
@@ -73,6 +74,31 @@ router.get("/twitch/oauth/callback", requireAuth, async (req, res, next) => {
                 req.query.developer_tos_accepted === true,
         });
         return res.status(201).json(connection);
+    } catch (err) {
+        next(err);
+    }
+});
+
+// GET /api/twitch/connection — has the caller linked a Twitch account, and which
+// channel? The connect-channel screen reads this to decide between "Connect
+// Twitch" and "Connected as X". 200 with null (not 404) when there is no link:
+// "no connection" is a normal state, not an error.
+//
+// TOKENS ARE NOT RETURNED. The row holds OAuth access/refresh tokens; only the
+// public identity fields go over the wire.
+router.get("/twitch/connection", requireAuth, async (req, res, next) => {
+    try {
+        const c = await getTwitchConnectionByUser({ user_id: req.user.id });
+        if (!c) return res.json(null);
+        return res.json({
+            id: c.id,
+            twitch_user_id: c.twitch_user_id,
+            login: c.login,
+            display_name: c.display_name,
+            developer_tos_accepted_at: c.developer_tos_accepted_at,
+            vod_storage_verified_at: c.vod_storage_verified_at,
+            created_at: c.created_at,
+        });
     } catch (err) {
         next(err);
     }

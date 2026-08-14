@@ -57,7 +57,11 @@ router.post("/signup", async (req, res, next) => {
             accepted_tos,           // boolean — user ticked the TOS box
             accepted_privacy,       // boolean — user ticked the privacy box
             consent_method = "signup_checkbox",
-            age_verification_method = "self_attested",
+            // MUST match the child_safety_records_age_verification_method_check
+            // allowlist: self_attestation | government_id | parent_consent_form |
+            // third_party_age_verification. "self_attested" 500s every signup that
+            // doesn't override this default.
+            age_verification_method = "self_attestation",
             age_verified_value,
         } = req.body;
 

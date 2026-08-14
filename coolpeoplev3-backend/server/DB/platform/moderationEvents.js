@@ -28,6 +28,9 @@ const httpError = (status, message) => {
 const PROVIDERS = [
     "hive", "openai_moderation", "openai_vision", "photodna",
     "thorn_safer", "perspective", "aws_rekognition", "manual",
+    // self-hosted nudity classifier behind the avatar/image pipeline
+    // (added with the CHECK in migration 1782200000000)
+    "nudenet",
 ];
 const RESULTS = ["clean", "flagged", "rejected", "inconclusive", "error"];
 

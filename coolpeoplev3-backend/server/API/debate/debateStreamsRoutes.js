@@ -3,6 +3,9 @@ const express = require("express");
 const {
     scheduleDebateStream,
     getDebateStream,
+    connectStreamChannel,
+    skipStreamChannel,
+    getStreamLineup,
     ingestStreamRecording,
     attachStreamerVod,
     setRecordingModerationStatus,
@@ -61,6 +64,51 @@ router.get("/debates/:id/stream", requireAuth, async (req, res, next) => {
         const stream = await getDebateStream({ debate_id: req.params.id });
         if (!stream) return res.status(404).json({ error: "no stream for this debate" });
         return res.json(stream);
+    } catch (err) {
+        next(err);
+    }
+});
+
+// PATCH /api/debates/:id/stream/channel — the sponsor connects their Twitch
+// channel to the debate they just submitted. requireAuth only (NOT requireAdmin):
+// this is the sponsor's own post-submission step, and ownership is enforced in
+// the DB layer from the token's user_id.
+router.patch("/debates/:id/stream/channel", requireAuth, async (req, res, next) => {
+    try {
+        return res.json(
+            await connectStreamChannel({
+                debate_id: req.params.id,
+                user_id: req.user.id,
+                twitch_channel: req.body.twitch_channel,
+                twitch_broadcaster_user_id: req.body.twitch_broadcaster_user_id,
+                twitch_connection_id: req.body.twitch_connection_id,
+                scheduled_at: req.body.scheduled_at,
+                invite_slots: req.body.invite_slots,
+            })
+        );
+    } catch (err) {
+        next(err);
+    }
+});
+
+// PATCH /api/debates/:id/stream/skip — the sponsor opts out of streaming on
+// Twitch. Sponsor-scoped like the connect route; recorded so the choice survives
+// a reload and an admin can see it was deliberate.
+router.patch("/debates/:id/stream/skip", requireAuth, async (req, res, next) => {
+    try {
+        return res.json(await skipStreamChannel({ debate_id: req.params.id, user_id: req.user.id }));
+    } catch (err) {
+        next(err);
+    }
+});
+
+// GET /api/debates/:id/stream/lineup — the nomination ranking for the broadcast,
+// with `invited` marking everyone above the stream's invite_slots cut line.
+// Returns the FULL ranking, not just the invitees: who narrowly missed is the
+// part an admin actually needs to see before the invites go out.
+router.get("/debates/:id/stream/lineup", requireAuth, async (req, res, next) => {
+    try {
+        return res.json(await getStreamLineup({ debate_id: req.params.id }));
     } catch (err) {
         next(err);
     }

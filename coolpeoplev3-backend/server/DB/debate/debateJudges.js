@@ -1,5 +1,6 @@
 const { client } = require("../index.js")
 
+
 // ============================================================================
 // debate_judges + debate_judge_scores — the judge panel for a debate and the
 // per-judge, per-contestant, per-criterion scores they cast.
@@ -15,21 +16,141 @@ const httpError = (status, message) => {
     return e
 }
 
+// ---- sponsor-nominated judges (hybrid debates) -----------------------------
+// A hybrid debate is decided by a panel, so the apply form collects that panel
+// up front: an email, why the person is qualified, and any supporting links.
+// The panel is what an admin reviews before approving, which is why these are
+// validated at submission rather than left for later.
+
+// Deliberately loose. This is a "did they type an address" check, not an RFC
+// 5322 parser — the only real proof an address works is mail arriving at it, and
+// an over-strict regex rejects valid addresses (plus-tags, new TLDs, unicode).
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+// http/https only. A judge credential is a web page; javascript:, data: and
+// mailto: are either XSS vectors or not links to anything reviewable.
+const isHttpUrl = (value) => {
+    try {
+        const u = new URL(String(value).trim())
+        return u.protocol === "https:" || u.protocol === "http:"
+    } catch {
+        return false
+    }
+}
+
+// normalizeJudge — validate and clean ONE nominated judge. Returns the row shape
+// the insert wants. Throws a 400 naming the position so the form can say which
+// judge is wrong ("judge 2"), not just "a judge is wrong".
+const normalizeJudge = (judge, index = 0) => {
+    const label = `judge ${index + 1}`
+    if (!judge || typeof judge !== "object") throw httpError(400, `${label} is malformed`)
+
+    const email = judge.email != null ? String(judge.email).trim().toLowerCase() : ""
+    if (!email) throw httpError(400, `${label} needs an email address`)
+    if (!EMAIL_RE.test(email)) throw httpError(400, `${label}'s email address is not valid`)
+    if (email.length > 320) throw httpError(400, `${label}'s email address is too long`)
+
+    const qualification = judge.qualification != null ? String(judge.qualification).trim() : ""
+    if (!qualification) throw httpError(400, `${label} needs a note on why they're qualified`)
+    if (qualification.length > 2000) {
+        throw httpError(400, `${label}'s qualification note must be 2000 characters or fewer`)
+    }
+
+    // The form starts with one empty link row, so blanks are expected and are
+    // dropped rather than rejected — an empty row means "I didn't add a link".
+    const rawLinks = Array.isArray(judge.links) ? judge.links : []
+    const links = []
+    for (const raw of rawLinks) {
+        const link = raw != null ? String(raw).trim() : ""
+        if (!link) continue
+        if (!isHttpUrl(link)) throw httpError(400, `${label} has a link that isn't a valid http(s) URL: ${link}`)
+        if (!links.includes(link)) links.push(link)
+    }
+    if (links.length > 10) throw httpError(400, `${label} has more than 10 links`)
+
+    const name = judge.name != null ? String(judge.name).trim() : ""
+
+    return {
+        external_email: email,
+        // external_name is what the public panel disclosure shows. With no name
+        // given, the local part of the email is a better placeholder than the
+        // full address, which would publish contact details.
+        external_name: name || email.split("@")[0],
+        qualification_note: qualification,
+        credential_links: links,
+        role: judge.role || "panel",
+    }
+}
+
+// validateJudgePanel — normalize a whole submitted panel. Rejects duplicate
+// emails here (with a readable message) rather than letting the unique index
+// throw a 23505 that can't name the offender.
+const validateJudgePanel = (judges) => {
+    if (!Array.isArray(judges)) throw httpError(400, "judges must be an array")
+    const normalized = judges.map(normalizeJudge)
+    const seen = new Set()
+    for (const j of normalized) {
+        if (seen.has(j.external_email)) {
+            throw httpError(400, `${j.external_email} is listed twice on the panel`)
+        }
+        seen.add(j.external_email)
+    }
+    return normalized
+}
+
+// addJudgePanel — insert a validated panel. Runs on the CALLER'S transaction so
+// a debate and its judges land together: submitDebateApplication passes its tx,
+// and a bad judge rolls the whole application back rather than creating a hybrid
+// debate with a half-entered panel.
+const addJudgePanel = async ({ debate_id, judges }, db = client) => {
+    if (!debate_id) throw httpError(400, "debate_id is required")
+    const panel = validateJudgePanel(judges)
+    const created = []
+    for (const j of panel) {
+        const { rows } = await db.query(
+            `INSERT INTO debate_judges (
+                debate_id, external_email, external_name, qualification_note,
+                credential_links, role
+             )
+             VALUES ($1, $2, $3, $4, $5::jsonb, $6)
+             RETURNING *;`,
+            [debate_id, j.external_email, j.external_name, j.qualification_note,
+             JSON.stringify(j.credential_links), j.role]
+        )
+        created.push(rows[0])
+    }
+    return created
+}
+
+// hasActivePanel — the gate the approve route runs on a hybrid debate. Counts
+// judges that haven't recused; a panel of zero means nobody can pick a winner.
+const hasActivePanel = async ({ debate_id }, db = client) => {
+    const { rows } = await db.query(
+        `SELECT COUNT(*)::int AS n FROM debate_judges
+         WHERE debate_id = $1 AND recused_at IS NULL`,
+        [debate_id]
+    )
+    return rows[0].n > 0
+}
+
 // addJudge — add one judge to a debate. judge_id/created_at use column defaults;
 // disclosed_at defaults to now() when omitted. recused_at stays null (active).
 const addJudge = async ({
     debate_id,
     user_id,
     external_name,
+    external_email,
     external_bio,
+    qualification_note,
+    credential_links,
     role,
     disclosed_at,
 }) => {
     if (!debate_id || !role) {
         throw httpError(400, "debate_id and role are required")
     }
-    if (!user_id && !external_name) {
-        throw httpError(400, "either user_id or external_name is required")
+    if (!user_id && !external_name && !external_email) {
+        throw httpError(400, "either user_id, external_name or external_email is required")
     }
     try {
         const SQL = `
@@ -37,11 +158,14 @@ const addJudge = async ({
                 debate_id,
                 user_id,
                 external_name,
+                external_email,
                 external_bio,
+                qualification_note,
+                credential_links,
                 role,
                 disclosed_at
             )
-            VALUES ($1, $2, $3, $4, $5, COALESCE($6, NOW()))
+            VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7::jsonb, '[]'::jsonb), $8, COALESCE($9, NOW()))
             RETURNING *;
         `
 
@@ -49,7 +173,10 @@ const addJudge = async ({
             debate_id,
             user_id,
             external_name,
+            external_email ? String(external_email).trim().toLowerCase() : null,
             external_bio,
+            qualification_note,
+            credential_links ? JSON.stringify(credential_links) : null,
             role,
             disclosed_at,
         ])
@@ -57,6 +184,7 @@ const addJudge = async ({
         return result.rows[0]
     } catch (err) {
         if (err.code === "23514") throw httpError(400, "invalid role")
+        if (err.code === "23505") throw httpError(409, "that email is already on this debate's panel")
         if (err.code === "23503") throw httpError(400, "debate_id or user_id does not exist")
         console.error(err)
         throw err
@@ -77,6 +205,11 @@ const getDebateJudges = async ({ debate_id }) => {
                 dj.role,
                 dj.external_name,
                 dj.external_bio,
+                -- disclosed: the panel's qualifications are the transparency
+                -- claim. external_email is NOT selected — publishing a judge's
+                -- contact address is a different thing entirely.
+                dj.qualification_note,
+                dj.credential_links,
                 dj.disclosed_at,
                 dj.recused_at,
                 u.username AS judge_username
@@ -254,6 +387,9 @@ const getDebateJudgeScores = async ({
 
 module.exports = {
     addJudge,
+    validateJudgePanel,
+    addJudgePanel,
+    hasActivePanel,
     getDebateJudges,
     recuseJudge,
     submitJudgeScores,

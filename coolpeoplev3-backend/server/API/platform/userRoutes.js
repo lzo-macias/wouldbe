@@ -9,6 +9,7 @@ const {
     getAllUserWouldbes,
     getCurrentUserWouldbes,
     getUserCurrentDebates,
+    getUserDebateHistory,
     deactivateUser,
     searchUsers
 } = require("../../DB/platform/users")
@@ -103,6 +104,19 @@ router.get("/:userId/allwouldbes", async (req, res, next) => {
 })
 
 
+// GET /api/users/:userId/debate-history — every debate they competed in, won
+// lost or ongoing. Declared before /:userId so it isn't captured as an id.
+router.get("/:userId/debate-history", async (req, res, next) => {
+    try {
+        return res.json(await getUserDebateHistory({ id: req.params.userId }));
+    } catch (err) {
+        console.error(err);
+        next(err);
+    }
+});
+
+// GET /api/users/:userId/debates — only what's LIVE. Excludes concluded debates
+// and withdrawn/disqualified entries; use /debate-history for the full record.
 router.get("/:userId/debates", async (req, res, next) => {
     const { userId } = req.params;
     try {
@@ -134,7 +148,12 @@ router.put("/update/:userId", requireAuth, async (req, res, next) => {
     if (req.user.id !== userId) {
         return res.status(403).json({ error: "You can only update your own account" });
     }
-    const payload = req.body
+    // profile_photo_url is NOT user-settable. It is written only by
+    // contentItems.syncProfilePhoto once a verdict lands, so accepting it here
+    // would be a one-request bypass of the whole moderation pipeline: PUT any
+    // URL and it renders as your avatar, unreviewed. Photos go through
+    // POST /api/users/me/avatar-upload-url.
+    const { profile_photo_url, ...payload } = req.body ?? {}
     try{
         const user = await updateUser({id: userId, payload})
         delete user.password

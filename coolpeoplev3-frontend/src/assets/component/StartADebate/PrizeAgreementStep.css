@@ -1,0 +1,109 @@
+/* Prize agreement — the contract screen after submitting a cash-prize debate.
+   Tokens are declared on .applyPage in ApplyForDebateCasual.css and inherit
+   down; this file must not redeclare them. */
+
+.applyPage .prizeAgreement {
+  margin-top: 18px;
+  padding: 20px 22px;
+  border: 1px solid var(--gold-line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.applyPage .prizeAgreementHead h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold-deep);
+}
+/* color:inherit — the app-wide `p` rule would otherwise repaint these. */
+.applyPage .prizeAgreementHead p {
+  margin: 6px 0 0;
+  max-width: 62ch;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.applyPage .prizeAgreementHead strong { color: var(--gold-ink); font-weight: 600; }
+
+/* Contract text, so: readable measure, generous leading, numbered clauses that
+   can be referred to by number in a dispute. max-height + scroll keeps the
+   signature box reachable without a long scroll on a small screen. */
+.applyPage .prizeClauses {
+  margin: 16px 0 0;
+  padding: 14px 16px 14px 34px;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--gold-pale);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--gold-ink);
+}
+.applyPage .prizeClauses li { margin-bottom: 10px; }
+.applyPage .prizeClauses li:last-child { margin-bottom: 0; }
+
+.applyPage .prizeAccept {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gold-ink);
+  cursor: pointer;
+}
+.applyPage .prizeAccept input {
+  margin: 2px 0 0;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  accent-color: var(--gold-deep);
+  cursor: pointer;
+}
+
+.applyPage .prizeSignLabel {
+  display: block;
+  margin-top: 18px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+/* Cursive so the typed name reads as a signature rather than another text
+   field. Falls back through the stack to whatever the OS has. */
+.applyPage .prizeSignInput {
+  max-width: 360px;
+  font-family: "Segoe Script", "Snell Roundhand", "Brush Script MT", cursive;
+  font-size: 20px;
+}
+
+.applyPage .prizeVersion {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+.applyPage .prizeSignButton {
+  margin-top: 18px;
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 20px;
+  border: 1px solid var(--gold-deep);
+  border-radius: var(--radius);
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+  cursor: pointer;
+}
+.applyPage .prizeSignButton:disabled { opacity: .55; cursor: default; }
+
+/* Clause headings sit inline with their text — a run-in heading keeps the
+   numbered list scannable without turning each clause into two blocks. */
+.applyPage .prizeClauses li strong {
+  color: var(--gold-deep);
+  font-weight: 600;
+}

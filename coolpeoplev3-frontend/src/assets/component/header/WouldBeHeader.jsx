@@ -25,7 +25,7 @@ function WouldBeHeader({ onQualifyClick }) {
         // The api instance attaches the token and refreshes-on-401 for us.
         const { data } = await api.get('/api/auth/me');
         if (data.has_jurisdictions) {
-          setShowQualify(false)
+          setShowQualify(true)
         }
         setUser(data);
       } catch (err) {
@@ -63,9 +63,6 @@ function WouldBeHeader({ onQualifyClick }) {
           <div className='actionbtns'>
             {showQualify && (
               <>
-                {/* <div className='qualify' onClick={onQualifyClick}>
-                  <h3>See What Would Be's you Qualify For?</h3>
-                </div> */}
                 <button className="qualify" onClick={onQualifyClick}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
                       <path d="M20 6 9 17l-5-5" />
@@ -84,9 +81,6 @@ function WouldBeHeader({ onQualifyClick }) {
         <div className='actionbtns'>
           {showQualify && (
             <>
-                {/* <div className='qualify' onClick={onQualifyClick}>
-                  <h3>See What Would Be's you Qualify For?</h3>
-                </div> */}
                   <button className="qualify" onClick={onQualifyClick}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
                       <path d="M20 6 9 17l-5-5" />

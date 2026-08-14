@@ -1,0 +1,359 @@
+/* No shadow/padding/radius of its own any more — .sidebyside is the single card.
+   height: 100% + space-between distributes this column's blocks over the full
+   card height instead of bunching them at the top. */
+.bigUserOverview {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    min-width: 0;
+}
+
+/* Children with their own fixed widths (the plan card is max-width: 520px) would
+   overflow the 352px of usable space left inside the padding. */
+.bigUserOverview > * { max-width: 100%; }
+
+.username {
+    font-size: 22px;
+    white-space: nowrap;   /* never break "Lorenzo Macias" across two lines */
+    /* padding-bottom: 20px; */
+}
+
+.componentSwapContainer {
+    height: 300px;
+    /* width: 400px; */
+    overflow: hidden;
+    /* border: 1px solid black; */
+    padding: 10px;
+    background-color: #F5F7FA;
+    border-radius: 12px;
+    position: relative
+}
+
+.titleOf {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    font-size: var(--text-md)
+}
+
+.nextButton {
+    position: absolute;
+    right: 20px;
+    top: 120px;
+    padding: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    /* border: 1px solid #777777; */
+    border-radius: 9999999px;
+    color: #777777;
+}
+
+.nextButtonAndTextAndImageContainer {
+    display: flex;
+    flex-direction: row;
+}
+
+.ComponentPlanDescriptorContainer {
+    /* display: flex; */
+    /* align-items: center; */
+    /* justify-content: center; */
+    /* position: absolute; */
+    height: 200px;
+    width: 250px;
+    /* text-align: center; */
+    /* transform: translate(-50%, -50%); */
+    overflow: clip;
+    margin: auto;
+    margin-top: 40px;
+    overflow-y: auto;
+
+}
+
+.ComponentPlanDescriptorContainer p {
+    text-align: justify;
+    padding-right: 20px;
+    overflow-y: auto;
+}
+
+.seeplans {
+    position: absolute;
+    left: 160px;
+    bottom: 10px;
+    color: #777777;
+    font-style: italic;
+    font-size: 14px;
+    width: fit-content;
+}
+
+/* ---- plan swap card (titles <-> images) ---------------------------------- */
+
+/* The positioned ancestor .Swapperimage pins itself to. Fixed height so the two
+   faces are the same size and the card doesn't jump when they swap — a card that
+   resizes every 3 seconds shoves everything below it around. */
+.planSwapCard {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    /* flex: 1 absorbs the leftover height in .bigUserOverview instead of leaving
+       dead space at the bottom of the card — the grid row is already as tall as
+       the pledge card beside it. min-height keeps it substantial when there IS
+       no slack; the fixed height is what capped it at 200px before. */
+    flex: 1 1 auto;
+    min-height: 200px;
+    padding: 20px 22px;
+    background-color: #F7F8FA;
+    border: 1px solid #EDEFF3;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+/* --- titles face --- */
+.planTitles {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;          /* lets the list scroll instead of overflowing the card */
+}
+
+.planTitlesHeading {
+    margin: 0 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    color: #8A8F98;
+    flex: none;
+}
+
+.planTitlesList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    /* Stacked, one issue per row — a wrapped row of chips reads as tags, a
+       column reads as a platform. */
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;       /* many issues scroll rather than blow the card open */
+    min-height: 0;
+}
+
+.planTitleChip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 2px;
+    font-size: 14px;
+    color: #1a1a1a;
+    /* Hairline rule between rows, none under the last — a trailing divider makes
+       a list look truncated. */
+    border-bottom: 1px solid #ECEEF2;
+    /* One line each; a long title ellipsises rather than wrapping and making the
+       row heights uneven. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.planTitleChip:last-child { border-bottom: none; }
+
+/* Small gold marker, matching the debate pills' accent. flex: none so it can't
+   be squashed by a long title. */
+.planTitleChip::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--gold-deep, #c9a437);
+    flex: none;
+}
+
+/* --- images face --- */
+/* Inset from the card edge so the image sits in the padding box, and contain so
+   a portrait photo isn't cropped through the middle. */
+.Swapperimage {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    /* Roomier inset now the card is taller, so the image reads as framed rather
+       than stuffed. auto dimensions + max-* keeps its own aspect ratio, so a
+       portrait photo is never cropped through the middle. */
+    max-width: calc(100% - 40px);
+    max-height: calc(100% - 40px);
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(16,24,40,.10), 0 1px 2px rgba(16,24,40,.06);
+}
+
+
+
+.wonDebates {
+    color: var(--gold-deep);
+    font-size: var(--text-md);
+    font-weight: 600;
+    padding-top: 10px;
+    font-size: 16px;
+    padding-bottom: 5px;
+}
+
+.debateslistitem {
+    list-style: none;
+    background-color: var(--gold-soft);
+    color: var(--gold-deep);
+    padding: 10px 16px;
+    border-radius: 9999px;      /* full pill, like the mock */
+    width: fit-content;
+    /* flex so the icon and the title sit on one baseline and a long title wraps
+       beside the icon rather than under it */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.ballotIcon {
+    width: 18px;
+    height: 18px;
+    flex: none;                 /* never squashed by a long title */
+    display: block;
+}
+
+.userTags {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: row;
+    /* ONE line: nowrap, and scroll rather than stack if the tags overflow. */
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    font-size: 6px;
+    /* Left-aligned so the tags line up under the name, not out to the right. */
+    justify-content: flex-start;
+    display: none
+}
+
+.userTags li {
+    border: .5px solid #777777;
+    border-radius: 12px;
+    padding: 4px 10px;
+    white-space: nowrap;   /* a tag never breaks mid-word onto a second line */
+    flex: none;
+}
+/* ---- review summary ------------------------------------------------------ */
+/* Column: stars row on top, the link underneath, both hugging the right edge.
+   align-items (the CROSS axis in a column) is what right-aligns them — not
+   justify-content, which controls the vertical stacking here. */
+.reviewSummary {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    padding: 6px 0 14px;
+    font-size: 14px;
+}
+
+.reviewStarsRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.reviewStars { display: inline-flex; gap: 2px; }
+.reviewStars img { width: 16px; height: 16px; display: block; }
+
+/* One Star.svg asset, dimmed for the empty positions — avoids needing a second
+   greyed-out file and keeps the two states visually identical in shape. */
+.reviewStarOff { opacity: .25; }
+.reviewStarOn  { opacity: 1; }
+
+.reviewAverage { font-weight: 600; color: #1a1a1a; }
+.reviewCount   { color: #777777; }
+
+.reviewSeeMore {
+    color: #777777;
+    font-style: italic;
+    text-decoration: none;
+}
+.reviewSeeMore:hover { text-decoration: underline; }
+
+/* Only the tags live here now — the avatar moved to .pledgeTitleRow in the pledge
+   column, and the name line was dropped as a duplicate of the campaign title. */
+.usertagsandheader {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+/* Name over tags, beside the avatar. min-width: 0 so a long name can ellipsis
+   instead of forcing the row wider than the card. */
+.nameAndTags {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.userProfilePhoto {
+    width: 50px;
+    height: 50px;
+    border-radius: 99999px;
+    object-fit: cover;
+    flex: none;            /* never squashed by a long name */
+}
+/* Cross-face fade. The swap is on a timer the user didn't ask for, so a hard cut
+   reads as a glitch; a short fade reads as intentional. */
+.planTitles, .Swapperimage { animation: planFaceIn 260ms ease both; }
+@keyframes planFaceIn { from { opacity: 0 } to { opacity: 1 } }
+
+@media (prefers-reduced-motion: reduce) {
+    .planTitles, .Swapperimage { animation: none; }
+}
+
+/* Active/Won debates at the bottom LEFT, directly under the pledge card now that
+   the layout is one column. margin-top: auto keeps it at the bottom of the
+   column; everything aligns to the start so it lines up with the pledge card's
+   left edge above it. */
+.debatesBottomRight {
+    margin-top: auto;
+    align-self: flex-start;
+    text-align: left;
+    width: 100%;
+}
+
+.debatesBottomRight .debatesList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.debatesBottomRight .debateSwap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+/* The link tag is an <a> inside the pill — inherit the pill's colour so it
+   doesn't render as default browser blue-and-underlined next to the others. */
+.userTagLink a {
+    color: inherit;
+    text-decoration: none;
+}
+.userTagLink a:hover { text-decoration: underline; }
+
+/* The link is the one tag that can be long; cap it so a linktree URL can't
+   push the row wide (the row is nowrap + overflow-x: auto). */
+.userTagLink {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

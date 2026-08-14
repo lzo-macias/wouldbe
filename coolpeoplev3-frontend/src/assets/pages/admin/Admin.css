@@ -63,3 +63,18 @@
 }
 .admin a { color: #2563eb; text-decoration: none; }
 .admin a:hover { text-decoration: underline; }
+
+/* review queue — approve / reject on the debate applications tab */
+.admin__notice {
+  margin: 12px 0; padding: 10px 14px; border-radius: 8px;
+  background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; font-size: 14px;
+}
+.admin__actions { white-space: nowrap; }
+.admin__btn {
+  padding: 5px 11px; margin-right: 6px; border-radius: 6px; font-size: 13px;
+  border: 1px solid #d1d5db; background: #fff; color: #374151; cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.admin__btn:disabled { opacity: .45; cursor: not-allowed; }
+.admin__btn--approve:hover:not(:disabled) { background: #059669; border-color: #059669; color: #fff; }
+.admin__btn--reject:hover:not(:disabled)  { background: #dc2626; border-color: #dc2626; color: #fff; }

@@ -63,16 +63,39 @@
       }
   }
   
-  const listCurrentDebates = async ({ limit = 100 } = {}) => {
+  // listCurrentDebates — the public feed.
+  //
+  // sort:
+  //   'contestants' (default) — biggest field first. The original ordering.
+  //   'featured'              — biggest CASH PRIZE first, ties broken by the most
+  //                             nominations. This is the home-page ordering: money
+  //                             is what draws people in, and among equally-funded
+  //                             debates the one people are actually nominating into
+  //                             is the livelier one.
+  //
+  // nomination_count is a correlated subquery rather than another LEFT JOIN:
+  // joining a second one-to-many table alongside contestants multiplies the rows
+  // and would inflate total_contestants.
+  const listCurrentDebates = async ({ limit = 100, sort = "contestants" } = {}) => {
       try {
+          const ORDERINGS = {
+              contestants: "total_contestants DESC, d.created_at DESC",
+              featured: "d.sponsor_contribution_cents DESC, nomination_count DESC, d.created_at DESC",
+          }
+          // Whitelisted, never interpolated from raw input — this lands in the SQL
+          // string, so an unchecked value would be an injection point.
+          const orderBy = ORDERINGS[sort] || ORDERINGS.contestants
+
           const SQL = `
-              SELECT d.*, COUNT(c.id) FILTER (WHERE c.withdrew_at IS NULL)::int AS 
-  total_contestants
+              SELECT d.*,
+                     COUNT(c.id) FILTER (WHERE c.withdrew_at IS NULL)::int AS total_contestants,
+                     (SELECT COUNT(DISTINCT n.nominator_user_id)::int
+                        FROM nominations n WHERE n.debate_id = d.id) AS nomination_count
               FROM debates d
               LEFT JOIN contestants c ON c.debate_id = d.id
               WHERE d.retired = false AND d.status NOT IN ('draft', 'cancelled')
               GROUP BY d.id
-              ORDER BY total_contestants DESC, d.created_at DESC
+              ORDER BY ${orderBy}
               LIMIT $1
           `
           const result = await client.query(SQL, [Math.min(Number(limit) || 100, 500)])
@@ -80,6 +103,47 @@
       } catch (err) { console.error(err); throw err }
   }
   
+  // listSponsoredDebates — the debates a USER hosts, reached through the sponsor
+  // org they belong to (debates.sponsor_id -> sponsors.id -> sponsors.user_id).
+  //
+  // WHY IT EXISTS: hosting a debate and competing in one are different
+  // relationships on different tables. /users/:id/debates and /debate-history
+  // both join `contestants`, so a sponsor's own debates were unreachable through
+  // the API entirely — the only way to find them was a hand-written join.
+  //
+  // includeUnlisted:
+  //   false (default) — the PUBLIC view: same exclusions as listCurrentDebates,
+  //                     so another user's drafts and cancellations stay hidden.
+  //   true            — the OWNER's view: every state, including drafts. This is
+  //                     how a sponsor gets back to a draft they left unpublished;
+  //                     the route only passes it when the caller IS that user.
+  //
+  // Same shape as listCurrentDebates (d.* + the two counts) so a caller can
+  // render both lists with one card component.
+  const listSponsoredDebates = async ({ userId, includeUnlisted = false, limit = 100 } = {}) => {
+      if (!userId) throw new Error("userId is required")
+      try {
+          const SQL = `
+              SELECT d.*,
+                     COUNT(c.id) FILTER (WHERE c.withdrew_at IS NULL)::int AS total_contestants,
+                     (SELECT COUNT(DISTINCT n.nominator_user_id)::int
+                        FROM nominations n WHERE n.debate_id = d.id) AS nomination_count
+              FROM debates d
+              JOIN sponsors s ON s.id = d.sponsor_id
+              LEFT JOIN contestants c ON c.debate_id = d.id
+              WHERE s.user_id = $1
+                AND ($2::boolean OR (d.retired = false AND d.status NOT IN ('draft', 'cancelled')))
+              GROUP BY d.id
+              ORDER BY d.created_at DESC
+              LIMIT $3
+          `
+          const result = await client.query(SQL, [
+              userId, includeUnlisted, Math.min(Number(limit) || 100, 500),
+          ])
+          return result.rows
+      } catch (err) { console.error(err); throw err }
+  }
+
   const listAllDebates = async ({ limit = 100 } = {}) => {
       try {
           const SQL = `
@@ -377,6 +441,7 @@ module.exports = {
     PARTICIPATION_TYPES,
     createDebate,
     listCurrentDebates,
+    listSponsoredDebates,
     listAllDebates,
     getDebateById,
     updateDebate,

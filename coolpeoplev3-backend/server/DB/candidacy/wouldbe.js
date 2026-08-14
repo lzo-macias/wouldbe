@@ -7,6 +7,109 @@ const stripe = require("../../services/stripe")
 const GOAL_FLOOR_CENTS = 500000      // $5,000
 const GOAL_CEILING_CENTS = 100000000 // $1,000,000
 
+// resolveRaceForOffice — find (or create) the race a new WouldBe belongs to.
+//
+// WHY THIS EXISTS: every WouldBe needs a race_id, because the race owns the
+// election cycle and general date that decide when a campaign ages out of the
+// feed. But races are admin-write, and no admin creates one before a citizen
+// decides to run — so a first-mover for any office would hit a hard stop.
+//
+// The data to build one already exists: election_deadlines holds the general
+// date, the filing close and the primary for every jurisdiction we seeded. This
+// derives a race from those rather than asking a user to invent election dates.
+//
+// FIND FIRST, CREATE SECOND. Two people starting a WouldBe for the same office
+// must land on the SAME race — otherwise the office splits into parallel
+// contests that can never be compared. The lookup is by (office, upcoming
+// general date), and the insert is guarded by re-checking inside the same
+// transaction.
+//
+// is_approved_on_platform stays FALSE: an auto-derived race is a scaffold built
+// from seeded dates, not a vetted contest. An admin flips it once they've
+// checked the dates are right.
+const resolveRaceForOffice = async ({ office_id }, db = client) => {
+    if (!office_id) throw new Error("office_id is required to resolve a race")
+
+    // 1. an existing race for this office whose election hasn't passed
+    const existing = await db.query(
+        `SELECT id FROM races
+         WHERE office_id = $1 AND general_date >= CURRENT_DATE
+         ORDER BY general_date ASC
+         LIMIT 1`,
+        [office_id]
+    )
+    if (existing.rows.length) return existing.rows[0].id
+
+    // 2. derive one from the office's jurisdiction deadlines.
+    //
+    // The GENERAL date is the anchor: it decides which cycle we're in and is the
+    // only date that must still be ahead of us. The filing close and primary are
+    // then taken as the latest instance ON OR BEFORE that general — they are
+    // usually in the PAST by the time someone starts a campaign (filing closes
+    // months before election day), so filtering them to "upcoming" would find
+    // nothing and refuse to build a race for a live election.
+    const { rows: deadlineRows } = await db.query(
+        `SELECT ed.deadline_type, ed.deadline_date::text AS deadline_date, ed.election_cycle
+         FROM election_deadlines ed
+         JOIN office o ON o.jurisdiction_id = ed.jurisdiction_id
+         WHERE o.id = $1
+           AND ed.deadline_date IS NOT NULL
+           AND ed.deadline_type IN ('general_date', 'filing_close', 'primary_date', 'petition_filing_deadline')
+           AND (ed.applies_to_office_id IS NULL OR ed.applies_to_office_id = o.id)
+         ORDER BY ed.deadline_date ASC`,
+        [office_id]
+    )
+
+    const today = new Date().toISOString().slice(0, 10)
+    // ::text in the SELECT above, so these are already 'YYYY-MM-DD'. Letting pg
+    // parse a DATE into a JS Date and stringifying THAT gives "Tue Mar 17" —
+    // the cast keeps the calendar day as the database wrote it.
+    const day = (row) => row.deadline_date
+
+    // the next general election that hasn't happened yet
+    const general = deadlineRows.find((d) => d.deadline_type === "general_date" && day(d) >= today)
+    if (!general) {
+        throw new Error("no upcoming general election date is on file for this office — an admin must add one")
+    }
+    const generalDay = day(general)
+
+    // latest instance of a type at or before the general
+    const latestBeforeGeneral = (type) =>
+        deadlineRows
+            .filter((d) => d.deadline_type === type && day(d) <= generalDay)
+            .at(-1) || null
+
+    // filing_close is the real thing; petition_filing_deadline is the fallback,
+    // since some jurisdictions record only the petition date.
+    const filing = latestBeforeGeneral("filing_close") || latestBeforeGeneral("petition_filing_deadline")
+    const primary = latestBeforeGeneral("primary_date")
+
+    // races.filing_deadline is NOT NULL, so without one there is nothing honest
+    // to insert. Inventing a date here would put a deadline in front of a
+    // candidate that no election official ever set.
+    if (!filing) {
+        throw new Error("no filing deadline is on file for this office — an admin must add one")
+    }
+
+    const cycle =
+        general.election_cycle ?? new Date(`${generalDay}T12:00:00Z`).getUTCFullYear()
+
+    // Dates are sent as 'YYYY-MM-DD' strings, never as JS Dates: these are DATE
+    // columns, and pg serialises a Date in the server's local zone, which west
+    // of UTC lands on the previous day.
+    const asDay = (row) => (row ? day(row) : null)
+
+    const inserted = await db.query(
+        `INSERT INTO races
+            (office_id, election_cycle, election_type, primary_date, general_date,
+             filing_deadline, is_approved_on_platform)
+         VALUES ($1, $2, 'regular', $3, $4, $5, false)
+         RETURNING id`,
+        [office_id, cycle, asDay(primary), generalDay, asDay(filing)]
+    )
+    return inserted.rows[0].id
+}
+
 const createWouldbeV2 = async ({
     title,
     description,
@@ -26,8 +129,17 @@ const createWouldbeV2 = async ({
         // single source of truth for the election cycle (races.election_cycle /
         // general_date). Without it we can't tell which cycle a WouldBe belongs
         // to, so past-cycle campaigns couldn't be aged out of the feed.
-        if (!title || !description || !user_id || goal_cents == null || !deadline || !race_id) {
-            throw new Error("title, description, user_id, goal_cents, deadline and race_id are required")
+        if (!title || !description || !user_id || goal_cents == null || !deadline) {
+            throw new Error("title, description, user_id, goal_cents and deadline are required")
+        }
+
+        // race_id may be omitted when office_id is given: the race is derived
+        // from the office's seeded election dates. Requiring the caller to
+        // supply one meant a citizen could not start a WouldBe for any office an
+        // admin had not already built a race for — which was every office.
+        if (!race_id) {
+            if (!office_id) throw new Error("either race_id or office_id is required")
+            race_id = await resolveRaceForOffice({ office_id })
         }
 
         // The race owns the office too, so derive office_id from it rather than
@@ -114,16 +226,37 @@ const createWouldbeV2 = async ({
 //                                       when the auto-retire jobs haven't run.
 // office_id optional: pass it to scope to one office. Filtering on r.office_id
 // (NOT NULL, authoritative) rather than w.office_id keeps office + cycle aligned.
-const listWouldbes = async ({ office_id = null } = {}) => {
+// sort:
+//   'newest' (default) — as before.
+//   'pledged'          — most money pledged first. The home page's ordering:
+//                        a campaign people have actually backed is the one worth
+//                        showing above the fold.
+//
+// pledger_count is a correlated subquery, not a JOIN — joining pledges would
+// multiply the wouldbe rows and break every other column.
+
+
+
+
+const listWouldbes = async ({ office_id = null, sort = "newest" } = {}) => {
     try{
+        const ORDERINGS = {
+            newest: "w.created_at DESC",
+            pledged: "w.pledged_total_cents DESC, w.created_at DESC",
+        }
+        // Whitelisted: this is interpolated into the SQL string.
+        const orderBy = ORDERINGS[sort] || ORDERINGS.newest
+
         const SQL = `
-            SELECT w.*, r.election_cycle, r.general_date
+            SELECT w.*, r.election_cycle, r.general_date,
+                   (SELECT COUNT(DISTINCT p.pledger_user_id)::int
+                      FROM pledges p WHERE p.wouldbe_id = w.id) AS pledger_count
             FROM wouldbe w
             JOIN races r ON r.id = w.race_id
             WHERE w.retired IS NOT TRUE
               AND r.general_date >= CURRENT_DATE
               AND ($1::uuid IS NULL OR r.office_id = $1)
-            ORDER BY w.created_at DESC
+            ORDER BY ${orderBy}
         `
 
         const result = await client.query(SQL, [office_id])
@@ -136,6 +269,78 @@ const listWouldbes = async ({ office_id = null } = {}) => {
     }
 }
 
+
+// score = 0.4 × min(pct_funded, 100)/100
+//       + 0.3 × velocity          (pledged in last 7 days, log-scaled)
+//       + 0.2 × backer_count      (log-scaled — 50 people beats one big pledge)
+//       + 0.1 × urgency           (rises as the filing deadline nears)
+
+const Weights = {
+    fundingProgress: .4,
+    velocity: .3,
+    backer_count: .2,
+    urgency: .1,
+}
+
+const today = new Date()
+
+function calculatePoints (goal, funded, pledgesInTheLastSevenDays, backerCount, deadline){
+    const fundedpct = goal/funded
+    const urgency = 1 / ((today - deadline) + 1)
+    const score = ((.4 * min(fundedpct, 100) / 100) + (.3 * pledgesInTheLastSevenDays) + (.2 * backerCount) + (.1 * urgency))  
+    return score
+}
+
+const listWouldbesV2 = async ({}) => {
+    try {
+        const SQLV1 = `
+            SELECT w.*, 
+        `
+    }catch(err){
+
+    }
+}
+
+
+// listMyWouldbes — the caller's own campaigns, every lifecycle state.
+//
+// WHY IT EXISTS: /wouldbes hides nothing by launch_status, but it is the PUBLIC
+// feed — it drops campaigns whose election has passed and isn't scoped to anyone.
+// A user who closed the tab between creating a draft and paying the creation fee
+// had no way back to it: the id lived only in React state.
+//
+// NO DATE FILTER and NO STATUS FILTER on purpose. Your own campaign is still
+// yours after the election, and a draft you never launched is exactly the row
+// you're most likely looking for. Callers filter by launch_status themselves.
+//
+// Retired campaigns ARE excluded — retiring is the user's own soft-delete, so
+// showing them back would undo the only "remove this" the product has.
+const listMyWouldbes = async ({ user_id }) => {
+    if (!user_id) throw new Error("user_id is required")
+    try {
+        const SQL = `
+            SELECT w.*,
+                   r.election_cycle,
+                   r.general_date,
+                   o.office_name,
+                   j.state_code,
+                   (SELECT COUNT(DISTINCT p.pledger_user_id)::int
+                      FROM pledges p WHERE p.wouldbe_id = w.id) AS pledger_count
+            FROM wouldbe w
+            LEFT JOIN races r ON r.id = w.race_id
+            LEFT JOIN office o ON o.id = w.office_id
+            LEFT JOIN jurisdiction j ON j.id = o.jurisdiction_id
+            WHERE w.user_id = $1
+              AND w.retired IS NOT TRUE
+            ORDER BY w.created_at DESC
+        `
+        const result = await client.query(SQL, [user_id])
+        return result.rows
+    } catch (err) {
+        console.error(err)
+        throw err
+    }
+}
 
 // GET /wouldbes/:id getWouldbeById 🔲— 🔲
 
@@ -651,6 +856,7 @@ const confirmWouldbeCreationPayment = async ({
 module.exports = {
     createWouldbeV2,
     listWouldbes,
+    listMyWouldbes,
     getWouldbeById,
     updateWouldbe,
     retireWouldbe,
@@ -660,6 +866,7 @@ module.exports = {
     // Debate Update
     recordWouldbeCreationPayment,
     getWouldbeCreationPayment,
+    resolveRaceForOffice,
     createWouldbeCreationPaymentIntent,
     confirmWouldbeCreationPayment,
     setContributionProcessor,

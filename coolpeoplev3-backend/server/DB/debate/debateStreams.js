@@ -47,6 +47,26 @@ const mapPgError = (err) => {
     return err;
 };
 
+// normalizeTwitchChannel — accept what people actually paste.
+//
+// Twitch channel names are 4-25 chars of letters/digits/underscore. A sponsor is
+// far more likely to paste "https://twitch.tv/name" or "@name" than the bare
+// login, so both are unwrapped rather than rejected. Lives here (not in
+// debateApplications) because BOTH the application and the connect-channel step
+// validate the same way, and debateApplications already imports this module —
+// the reverse would be a require cycle.
+const normalizeTwitchChannel = (value) => {
+    let channel = value != null ? String(value).trim() : "";
+    if (!channel) return null;
+    const asUrl = channel.match(/^https?:\/\/(?:www\.)?twitch\.tv\/([^/?#]+)/i);
+    if (asUrl) channel = asUrl[1];
+    channel = channel.replace(/^@/, "");
+    if (!/^[A-Za-z0-9_]{4,25}$/.test(channel)) {
+        throw httpError(400, `"${channel}" is not a valid Twitch channel name`);
+    }
+    return channel.toLowerCase();
+};
+
 // ---- debate_streams --------------------------------------------------------
 
 // scheduleDebateStream — create the debate's scheduled concluding stream
@@ -63,6 +83,8 @@ const scheduleDebateStream = async (
         twitch_broadcaster_user_id = null,
         embed_parent_domains = [],
         scheduled_at = null,
+        // how many top-nominated contestants get invited onto this broadcast
+        invite_slots = null,
     },
     db = client
 ) => {
@@ -75,8 +97,8 @@ const scheduleDebateStream = async (
             INSERT INTO debate_streams
                 (debate_id, twitch_connection_id, host_user_id, method,
                  twitch_channel, twitch_broadcaster_user_id, embed_parent_domains,
-                 scheduled_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                 scheduled_at, invite_slots)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *;
         `;
         const { rows } = await db.query(SQL, [
@@ -88,6 +110,7 @@ const scheduleDebateStream = async (
             twitch_broadcaster_user_id,
             embed_parent_domains,
             scheduled_at,
+            invite_slots,
         ]);
         return rows[0];
     } catch (err) {
@@ -107,6 +130,160 @@ const getDebateStream = async ({ debate_id }) => {
             [debate_id]
         );
         return rows[0] || null;
+    } catch (err) {
+        throw mapPgError(err);
+    }
+};
+
+// connectStreamChannel — the sponsor's "connect your Twitch channel" step, which
+// runs AFTER the application is submitted.
+//
+// Sponsor-scoped, not admin: the debate's own sponsor is the one who owns the
+// channel. user_id comes from the token, so nobody can point someone else's
+// debate at their channel.
+//
+// twitch_connection_id is attached when the caller has completed the OAuth link
+// (twitch_connections). It is optional: a sponsor can name the channel without
+// granting us API access — that is enough to EMBED, and embedding is the whole
+// requirement. The connection only matters for EventSub (knowing when the stream
+// goes live) and VOD storage, so its absence degrades those, not the broadcast.
+const connectStreamChannel = async ({
+    debate_id,
+    user_id,
+    twitch_channel,
+    twitch_broadcaster_user_id = null,
+    twitch_connection_id = null,
+    scheduled_at = null,
+    invite_slots = null,
+}) => {
+    if (!debate_id) throw httpError(400, "debate_id is required");
+    const channel = normalizeTwitchChannel(twitch_channel);
+    if (!channel) throw httpError(400, "a Twitch channel is required");
+
+    // ownership: the caller must be this debate's sponsor
+    const { rows: owner } = await client.query(
+        `SELECT s.user_id AS sponsor_user_id
+         FROM debates d JOIN sponsors s ON s.id = d.sponsor_id
+         WHERE d.id = $1`,
+        [debate_id]
+    );
+    if (!owner.length) throw httpError(404, "debate not found");
+    if (user_id && owner[0].sponsor_user_id !== user_id) {
+        throw httpError(403, "you are not the sponsor of this debate");
+    }
+
+    try {
+        // COALESCE on the optional fields: re-running this to change ONLY the
+        // channel must not wipe the schedule the application already set.
+        const { rows } = await client.query(
+            `UPDATE debate_streams
+             SET twitch_channel             = $2,
+                 -- naming a channel reverses an earlier opt-out
+                 channel_opt_out_at         = NULL,
+                 twitch_broadcaster_user_id = COALESCE($3, twitch_broadcaster_user_id),
+                 twitch_connection_id       = COALESCE($4, twitch_connection_id),
+                 scheduled_at               = COALESCE($5, scheduled_at),
+                 invite_slots               = COALESCE($6, invite_slots),
+                 updated_at                 = NOW()
+             WHERE debate_id = $1
+             RETURNING *;`,
+            [
+                debate_id,
+                channel,
+                twitch_broadcaster_user_id,
+                twitch_connection_id,
+                scheduled_at,
+                invite_slots,
+            ]
+        );
+        if (!rows.length) throw httpError(404, "this debate has no scheduled stream");
+        return rows[0];
+    } catch (err) {
+        throw mapPgError(err);
+    }
+};
+
+// skipStreamChannel — the sponsor declines to stream on Twitch.
+//
+// Recorded rather than handled client-side: without the timestamp, "skipped" and
+// "hasn't finished setting up" are the same row, so the screen would reappear on
+// every reload and an admin could not tell a decision from an omission.
+//
+// The channel is CLEARED. Opting out after naming a channel means the channel is
+// no longer where anything happens, and leaving it behind would have the debate
+// page advertise a broadcast that isn't coming.
+const skipStreamChannel = async ({ debate_id, user_id }) => {
+    if (!debate_id) throw httpError(400, "debate_id is required");
+
+    const { rows: owner } = await client.query(
+        `SELECT s.user_id AS sponsor_user_id
+         FROM debates d JOIN sponsors s ON s.id = d.sponsor_id
+         WHERE d.id = $1`,
+        [debate_id]
+    );
+    if (!owner.length) throw httpError(404, "debate not found");
+    if (user_id && owner[0].sponsor_user_id !== user_id) {
+        throw httpError(403, "you are not the sponsor of this debate");
+    }
+
+    const { rows } = await client.query(
+        `UPDATE debate_streams
+         SET channel_opt_out_at = NOW(),
+             twitch_channel = NULL,
+             updated_at = NOW()
+         WHERE debate_id = $1
+         RETURNING *;`,
+        [debate_id]
+    );
+    if (!rows.length) throw httpError(404, "this debate has no scheduled stream");
+    return rows[0];
+};
+
+// getStreamLineup — who goes on the broadcast.
+//
+// Contestants are no longer self-selecting for the stream: the most-NOMINATED
+// entrants are invited, and invite_slots is the cut line. This returns the
+// ranking with an `invited` flag rather than filtering, so an admin can see who
+// just missed and the tie at the boundary is visible instead of silently cut.
+//
+// Ranking = COUNT(DISTINCT nominator_user_id) — one nominator, one vote, however
+// many times they click. Ties break on who was nominated first, which is
+// arbitrary but stable; a real tiebreak policy is a product decision.
+const getStreamLineup = async ({ debate_id }) => {
+    if (!debate_id) throw httpError(400, "debate_id is required");
+    try {
+        const { rows } = await client.query(
+            `WITH ranked AS (
+                SELECT
+                    n.nominee_user_id,
+                    u.username,
+                    COUNT(DISTINCT n.nominator_user_id)::int AS nomination_count,
+                    MIN(n.created_at) AS first_nominated_at,
+                    ROW_NUMBER() OVER (
+                        ORDER BY COUNT(DISTINCT n.nominator_user_id) DESC, MIN(n.created_at) ASC
+                    ) AS rank
+                FROM nominations n
+                JOIN users u ON u.id = n.nominee_user_id
+                WHERE n.debate_id = $1
+                GROUP BY n.nominee_user_id, u.username
+             )
+             SELECT r.*,
+                    -- did they actually enter? a nomination is not an entry, and
+                    -- inviting someone who never entered is a dead slot.
+                    EXISTS (
+                        SELECT 1 FROM debate_entries e
+                        WHERE e.debate_id = $1 AND e.user_id = r.nominee_user_id
+                    ) AS entered,
+                    (r.rank <= COALESCE(
+                        (SELECT invite_slots FROM debate_streams
+                          WHERE debate_id = $1 ORDER BY created_at DESC LIMIT 1),
+                        0
+                    )) AS invited
+             FROM ranked r
+             ORDER BY r.rank`,
+            [debate_id]
+        );
+        return rows;
     } catch (err) {
         throw mapPgError(err);
     }
@@ -387,11 +564,15 @@ const recordStreamParticipantConsent = async ({
 
 module.exports = {
     STREAM_METHODS,
+    normalizeTwitchChannel,
     RECORDING_SOURCES,
     RECORDING_MODERATION_STATUSES,
     CONSENT_ROLES,
     scheduleDebateStream,
     getDebateStream,
+    connectStreamChannel,
+    skipStreamChannel,
+    getStreamLineup,
     ingestStreamRecording,
     attachStreamerVod,
     setRecordingModerationStatus,

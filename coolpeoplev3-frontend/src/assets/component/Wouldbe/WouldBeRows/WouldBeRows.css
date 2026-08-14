@@ -243,3 +243,21 @@
     background: #f5385d;
 }
 
+
+/* ⚠️ TEMPORARY DEV SCAFFOLD — DELETE ME along with
+   DEV_SHOW_OFFICES_WITH_PASSED_DEADLINES in WouldBeRows.jsx. */
+.devDeadlineBypassBanner {
+    background: #FFF4CE;
+    border: 1px solid #E3C766;
+    color: #6B5410;
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+.devDeadlineBypassBanner code {
+    background: rgba(0,0,0,.06);
+    padding: 1px 4px;
+    border-radius: 3px;
+}

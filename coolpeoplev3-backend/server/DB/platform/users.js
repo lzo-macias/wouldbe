@@ -9,6 +9,58 @@ const bcrypt = require("bcrypt");
 // the band naturally shifts as soon as a user crosses a threshold — no cron,
 // no stored column to keep in sync. Use this anywhere the API exposes age
 // category without exposing the DOB itself.
+// normalizeLink — validate a user-supplied profile URL before it is ever stored.
+//
+// This value gets rendered as an href. A `javascript:` or `data:` URL there
+// EXECUTES when clicked — stored XSS delivered by whoever's profile a visitor
+// happens to open. Allowlisting http/https is the whole defense; there is no
+// sanitising your way out of an arbitrary scheme.
+//
+// A bare "instagram.com/me" is treated as https rather than rejected — users type
+// it that way constantly, and silently failing a valid-looking link is worse than
+// assuming the obvious scheme.
+const normalizeLink = (value) => {
+    if (value === null || value === undefined) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+
+    const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(raw) ? raw : `https://${raw}`;
+    let url;
+    try {
+        url = new URL(withScheme);
+    } catch {
+        const e = new Error("link must be a valid URL");
+        e.status = 400;
+        throw e;
+    }
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+        const e = new Error("link must start with http:// or https://");
+        e.status = 400;
+        throw e;
+    }
+    if (url.href.length > 2048) {
+        const e = new Error("link is too long");
+        e.status = 400;
+        throw e;
+    }
+    return url.href;
+};
+
+// deriveAge — whole years, birthday-accurate. Same arithmetic deriveAgeBand runs
+// internally; pulled out so callers can expose the number without the DOB.
+//
+// Derived per request rather than stored: an age column is wrong for one day a
+// year, every year, for whoever's birthday it is.
+const deriveAge = (dateOfBirth) => {
+    if (!dateOfBirth) return null;
+    const dob = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+    return age;
+};
+
 const deriveAgeBand = (dateOfBirth) => {
     if (!dateOfBirth) return null;
     const dob = new Date(dateOfBirth);
@@ -119,15 +171,17 @@ const fetchUserById = async ({ id }) => {
 
 const fetchPublicUserById = async ({ id }) => {
     try {
-        // Pull DOB only to derive age_band; never return it.
+        // Pull DOB only to derive age/age_band; the raw date is never returned —
+        // a full date of birth is an identity-theft input, an age is not.
         const SQL = `
             SELECT id, first_name, last_name, username, bio, profile_photo_url,
-                   political_lean, date_of_birth
+                   political_lean, state, college, link, date_of_birth
             FROM users WHERE id = $1 AND is_active = true
         `;
         const { rows } = await client.query(SQL, [id]);
         if (rows.length === 0) throw new Error("no users found with this ID");
         const { date_of_birth, ...publicFields } = rows[0];
+        publicFields.age = deriveAge(date_of_birth);
         publicFields.age_band = deriveAgeBand(date_of_birth);
         return publicFields;
     } catch (err) {
@@ -187,8 +241,12 @@ const updateUser = async ({ id, payload }) => {
         const {
             first_name, last_name, username, date_of_birth, password,
             state, city, zip_code, address, phone_number, email,
-            political_lean, profile_photo_url, bio
+            political_lean, profile_photo_url, bio, college, link
         } = payload;
+
+        // Throws 400 on a bad scheme; returns null when the field wasn't sent, so
+        // COALESCE leaves the existing value alone.
+        const normalizedLink = normalizeLink(link);
 
         const normalizedEmail = email ? email.toLowerCase().trim() : null;
 
@@ -228,14 +286,16 @@ const updateUser = async ({ id, payload }) => {
                 political_lean    = COALESCE($12, political_lean),
                 profile_photo_url = COALESCE($13, profile_photo_url),
                 bio               = COALESCE($14, bio),
+                college           = COALESCE($15, college),
+                link              = COALESCE($16, link),
                 updated_at        = NOW()
-            WHERE id = $15
+            WHERE id = $17
             RETURNING *;
         `;
         const result = await client.query(SQL, [
             first_name, last_name, username, date_of_birth, hashedPassword,
             state, city, zip_code, address, phone_number, normalizedEmail,
-            political_lean, profile_photo_url, bio, id
+            political_lean, profile_photo_url, bio, college, normalizedLink, id
         ]);
         if (result.rowCount === 0) throw new Error("no users found with this ID");
         const user = result.rows[0];
@@ -305,6 +365,69 @@ const getAllUserWouldbes = async ({ id }) => {
             SELECT * FROM wouldbe
             WHERE user_id = $1
             ORDER BY created_at DESC
+        `, [id]);
+        return rows;
+    } catch (err) {
+        console.error(err);
+        throw err;
+    }
+};
+
+// getUserDebateHistory — EVERY debate this user competed in, with the outcome.
+//
+// getUserCurrentDebates (below) deliberately shows only what's live: it drops
+// closed/cancelled debates and withdrawn/disqualified entries. That's the right
+// answer for "what am I in right now" and the wrong one for a profile — a record
+// that hides losses isn't a record.
+//
+// The outcome is DERIVED, not stored. contest_winners holds placements for the
+// debates that have concluded; a contestant with no winner row in a closed
+// debate lost, and one in a debate still running hasn't finished yet. Reading it
+// off the two statuses plus the placement keeps a single source of truth.
+//
+// LEFT JOIN on contest_winners, not INNER — an inner join would return only
+// winners, which is the exact bug this function exists to avoid.
+const getUserDebateHistory = async ({ id }) => {
+    try {
+        const { rows } = await client.query(`
+            SELECT
+                d.id                  AS debate_id,
+                d.title,
+                d.description,
+                d.category,
+                d.status              AS debate_status,
+                d.win_type,
+                d.participation_type,
+                d.prize_type,
+                d.prize_description,
+                d.sponsor_contribution_cents,
+                d.start_date,
+                d.end_date,
+                d.retired,
+                c.id                  AS contestant_id,
+                c.status              AS contestant_status,
+                c.joined_at,
+                c.withdrew_at,
+                w.placement,
+                w.prize_amount_cents,
+                w.selection_method,
+                w.selected_at,
+                -- one label the UI can switch on, instead of every caller
+                -- re-deriving it from three columns and getting it wrong.
+                CASE
+                    WHEN c.status = 'withdrawn'     THEN 'withdrew'
+                    WHEN c.status = 'disqualified'  THEN 'disqualified'
+                    WHEN w.placement = 1            THEN 'won'
+                    WHEN w.placement IS NOT NULL    THEN 'placed'
+                    WHEN d.status IN ('closed', 'cancelled') THEN 'lost'
+                    ELSE 'ongoing'
+                END                   AS outcome
+            FROM contestants c
+            JOIN debates d ON d.id = c.debate_id
+            LEFT JOIN contest_winners w
+                   ON w.contestant_id = c.id AND w.debate_id = d.id
+            WHERE c.user_id = $1
+            ORDER BY c.joined_at DESC
         `, [id]);
         return rows;
     } catch (err) {
@@ -427,6 +550,7 @@ module.exports = {
     getCurrentUserWouldbes,
     getAllUserWouldbes,
     getUserCurrentDebates,
+    getUserDebateHistory,
     getUserEndorsementHistory,
     updateUserLastLogin,
     deriveAgeBand,

@@ -17,12 +17,23 @@ const adminWrite = (action) => [requireAuth, requireAdmin(), recordAdminAction(a
 // GET /filing-authorities/for?jurisdictionId&officeId — the SINGLE authority a
 // candidate files with (most specific: office-specific beats jurisdiction-wide).
 // Declared before /:id so "for" isn't matched as an id.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 router.get("/filing-authorities/for", async (req, res, next) => {
     try {
-        const row = await getFilingAuthorityFor({
-            jurisdictionId: req.query.jurisdictionId,
-            officeId: req.query.officeId,
-        });
+        // Validate before touching pg. A caller sending the literal string
+        // "undefined" (the classic templated-URL bug) reached the query and blew
+        // up as an unhandled 22P02 — a 500 that reads like a server fault when it
+        // is a malformed request.
+        const { jurisdictionId, officeId } = req.query;
+        if (!jurisdictionId || !UUID_RE.test(jurisdictionId)) {
+            return res.status(400).json({ error: "jurisdictionId is required and must be a valid uuid" });
+        }
+        if (officeId && !UUID_RE.test(officeId)) {
+            return res.status(400).json({ error: "officeId must be a valid uuid" });
+        }
+
+        const row = await getFilingAuthorityFor({ jurisdictionId, officeId });
         if (!row) return res.status(404).json({ error: "no filing authority for that jurisdiction/office" });
         return res.json(row);
     } catch (err) {

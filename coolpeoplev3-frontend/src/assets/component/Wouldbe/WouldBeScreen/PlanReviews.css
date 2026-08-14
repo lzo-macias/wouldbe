@@ -1,0 +1,38 @@
+.planandreviewsbar {
+    padding-top: 100px;
+    width: 100%;
+    /* height: 20px; */
+    display: flex;
+    justify-content: center;
+    gap: 200px;
+    border-bottom: 1px solid var(--line)
+}
+
+.planandreviewsbar button {
+    font-weight: 600;
+    font-size: 18px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px 4px;
+    /* On BOTH states, not just .active — a border that only exists when selected
+       makes the row grow 2px on every switch. Transparent reserves the space. */
+    border-bottom: 2px solid transparent;
+    /* Pulls the 2px bar down over the container's 1px hairline. Without it you
+       get a visible double line under the active tab. */
+    margin-bottom: -1px;
+    transition: color 150ms ease, border-bottom-color 150ms ease;
+}
+
+/* `.planandreviewsbar button.active`, NOT a bare `.active`. The rule above is
+   (0,1,1) — one class + one element — and would beat a lone `.active` at (0,1,0),
+   so the gold would be overridden by `transparent` and nothing would show. */
+.planandreviewsbar button.active {
+    color: #1a1a1a;
+    border-bottom-color: var(--gold);
+}
+
+.planandreviewsbar button.notactive {
+    color: #777777;
+    opacity: 70%;
+}

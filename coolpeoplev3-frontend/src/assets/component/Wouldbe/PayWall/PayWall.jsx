@@ -5,7 +5,7 @@ import api from '../../../lib/api'
 
 // The actual card form. Rendered INSIDE <Elements> so useStripe()/useElements()
 // have the loaded Stripe instance + the client-secret-scoped element group.
-function CheckoutForm({ onPaid }) {
+function CheckoutForm({ wouldbeId, onPaid }) {
     const stripe = useStripe()
     const elements = useElements()
     const [submitting, setSubmitting] = useState(false)
@@ -31,7 +31,27 @@ function CheckoutForm({ onPaid }) {
             return
         }
         if (paymentIntent?.status === 'succeeded') {
-            onPaid?.(paymentIntent)   // parent advances the flow; webhook records it server-side
+            // Tell the server the charge landed. The WEBHOOK is the source of
+            // truth, but it's a server-to-server callback Stripe cannot deliver
+            // to localhost — so without this the fee never clears in development
+            // and every campaign sits behind a disabled Approve button.
+            //
+            // We send only the id: the route retrieves the PaymentIntent from
+            // Stripe and checks the status itself, so this is a nudge, not a
+            // claim. Both paths call the same idempotent confirmer (it updates
+            // WHERE status = 'pending'), so whichever lands first wins.
+            //
+            // Failure here is NOT fatal: the money moved and the webhook will
+            // reconcile. Blocking the user on our own bookkeeping would be worse
+            // than a short delay before the fee shows as paid.
+            try {
+                await api.post(`/api/wouldbes/${wouldbeId}/creation-payment/confirm`, {
+                    payment_intent_id: paymentIntent.id,
+                })
+            } catch (recordErr) {
+                console.error('[PayWall] confirm failed; webhook will reconcile', recordErr)
+            }
+            onPaid?.(paymentIntent)
         }
         setSubmitting(false)
     }
@@ -56,6 +76,13 @@ function PayWall({ wouldbeId, onPaid }) {
 
     useEffect(() => {
         let cancelled = false
+        // No id means the caller never created the campaign. Say so — the old
+        // code just skipped the fetch and left "Loading payment…" on screen
+        // forever with nothing in the console to explain it.
+        if (!wouldbeId) {
+            setError("No campaign to pay for — the draft wasn't created.")
+            return
+        }
         async function createIntent() {
             try {
                 const res = await api.post(`/api/wouldbes/${wouldbeId}/creation-payment-intent`)
@@ -65,7 +92,7 @@ function PayWall({ wouldbeId, onPaid }) {
                 if (!cancelled) setError('Could not start payment. Please try again.')
             }
         }
-        if (wouldbeId) createIntent()
+        createIntent()
         return () => { cancelled = true }
     }, [wouldbeId])
 
@@ -76,7 +103,7 @@ function PayWall({ wouldbeId, onPaid }) {
             {clientSecret ? (
                 // The clientSecret scopes this Elements group to THIS PaymentIntent.
                 <Elements stripe={stripePromise} options={{ clientSecret }}>
-                    <CheckoutForm onPaid={onPaid} />
+                    <CheckoutForm wouldbeId={wouldbeId} onPaid={onPaid} />
                 </Elements>
             ) : (
                 !error && <p>Loading payment…</p>

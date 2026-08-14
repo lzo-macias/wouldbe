@@ -1,0 +1,98 @@
+.bigContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-top: 50px;
+}
+
+.seeLiveOffice{
+    margin-left: 800px;
+    display: flex;
+    gap: 20px;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.seeLiveOffice:hover {
+    transform: translateY(-4px) scale(1.16);
+    /* transform: scale(1.26) */
+}
+
+.DraftsBigContainer {
+    margin-right: auto;
+    padding-left: 200px;
+    padding-top: 50px;
+}
+
+.DraftsCard + .DraftsCard { margin-top: 16px; }
+
+/* Below ~1200px the 200px left padding plus a 1000px card no longer fit, so the
+   section drops its indent and the card takes the width it's given. */
+@media (max-width: 1200px) {
+    .DraftsBigContainer { padding-left: var(--s5); padding-right: var(--s5); }
+    .seeLiveOffice { margin-left: auto; margin-right: var(--s5); }
+}
+
+@media (max-width: 640px) {
+    .DraftsBigContainer { padding-left: var(--s4); padding-right: var(--s4); }
+    .DraftsCard { padding: 16px; }
+}
+
+.DraftsHeader {
+    font-size: var(--text-xl)
+}
+
+.DraftsHeaderDescription {
+    font-style: italic;
+    /* padding-bottom: 50px; */
+}
+
+.DraftsCard {
+    /* --muted is a TEXT token (#8b8b93, "de-emphasized text") — using it as a
+       surface is why nothing on this card had contrast, and why a pending draft
+       read as disabled. --panel is the token meant for a filled surface. */
+    background-color: var(--panel);
+    border: 1px solid var(--line);
+    /* Stays a full 1000px wide. max-width:100% is only a floor — it lets the
+       card shrink instead of overflowing once the viewport is narrower than
+       that, without capping it on desktop. */
+    width: 1000px;
+    max-width: 100%;
+    margin-top: 24px;
+    padding: 20px 24px;
+    border-radius: 12px;
+    list-style: none;
+}
+
+/* The label/value rows inside a card. */
+.DraftsCard li {
+    color: var(--ink-2);
+    line-height: 1.6;
+}
+.DraftsCard li span {
+    color: var(--muted);
+}
+
+.draftTitle {
+    color: var(--ink);
+    font-size: var(--text-lg);
+    font-weight: var(--w-bold);
+    padding-bottom: 20px;
+}
+
+/* A blocker, not body text — it gets its own light wash so the red has
+   something to sit on. #8f1d1d on #fdecec is 7.8:1; plain red on the old gray
+   card was 1.2:1, i.e. effectively invisible. */
+.draftMissing {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: #fdecec;
+    color: #8f1d1d;
+    font-size: var(--text-sm);
+}
+.draftMissing span {
+    color: inherit;
+    font-weight: var(--w-semibold);
+}

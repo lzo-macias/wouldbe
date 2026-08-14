@@ -44,6 +44,27 @@ const enterDebate = async ({
     }
     try {
         return await withTransaction(async (tx) => {
+            // 0) capacity. The sponsor bought a video-entry cap with their host
+            //    tier (debates.entry_cap), so entry #101 on a Basic debate is
+            //    refused rather than silently consuming storage nobody paid for.
+            //    Checked INSIDE the transaction and counted with FOR UPDATE-free
+            //    semantics: two simultaneous entries at the boundary can both
+            //    pass, which is an acceptable off-by-one against a capacity
+            //    limit — the alternative is locking the whole debate per entry.
+            //    A NULL cap (debates from before tiers) means unlimited.
+            const { rows: capRows } = await tx.query(
+                `SELECT d.entry_cap, COUNT(e.entry_id)::int AS entries
+                 FROM debates d
+                 LEFT JOIN debate_entries e ON e.debate_id = d.id
+                 WHERE d.id = $1
+                 GROUP BY d.entry_cap`,
+                [debate_id]
+            )
+            const cap = capRows[0]?.entry_cap
+            if (cap != null && capRows[0].entries >= cap) {
+                throw httpError(409, `this debate has reached its ${cap}-entry limit`)
+            }
+
             // 1) runtime identity — enforces debate-open/age/state eligibility and
             //    derives the state/age snapshot from the user's profile.
             const contestant = await createContestant({ debate_id, user_id }, tx)

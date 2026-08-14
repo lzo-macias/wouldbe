@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import api from '../../../lib/api'
+import { uploadPlanComponentImage, toComponentPayload, ACCEPTED_IMAGE_TYPES } from '../../../lib/planImageUpload'
 import { useNavigate } from 'react-router-dom'
 import "./ChooseYourIssues.css"
 
@@ -22,7 +23,8 @@ const [lean, setLean] = useState(undefined)
 
 const [screenv2, setScreenv2] = useState("1")
 
-const [wouldbeDraftId, setWouldBeDraftId] = useState(undefined)
+// Keyed by category_key: { [category_key]: { description } }. Handed UP to the
+// parent on submit — this screen does NOT create the campaign or the plan.
 const [planComponents, setPlanComponents] = useState({})
 
 useEffect(() => {
@@ -141,12 +143,37 @@ const upDateComponent = (key, field, value) => {
     }))
 }
 
+// Collect the plan positions and hand them to the parent.
+//
+// It does NOT save them here. A plan component needs a plan_id, a plan needs a
+// wouldbe_id, and the campaign doesn't exist yet — POST /api/wouldbes is gated
+// on the attestations recorded on screen 1, so the parent creates the campaign
+// after this screen finishes. Whoever creates the campaign is the only place
+// that can create the plan, so the components go there.
+//
+// title falls back to the category's display name: addPlanComponent requires a
+// title AND a description, and the form only asks for the position text.
 const onSubmitV2 = async () => {
-    const component = object.Entries(planComponents)
-        .map(([category_key, v]) => ({category_key, title: v.title, description: v.description}))
+    const components = Object.entries(planComponents)
+        .map(([category_key, v]) => ({
+            category_key,
+            title: (v.title ?? displayNameFor(category_key)).trim(),
+            description: (v.description ?? "").trim(),
+            // Image fields, when one was attached. The bytes are already in R2;
+            // this is just the key, which the server binds to the component row
+            // and queues for moderation. Spreads to {} when there's no image.
+            ...toComponentPayload(v.image),
+        }))
+        // A blank box means "no position on this" — sending it would 400, since
+        // description is required. An image alone isn't a position.
+        .filter((c) => c.description)
 
-    const savingplancomponentsdraft = await api.put(`/api/plans/:${wouldBeDraftId}/components`)
+    onComplete(components)
 }
+
+// The label shown beside a plan input, used as the component's title.
+const displayNameFor = (category_key) =>
+    myInterest.find((i) => i.category_key === category_key)?.display_name ?? category_key
 
 function titleCase(str) {
     return str
@@ -260,19 +287,28 @@ function titleCase(str) {
                         > 
                             <button className = "x" onClick={toggle}>x</button>
                             <div className='displayTopic'>{topic.display_name}</div>
-                            <input 
-                                placeholder='input your plan here or drag and drop video'
-                                type="text" 
-                                value = {planComponents[topic.category_key]?.description ?? ""}
-                                onChange = {(e) => upDateComponent(topic.category_key, "description", e.target.value)}
-                                className='planInput'
-                            />
+                            <div className='planInputRow'>
+                                <input
+                                    placeholder='write your plan here'
+                                    type="text"
+                                    value = {planComponents[topic.category_key]?.description ?? ""}
+                                    onChange = {(e) => upDateComponent(topic.category_key, "description", e.target.value)}
+                                    className='planInput'
+                                />
+                                <PlanImageAttach
+                                    image={planComponents[topic.category_key]?.image}
+                                    onChange={(img) => upDateComponent(topic.category_key, "image", img)}
+                                />
+                            </div>
                         </div>
                     )
                 })}
             </div>
             <div className='foot'>
-                <button onClick={() => onComplete()}>Skip</button>
+                {/* Skip sends NO components — the campaign is still created, it
+                    just has no plan attached. */}
+                <button type="button" onClick={() => onComplete([])}>Skip</button>
+                <button type="button" onClick={onSubmitV2}>Save plan and continue</button>
             </div>
         </div>
     </>
@@ -280,6 +316,86 @@ function titleCase(str) {
 }
 
 export default ChooseYourIssues
+
+// ---------------------------------------------------------------------------
+// Optional image on one plan position. Module scope for the same reason as
+// MyInterestsDropDown below — nested, it would be a new function on every
+// ChooseYourIssues render, so React would remount it and lose the preview
+// mid-upload.
+//
+// accept="image/*" is what makes the OS offer Camera / Photo Library / Files on
+// mobile and the native picker on desktop. No `capture` attribute: it forces the
+// camera and removes the library option entirely.
+//
+// The image is uploaded IMMEDIATELY on pick (so the slow part is over before the
+// user hits save) but is not attached to anything until the component row is
+// created. Nothing is published until moderation clears it.
+// ---------------------------------------------------------------------------
+function PlanImageAttach({ image, onChange }) {
+    const inputRef = useRef(null)
+    const [busy, setBusy] = useState("")
+    const [error, setError] = useState(null)
+
+    // Release the object URL when the image is replaced or this row unmounts —
+    // otherwise every re-pick leaks the decoded image for the tab's lifetime.
+    useEffect(() => {
+        const url = image?.previewUrl
+        if (!url) return
+        return () => URL.revokeObjectURL(url)
+    }, [image?.previewUrl])
+
+    async function handleFile(file) {
+        if (!file) return
+        setError(null)
+        try {
+            const uploaded = await uploadPlanComponentImage(file, { onProgress: setBusy })
+            onChange(uploaded)
+        } catch (err) {
+            setError(err.response?.data?.error || err.message || "Could not upload that image")
+        } finally {
+            setBusy("")
+        }
+    }
+
+    return (
+        <div className='planImageAttach'>
+            <input
+                ref={inputRef}
+                type="file"
+                accept={ACCEPTED_IMAGE_TYPES}
+                hidden
+                onChange={(e) => {
+                    handleFile(e.target.files?.[0])
+                    e.target.value = ""   // so re-picking the same file still fires onChange
+                }}
+            />
+
+            {image?.previewUrl ? (
+                <div className='planImageThumb'>
+                    <img src={image.previewUrl} alt="attached" />
+                    <button
+                        type="button"
+                        className='planImageRemove'
+                        title="Remove image"
+                        onClick={() => onChange(null)}
+                    >x</button>
+                </div>
+            ) : (
+                <button
+                    type="button"
+                    className='planImageBtn'
+                    disabled={!!busy}
+                    onClick={() => inputRef.current?.click()}
+                    title="Attach an image to this position"
+                >
+                    {busy ? `${busy}…` : "+ image"}
+                </button>
+            )}
+
+            {error && <span className='planImageError'>{error}</span>}
+        </div>
+    )
+}
 
 // ---------------------------------------------------------------------------
 // Module-scope so its identity is STABLE across ChooseYourIssues re-renders.
