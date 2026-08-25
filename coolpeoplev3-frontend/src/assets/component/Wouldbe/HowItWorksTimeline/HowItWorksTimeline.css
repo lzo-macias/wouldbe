@@ -1,0 +1,86 @@
+/* four equal columns via grid (not flex + min-width) → cleaner + responsive */
+.howitworksmaincontainer {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--s5);
+    padding-top: var(--s5);
+}
+
+.miniContainer {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: var(--s6) var(--s5) var(--s5);
+    box-shadow: var(--shadow);
+    transition: transform var(--ease), box-shadow var(--ease), border-color var(--ease);
+    padding-top: 20px;
+}
+
+/* hover on the CARD → only the properties that change */
+.miniContainer:hover {
+    transform: translateY(-3px);
+    border-color: var(--line-2);
+    box-shadow: var(--shadow-hover);
+}
+
+.numberandgraphic {
+    display: flex;
+    /* align-items: center; */
+    flex-direction: column;
+    margin-bottom: var(--s5);
+}
+
+/* the icon badge (image left) */
+.image {
+    width: 24px;
+    height: 24px;
+    color: var(--gold-deep);            /* stroke="currentColor" follows this */
+    background-color: var(--gold-soft);
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    box-sizing: content-box;            /* keep icon 24px; padding grows the badge */
+    transition: background-color var(--ease), color var(--ease);
+    /* margin-left: auto; */
+}
+.miniContainer:hover .image {           /* override ONLY color + bg */
+    background-color: var(--gold);
+    color: var(--gold-ink);
+}
+
+/* the step number (right) */
+.number {
+    margin-left: auto;                  /* hugs the right edge of the row */
+    color: var(--muted);
+    font-weight: 700;
+    transition: color var(--ease);
+    text-align: right;
+    /* padding-bottom:  var(--s5) */
+}
+.miniContainer:hover .number {          /* override ONLY color */
+    color: var(--gold);
+}
+
+.miniContainer h3 {
+    margin: 0 0 var(--s3);
+    font-weight: 800;
+    font-size: 18px;
+    line-height: 1.25;
+}
+
+.miniContainer p,
+.description {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: 14px;
+}
+
+/* responsive: 4 → 2 → 1 columns */
+@media (max-width: 900px) {
+    .howitworksmaincontainer { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+    .howitworksmaincontainer { grid-template-columns: 1fr; }
+}

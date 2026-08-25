@@ -1,0 +1,37 @@
+{
+  "name": "coolpeoplev3-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start:dev": "nodemon ./server/index.js",
+    "seed:dev": "nodemon ./server/seed.js",
+    "seed": "node ./server/seed.js",
+    "seed:reference": "node ./server/seed/reference/run.js",
+    "bootstrap:admin": "node ./server/seed/bootstrapAdmin.js",
+    "simulate:payment": "node ./server/seed/simulateSponsorPayment.js",
+    "migrate": "node-pg-migrate"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1077.0",
+    "@aws-sdk/s3-request-presigner": "^3.1077.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
+    "node-cron": "^4.2.1",
+    "nodemon": "^3.1.14",
+    "pg": "^8.20.0",
+    "stripe": "^22.3.0",
+    "uuid": "^14.0.0"
+  },
+  "devDependencies": {
+    "node-pg-migrate": "^8.0.4"
+  }
+}

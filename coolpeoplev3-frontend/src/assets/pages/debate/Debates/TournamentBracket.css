@@ -1,0 +1,227 @@
+/* Tournament bracket — mirrored halves feeding a final in the middle.
+ *
+ * THE MIRROR IS ONE RULE, NOT TWO LAYOUTS. The right half is the same markup as
+ * the left, flipped with scaleX(-1), and each capsule is flipped back so the faces
+ * and names read normally. Maintaining two hand-built directions is how bracket
+ * CSS rots — one of them always ends up a round behind.
+ *
+ * The connectors are pseudo-elements, not SVG: a match draws the "]" that joins its
+ * pair, plus the stub that runs from that elbow into the next round's slot. They
+ * follow the flex layout automatically, so a 4-person and a 32-person bracket need
+ * no different rules.
+ */
+
+:root {
+    /* The bracket lives on the ink page, so it borrows that page's ramp rather
+       than keeping a second palette that can drift out of step with it. */
+    --bracket-line: #443e2e;
+    --bracket-slot: #201d15;
+    --bracket-fg: #f6f2e7;
+    --bracket-muted: #7a7263;
+    --bracket-live: #e0b551;
+    --bracket-win: #e0b551;
+    --bracket-gap: 28px;      /* horizontal space between rounds */
+    --bracket-slot-h: 42px;
+}
+
+.ongoing-bracket {
+    overflow-x: auto;          /* a big field is wider than a phone; scroll it */
+    padding: 26px 14px;
+}
+
+.bracket {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--bracket-gap);
+    font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+    color: var(--bracket-fg);
+    min-width: min-content;
+}
+
+.bracket-half {
+    display: flex;
+    align-items: stretch;
+    gap: var(--bracket-gap);
+}
+
+/* The whole right half is flipped; .bracket-slot flips itself back below. */
+.bracket-half--right { transform: scaleX(-1); }
+
+.bracket-round {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 12px;
+}
+
+.bracket-match {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    flex: 1 0 auto;
+}
+
+/* The "]" joining a pair, and the stub running on to the next round. Only rounds
+ * that HAVE a next round get them — the finalist column has nothing to point at. */
+.bracket-half .bracket-round:not(:last-child) .bracket-match::after {
+    content: '';
+    position: absolute;
+    right: calc(var(--bracket-gap) / -2);
+    top: 25%;
+    bottom: 25%;
+    width: calc(var(--bracket-gap) / 2);
+    border: 1px solid var(--bracket-line);
+    border-left: 0;
+    border-radius: 0 10px 10px 0;
+}
+
+.bracket-half .bracket-round:not(:last-child) .bracket-match::before {
+    content: '';
+    position: absolute;
+    right: calc(var(--bracket-gap) * -1);
+    top: 50%;
+    width: calc(var(--bracket-gap) / 2);
+    border-top: 1px solid var(--bracket-line);
+}
+
+/* --- the capsules ------------------------------------------------------- */
+
+.bracket-slot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 150px;
+    height: var(--bracket-slot-h);
+    padding: 0 14px;
+    background: var(--bracket-slot);
+    border: 1px solid #332e22;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    text-align: left;
+    color: inherit;
+}
+
+/* Flip the contents of the right half back the right way round. */
+.bracket-half--right .bracket-slot { transform: scaleX(-1); }
+
+.bracket-slot--empty {
+    border-style: dashed;
+    border-color: #2f2a1f;
+    background: transparent;
+}
+
+.bracket-slot--live {
+    cursor: pointer;
+    color: var(--bracket-live);
+    border-color: #4a3d1e;
+    background: rgba(224, 181, 81, 0.09);
+    transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+.bracket-slot--live:hover,
+.bracket-slot--live:focus-visible {
+    transform: translateY(-1px);
+    border-color: var(--bracket-live);
+    box-shadow: 0 4px 16px rgba(224, 181, 81, 0.18);
+}
+.bracket-half--right .bracket-slot--live:hover,
+.bracket-half--right .bracket-slot--live:focus-visible {
+    /* keep the flip while adding the lift, or the capsule snaps back mirrored */
+    transform: scaleX(-1) translateY(-1px);
+}
+
+.bracket-slot--winner {
+    background: var(--bracket-win);
+    color: #1a1509;
+    font-weight: 600;
+    border-color: var(--bracket-win);
+}
+
+/* Eliminated stays visible — a bracket with the losers deleted is unreadable. */
+.bracket-slot--out {
+    opacity: 0.4;
+    border-color: #2f2a1f;
+}
+.bracket-slot--out .bracket-name { text-decoration: line-through; }
+
+.bracket-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: #2a2519;
+}
+.bracket-avatar--blank { display: inline-block; }
+
+.bracket-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* --- the middle --------------------------------------------------------- */
+
+.bracket-final {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 0 4px;
+}
+
+.bracket-final-label {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--bracket-muted);
+}
+
+.bracket-round--final { gap: 10px; }
+
+.bracket-champion {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 150px;
+    min-height: var(--bracket-slot-h);
+    padding: 0 14px;
+    border: 1px dashed #2f2a1f;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--bracket-muted);
+}
+
+.bracket-champion.is-crowned {
+    border-style: solid;
+    border-color: var(--bracket-live);
+    background: var(--bracket-live);
+    color: #1a1509;
+    font-weight: 600;
+    box-shadow: 0 6px 22px rgba(224, 181, 81, 0.16);
+}
+
+.bracket-empty {
+    padding: 46px 24px;
+    text-align: center;
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--bracket-muted);
+}
+
+@media (max-width: 720px) {
+    :root { --bracket-gap: 18px; }
+    .bracket-slot, .bracket-champion { min-width: 120px; font-size: 12px; }
+}

@@ -1,0 +1,26 @@
+/* ============================================================
+   Wouldbe page — blur the header + rows behind the Qualify modal.
+   ============================================================ */
+
+.wouldbePage {
+    position: relative;
+    min-height: 100vh;
+}
+
+/* Header + split fill the viewport as a column so the split (below the header)
+   can own the remaining height and scroll its own right column. */
+.wouldbeContent {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* applied to the header+rows wrapper while the Qualify modal is open */
+.blurred {
+    filter: blur(4px);
+    pointer-events: none;   /* stop clicks reaching the blurred content */
+    user-select: none;
+    transition: filter 0.15s ease;
+    height: 100vh;
+    width: 100vw;
+}

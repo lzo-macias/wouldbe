@@ -1,0 +1,45 @@
+.bioContainer {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+}
+.left {
+    /* position: absolute; */
+    padding: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 500px;
+}
+.bioprofilephoto {
+    min-width: 200px;
+    min-height: 200px;
+    max-width: 200px;
+    max-height: 200px;
+    /* height: 200px; */
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.starsnameandlinks {
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.right {
+    /* position: absolute; */
+    width: 100%;
+    border: 1px solid black;
+    margin: 100px;
+    border-radius: 12px;
+    background-color: #f4f4f5
+}
+
+.right p {
+    padding: 20px;
+    text-align: justify;
+}

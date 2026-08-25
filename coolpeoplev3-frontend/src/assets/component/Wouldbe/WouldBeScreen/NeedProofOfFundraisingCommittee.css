@@ -1,0 +1,107 @@
+.needProofPanel {
+    /* padding: 200px; */
+    /* padding-top: 150px; */
+    padding: 50px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    /* background-color: #e8e8ea; */
+    box-shadow:
+        0 1px 3px rgba(16,24,40,.10),
+        0 1px 2px rgba(16,24,40,.06);
+    /* padding: 100px; */
+}
+
+.MissingFundraisingCommittee {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.radiogroup {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    outline: none;
+    display: flex;
+    justify-content: space-between;
+}
+
+.radiogrouplabelandoptions {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+}
+
+.fieldset input {
+
+}
+
+.missingFundraisingDescriptor {
+    font-style: italic;
+}
+
+.buttoncontainer {
+    display: flex;
+    width: 100%;
+}
+
+.buttoncontainer button {
+    margin-left: auto;
+    padding: 20px;
+    background-color: #e8e8ea;
+    border-radius: 12px;
+}
+
+.labelAndinput {
+    display: flex;
+    justify-content: space-between;
+}
+
+.labelAndinput input {
+    width: fit-content;
+    padding: 0px 20px;
+    border-radius: 12px;
+    border: none;
+    appearance: none;
+    outline: none;
+    box-shadow: none;                      /* explicit start state for the transition */
+    transition: box-shadow 150ms ease;
+}
+
+/* .labelAndinput input {
+    width: 24ch;          
+    flex: none;           
+    padding: 0px 20px;
+    box-sizing: content-box;   
+    border-radius: 12px;
+    border: none;
+    appearance: none;
+    outline: none;
+    box-shadow: none;
+    transition: box-shadow 150ms ease;
+} */
+
+.labelAndinput input:focus,
+.labelAndinput input:not(:placeholder-shown) {
+    box-shadow:
+        0 1px 3px rgba(16,24,40,.10),
+        0 1px 2px rgba(16,24,40,.06);
+}
+.formLargeContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.WheretoFileContainer {
+    display: flex;
+    justify-content: space-between;
+}
+
+.WheretoFileContainer a {
+    background-color: #e8e8ea;
+    padding: 10px;
+    border-radius: 12px;
+}
+

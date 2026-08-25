@@ -1,0 +1,21 @@
+/* Vite's root is <div id="root"> — an id, not a class. Paint html/body too so
+   overscroll and any gap above the page don't flash white. */
+/* html, body, #root {
+    background: #E8D896;
+} */
+
+.debategradientV2 {
+    /* display:flow-root establishes a block formatting context so the header's
+       margin-top stays INSIDE this div instead of collapsing out and pushing
+       the whole gradient down (that was the white bar at the top). */
+    display: flow-root;
+    min-height: 100vh;
+    width: 100%;
+    background: linear-gradient(
+        to bottom,
+        #E8D896 0%,
+        #E8D896 25%,
+        #E8D896 50%,
+        #E8D896 100%
+    );
+}

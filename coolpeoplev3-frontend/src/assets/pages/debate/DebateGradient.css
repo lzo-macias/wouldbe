@@ -1,0 +1,11 @@
+.debategradient {
+    min-height: 100vh;
+    background: linear-gradient(
+        to bottom,
+        #FFFFFF 0%,
+        #FDF8E7 25%,
+        #E8D896 50%,
+        #FDF8E7 100%
+    );
+}
+

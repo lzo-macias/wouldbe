@@ -1,0 +1,273 @@
+/* ============================================================================
+   Pledge card. Ported from the static mock, but hooked into the tokens already
+   in index.css (--gold, --gold-deep, --gold-soft, --line) rather than repeating
+   hex values, so a palette change carries through.
+   ========================================================================== */
+
+.pledgeCard {
+    box-sizing: border-box;
+    width: 520px;
+    max-width: 100%;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    box-shadow:
+        0 1px 2px rgba(17,17,20,.04),
+        0 12px 32px rgba(17,17,20,.06);
+    padding: 22px;
+}
+
+/* ---- header --------------------------------------------------------------- */
+.pledgeCard .head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+.pledgeCard .head img {
+    width: 50px;
+    height: 50px;
+    border-radius: 9999px;
+    object-fit: cover;
+    flex: none;              /* never squashed by a long office name */
+}
+.pledgeCard .head h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -.01em;
+    min-width: 0;
+}
+
+/* ---- hero: ring + amounts ------------------------------------------------- */
+.pledgeCard .hero {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 16px;
+}
+.pledgeCard .ring { position: relative; width: 88px; height: 88px; }
+.pledgeCard .ring .pct {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    text-align: center;
+}
+.pledgeCard .ring .pct b { flex: none; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+.pledgeCard .ring .pct span {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted, #8b8b93);
+    margin-top: 1px;
+}
+
+.pledgeCard .amounts { flex: 1; min-width: 0; }
+.pledgeCard .raised { font-size: 28px; font-weight: 800; letter-spacing: -.02em; line-height: 1; }
+.pledgeCard .goalline { color: var(--muted, #8b8b93); font-size: 15px; margin-top: 6px; }
+.pledgeCard .goalline b { color: var(--ink-2, #3d3d44); font-weight: 600; }
+.pledgeCard .beFirst { color: var(--gold-deep); }
+
+/* ---- linear track --------------------------------------------------------- */
+.pledgeCard .track {
+    position: relative;      /* containing block for .fill and .knob */
+    height: 8px;
+    border-radius: 4px;
+    background: var(--line);
+    margin: 12px 0 0;
+}
+.pledgeCard .fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    border-radius: 4px;
+    background: var(--green, #34C759);
+    transition: width 400ms ease;
+}
+.pledgeCard .knob {
+    position: absolute;
+    top: 50%;
+    /* NEGATIVE on both axes so the knob's CENTRE sits on the progress point —
+       positive offsets push it past the mark and below the track. */
+    transform: translate(-50%, -50%);
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    background: var(--green, #34C759);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    transition: left 400ms ease;
+}
+
+/* ---- stat row ------------------------------------------------------------- */
+.pledgeCard .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.pledgeCard .stat {
+    text-align: center;
+    padding: 10px 8px;
+    background: var(--panel, #f4f4f5);
+    border-radius: 12px;
+}
+.pledgeCard .stat b { display: block; font-size: 18px; font-weight: 800; letter-spacing: -.01em; }
+.pledgeCard .stat span { font-size: 12px; color: var(--muted, #8b8b93); }
+
+/* ---- actions -------------------------------------------------------------- */
+.pledgeCard .actions {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+/* ---- pledge button --------------------------------------------------------
+   Solid yellow, black text. The shadow is lifted verbatim from the Qualify
+   button (Header.css .qualify) so the two primary golds in the app cast the
+   same light: 0 8px 20px rgba(201,164,55,.28).
+
+   NOTE: .qualify has no text-shadow of its own — its only shadow is that
+   box-shadow. So the box-shadow is matched exactly and the text-shadow is
+   derived from the same gold at the same weight, rather than invented.
+   ---------------------------------------------------------------------------- */
+.pledgeCard .pledge {
+    padding: 13px;
+    border: none;
+    border-radius: 12px;
+    background: #d4b84d;          /* same yellow as .qualify */
+    color: #000;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    text-shadow: 0 1px 2px rgba(201,164,55,.55);
+    box-shadow: 0 8px 20px rgba(201,164,55,.28);
+    transition: background 150ms ease, box-shadow 150ms ease;
+}
+.pledgeCard .pledge:hover {
+    background: #c9a437;
+    box-shadow: 0 10px 24px rgba(201,164,55,.38);
+}
+.pledgeCard .pledge:active { box-shadow: 0 4px 10px rgba(201,164,55,.30); }
+.pledgeCard .cardNotice {
+    margin: -6px 0 14px;
+    font-size: 12.5px;
+    color: #a3272b;
+}
+.pledgeCard .follow {
+    background: #fff;
+    color: var(--ink, #111114);
+    border: 1px solid var(--line-2, #dcdce0);
+    padding: 13px;
+    border-radius: 12px;
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 150ms ease;
+}
+.pledgeCard .follow:hover { background: var(--panel, #f4f4f5); }
+.pledgeCard .follow:disabled { opacity: .6; cursor: default; }
+/* Followed reads as a filled state, so a persisted follow is obvious on load. */
+.pledgeCard .follow.is-following {
+    background: #7a5d10;
+    border-color: #7a5d10;
+    color: #fff;
+}
+
+/* ---- share ---------------------------------------------------------------- */
+.pledgeCard .share { margin-bottom: 14px; }
+
+/* ---- all-or-nothing ------------------------------------------------------- */
+.pledgeCard .aon {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    /* Transparent, held by a yellow rule instead of the filled gold-soft panel.
+       Border over background: the panel and the card are both light, so a fill
+       barely separated them — an outline draws the boundary at full strength
+       without adding another block of colour to a card that already has two. */
+    background: transparent;
+    border: 1px solid #d4b84d;
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+}
+.pledgeCard .aon .tag {
+    flex: none;
+    background: var(--gold);
+    color: var(--gold-ink, #241b00);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin-top: 1px;
+}
+.pledgeCard .aon p {
+    margin: 0;
+    font-size: 13.5px;
+    color: #000;
+    line-height: 1.45;
+}
+
+/* ---- debates -------------------------------------------------------------- */
+.pledgeCard .divider { height: 1px; background: var(--line); margin: 0 0 12px; display: none}
+.pledgeCard .debHead {
+    color: var(--gold-deep);
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 10px;
+}
+.pledgeCard .pillRow { display: flex; flex-wrap: wrap; gap: 8px; }
+.pledgeCard .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--gold-soft);
+    color: var(--gold-deep);
+    padding: 9px 16px;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 14px;
+}
+.pledgeCard .pill img { width: 18px; height: 18px; flex: none; }
+
+/* Bottom-left slot inside the card — holds UserOverView (tags + debates).
+   align-items: flex-start so its content hugs the left, matching the rest of the
+   card rather than centring in the leftover width. */
+.pledgeCard .cardFooter {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+/* UserOverView renders as a plain block in here: the card already supplies the
+   border, shadow, radius and padding, and a nested card would read as a box in a
+   box. Height rules are dropped too — there is no sibling column left to match. */
+.pledgeCard .cardFooter .bigUserOverview {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    height: auto;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: none;
+}
+
+/* margin-top: auto pushed the debates to the bottom of a full-height column that
+   no longer exists — inside the card it just adds a gap. */
+.pledgeCard .cardFooter .debatesBottomRight {
+    margin-top: 0;
+    align-self: flex-start;
+    text-align: left;
+    width: 100%;
+}

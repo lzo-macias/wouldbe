@@ -1,0 +1,80 @@
+.admin {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 28px 24px 60px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #1a1a2e;
+}
+
+.admin__header { margin-bottom: 20px; }
+.admin__header h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.01em; }
+.admin__header p { margin: 0; color: #6b7280; font-size: 14px; }
+
+/* dataset tabs */
+.admin__tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.admin__tab {
+  padding: 8px 16px; border-radius: 999px; border: 1px solid #d1d5db;
+  background: #fff; color: #374151; font-size: 14px; cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.admin__tab:hover { border-color: #1a1a2e; }
+.admin__tab--active { background: #1a1a2e; border-color: #1a1a2e; color: #fff; }
+
+/* filter bar */
+.admin__filters {
+  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 14px; padding: 14px 16px; background: #f3f4f6; border-radius: 10px;
+}
+.admin__filters label { font-size: 13px; color: #374151; display: flex; align-items: center; gap: 6px; }
+.admin__filters select, .admin__search {
+  padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 8px;
+  font-size: 14px; background: #fff; color: #1a1a2e;
+}
+.admin__search { min-width: 240px; flex: 1; }
+.admin__search:focus, .admin__filters select:focus { outline: 2px solid #c7d2fe; border-color: #818cf8; }
+.admin__count { margin-left: auto; font-size: 13px; color: #6b7280; font-variant-numeric: tabular-nums; }
+
+.admin__error {
+  color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca;
+  padding: 10px 14px; border-radius: 8px; margin: 0 0 12px;
+}
+
+/* table */
+.admin__table-wrap {
+  overflow-x: auto; background: #fff; border: 1px solid #e5e7eb;
+  border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+.admin__table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.admin__table thead th {
+  position: sticky; top: 0; background: #f9fafb; text-align: left;
+  padding: 11px 14px; border-bottom: 1px solid #e5e7eb;
+  font-weight: 600; color: #374151; white-space: nowrap; z-index: 1;
+}
+.admin__table tbody td { padding: 10px 14px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+.admin__table tbody tr:nth-child(even) { background: #fcfcfd; }
+.admin__table tbody tr:hover { background: #f0f4ff; }
+
+.admin__muted { color: #c7ccd4; }
+.admin__ocd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: #4b5563; }
+.admin__empty { padding: 28px; text-align: center; color: #9ca3af; }
+.admin__badge {
+  display: inline-block; padding: 2px 9px; border-radius: 999px;
+  font-size: 12px; background: #eef2ff; color: #3730a3; white-space: nowrap;
+}
+.admin a { color: #2563eb; text-decoration: none; }
+.admin a:hover { text-decoration: underline; }
+
+/* review queue — approve / reject on the debate applications tab */
+.admin__notice {
+  margin: 12px 0; padding: 10px 14px; border-radius: 8px;
+  background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; font-size: 14px;
+}
+.admin__actions { white-space: nowrap; }
+.admin__btn {
+  padding: 5px 11px; margin-right: 6px; border-radius: 6px; font-size: 13px;
+  border: 1px solid #d1d5db; background: #fff; color: #374151; cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.admin__btn:disabled { opacity: .45; cursor: not-allowed; }
+.admin__btn--approve:hover:not(:disabled) { background: #059669; border-color: #059669; color: #fff; }
+.admin__btn--reject:hover:not(:disabled)  { background: #dc2626; border-color: #dc2626; color: #fff; }

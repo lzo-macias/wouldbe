@@ -1,0 +1,138 @@
+/* Host tier picker — the post-submission payment screen.
+   Tokens (--gold, --ink-soft, --radius…) are declared on .applyPage in
+   ApplyForDebateCasual.css and inherit down to here; this file must not
+   redeclare them or the two screens drift apart. */
+
+.applyPage .tierStep {
+  margin-top: 18px;
+  padding: 20px;
+  border: 1px solid var(--gold-line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.applyPage .tierStepHead h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold-deep);
+}
+/* color:inherit — the app-wide `p` rule would otherwise repaint these. */
+.applyPage .tierStepHead p {
+  margin: 6px 0 0;
+  max-width: 62ch;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+/* auto-fit + minmax: three across on desktop, stacking on its own as the
+   viewport narrows — no breakpoint needed. */
+.applyPage .tierCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.applyPage .tierCard {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--gold-pale);
+  transition: border-color .12s, box-shadow .12s;
+}
+.applyPage .tierCard:hover { border-color: var(--gold-line); }
+.applyPage .tierCardChosen {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201,164,55,0.22);
+}
+
+.applyPage .tierCardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.applyPage .tierCardHead h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gold-ink);
+}
+.applyPage .tierPrice {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--gold-deep);
+  font-variant-numeric: tabular-nums;
+}
+
+.applyPage .tierEntries {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gold-ink);
+}
+
+.applyPage .tierFeatures {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+/* margin-top:auto pins the button to the card's bottom edge, so cards with
+   different feature counts still line their buttons up. */
+.applyPage .tierChoose {
+  margin-top: auto;
+  padding-top: 10px;
+  margin-top: 14px;
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 14px;
+  border: 1px solid var(--gold-line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--gold-ink);
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+}
+.applyPage .tierChoose:hover:not(:disabled) {
+  background: var(--gold-soft);
+  border-color: var(--gold);
+}
+.applyPage .tierChoose:disabled { opacity: .55; cursor: default; }
+.applyPage .tierCardChosen .tierChoose {
+  background: var(--gold-soft);
+  border-color: var(--gold);
+  font-weight: 500;
+}
+
+.applyPage .tierPayForm {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--hairline);
+}
+.applyPage .tierPayForm button {
+  margin-top: 14px;
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 20px;
+  border: 1px solid var(--gold-deep);
+  border-radius: var(--radius);
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+  cursor: pointer;
+}
+.applyPage .tierPayForm button:disabled { opacity: .55; cursor: default; }
+.applyPage .tierPayNote {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}

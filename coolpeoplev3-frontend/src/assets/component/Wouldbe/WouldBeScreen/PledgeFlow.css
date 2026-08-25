@@ -1,0 +1,208 @@
+/* ============================================================================
+   PledgeFlow.css — the pledge / tip / pay modal.
+   Same gold vocabulary as the card it opens from (PledgeCardOverview.css):
+   #d4b84d rim, #7a5d10 dark gold ink, gold-soft wash.
+   ============================================================================ */
+
+.pfScrim {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(36, 27, 0, .45);
+    overflow-y: auto;
+}
+
+.pfModal {
+    position: relative;
+    width: 100%;
+    max-width: 460px;
+    background: #fff;
+    border: 1px solid #d4b84d;
+    border-radius: 18px;
+    padding: 26px 24px 22px;
+    box-shadow: 0 24px 60px rgba(17, 17, 20, .28);
+    margin: auto;
+}
+
+.pfClose {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    font: inherit;
+    font-weight: 700;
+    color: #7a5d10;
+    background: #faf0cf;
+    border: 1px solid #d4b84d;
+    border-radius: 50%;
+    cursor: pointer;
+}
+.pfClose:hover { background: #f2e2ab; }
+
+.pfTitle { margin: 0 30px 8px 0; font-size: 19px; color: #111114; }
+.pfSub { margin: 0 0 18px; font-size: 13.5px; color: #3d3d44; line-height: 1.5; }
+.pfMuted { margin: 0 0 12px; font-size: 13.5px; color: #8b8b93; }
+.pfError { margin: 10px 0 0; font-size: 13px; color: #a3272b; }
+.pfNote { margin: 12px 0 0; font-size: 12px; color: #8b8b93; line-height: 1.45; }
+
+.pfLabel {
+    display: block;
+    margin: 4px 0 8px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #7a5d10;
+}
+
+/* ---- the amount tiers ------------------------------------------------------
+   auto-fit rather than a fixed column count: step 1 can render three tiers or
+   four depending on how much cap is left, and a fixed grid would leave a hole. */
+.pfTiers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+}
+.pfTiers--tip { grid-template-columns: repeat(auto-fit, minmax(78px, 1fr)); }
+
+.pfTier {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 62px;
+    padding: 10px 8px;
+    font: inherit;
+    background: #fff;
+    border: 1px solid #dcdce0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease, transform .15s ease;
+}
+.pfTier:hover:not(:disabled) {
+    border-color: #d4b84d;
+    background: #fffdf4;
+    transform: translateY(-1px);
+}
+.pfTier:disabled { opacity: .5; cursor: not-allowed; }
+
+.pfTierAmt { font-size: 17px; font-weight: 800; color: #111114; }
+.pfTierAmt small { font-size: 11px; font-weight: 700; color: #5d6478; }
+
+.pfBadge {
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #7a5d10;
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* The recommended tier and the max tier are marked, not shouted — a gold rim and
+   a wash, so the eye lands there without the other options reading as disabled. */
+.pfTier--popular { border-color: #d4b84d; background: #fffbee; }
+.pfTier--max { border-style: dashed; border-color: #d4b84d; }
+
+/* Selected state for the tip rows, which toggle rather than submit. */
+.pfTier.is-on {
+    border-color: #7a5d10;
+    background: #faf0cf;
+    box-shadow: inset 0 0 0 1px #7a5d10;
+}
+
+/* ---- custom amount --------------------------------------------------------- */
+.pfCustom { border-top: 1px solid #e8e8ea; padding-top: 16px; }
+.pfCustom label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #3d3d44;
+}
+.pfCustomRow { display: flex; gap: 10px; }
+.pfInput {
+    flex: 1;
+    min-width: 0;
+    padding: 11px 12px;
+    font: inherit;
+    font-size: 15px;
+    border: 1px solid #dcdce0;
+    border-radius: 10px;
+}
+.pfInput:focus { outline: none; border-color: #d4b84d; box-shadow: 0 0 0 3px #f6eccf; }
+
+/* ---- buttons --------------------------------------------------------------- */
+.pfPrimary {
+    padding: 12px 18px;
+    font: inherit;
+    font-weight: 700;
+    color: #000;
+    background: #d4b84d;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    text-shadow: 0 1px 2px rgba(201, 164, 55, .55);
+    box-shadow: 0 8px 20px rgba(201, 164, 55, .28);
+    transition: background .15s ease, box-shadow .15s ease;
+}
+.pfPrimary:hover:not(:disabled) { background: #c9a437; }
+.pfPrimary:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+
+.pfGhost {
+    padding: 12px 18px;
+    font: inherit;
+    font-weight: 500;
+    color: #3d3d44;
+    background: transparent;
+    border: 1px solid #dcdce0;
+    border-radius: 10px;
+    cursor: pointer;
+}
+.pfGhost:hover:not(:disabled) { background: #f7f6f3; }
+.pfGhost:disabled { opacity: .5; cursor: not-allowed; }
+
+.pfActions { display: flex; gap: 10px; margin-top: 4px; }
+.pfActions .pfPrimary { flex: 1; }
+
+/* ---- the card form --------------------------------------------------------- */
+.pfForm { display: flex; flex-direction: column; gap: 12px; }
+.pfForm .pfPrimary { width: 100%; }
+.pfForm .pfGhost { width: 100%; }
+
+@media (max-width: 420px) {
+    .pfModal { padding: 22px 16px 18px; }
+    .pfCustomRow { flex-direction: column; }
+}
+
+/* ---- the citizen / own-funds attestation ----------------------------------
+   Shown only after the server refuses for a missing attestation, so it doesn't
+   put a legal wall in front of people who already have one on file. */
+.pfAttest {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding: 14px;
+    background: #faf0cf;
+    border: 1px solid #d4b84d;
+    border-radius: 12px;
+}
+.pfCheck {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: #2a2515;
+    cursor: pointer;
+}
+.pfCheck input { margin-top: 2px; flex-shrink: 0; }

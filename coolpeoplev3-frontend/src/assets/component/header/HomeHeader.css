@@ -1,0 +1,88 @@
+.div, h3 {
+    border: none
+}
+
+button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.main_container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    /* padding-right: 30px; */
+}
+.Logoandsearchbar {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    /* border: 1px solid black; */
+    max-width: 70vw;
+    margin: 50px;
+}
+
+.HomeSearchContainer {
+    position: fixed;
+    left: 300px;
+    display: flex;
+    flex-direction: row;
+    /* justify-content: space-between;
+    width: 50vw */
+    border: .1px solid #E6EAEF;
+    width: 750px;
+    border-radius: 12px;
+}
+
+.HomeSearchContainer p {
+    color: #777777;
+}
+
+.SearchIcon{
+    /* margin-left: 20px; */
+    /* position: fixed; */
+    /* max-width: 30px;
+    padding-right: 100px;
+    padding-left: 50px; */
+}
+.SearchIcon {
+    margin-right: 100px;
+}
+
+.HomeLogo {
+    max-width: 200px;
+}
+
+.main_container .login {
+    border: none;
+    padding: 0;
+    position: fixed;
+    left: 1100px;
+}
+
+.HomeHeaderActionButtons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 50px;
+    margin-right: 30px;
+}
+
+/* .Qualify {
+    background-color: #D4B84D;
+    border-radius: 12px;
+    padding-left: 20px;
+    color: black;
+} */
+/* .HomeHeaderActionButtons img {
+    width: 180px;
+} */
+
+@media (max-width: 1393px) {
+    .HomeHeaderActionButtons {
+        margin-top: 20px;
+    }
+}

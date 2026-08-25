@@ -1,0 +1,230 @@
+/* ── Your debates ─────────────────────────────────────────────────
+   Sits on the flat #E8D896 gold of .debategradientV2, so cards are
+   near-white with a coloured left rail rather than coloured fills —
+   a saturated card on a gold page fights the background and makes
+   the text harder to read than the status is worth.
+
+   Status colours live as per-card custom properties (--rail, --tint,
+   --ink). Every rule below reads those, so the three variants differ
+   in exactly three declarations instead of three copies of the card. */
+
+.preExisting {
+  --gold:       #c9a437;
+  --gold-deep:  #8a6a12;
+  --gold-line:  #e3d3a0;
+  --ink:        #241d0c;
+  --ink-soft:   #6d5c33;
+  --ink-faint:  #9a8a63;
+  --surface:    #fffdf7;
+  --hairline:   #f0e8d2;
+  --radius:     12px;
+
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 40px 32px 80px;
+  color: var(--ink);
+}
+
+/* ── page head ────────────────────────────────────────────────── */
+.preExisting .preExistingHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+.preExisting .preExistingHead h1 {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 800;
+  font-style: italic;          /* echoes the "would be" wordmark */
+  letter-spacing: -0.03em;
+}
+
+.preExisting .addDebate {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 20px;
+  border: 1px solid var(--gold-deep);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .12s, box-shadow .12s;
+}
+.preExisting .addDebate:hover { background: #fff; box-shadow: 0 2px 10px rgba(36,29,12,.12); }
+.preExisting .addDebate:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(201,164,55,.45);
+}
+
+/* ── groups ───────────────────────────────────────────────────── */
+.preExisting .debateGroup { margin-bottom: 36px; }
+
+.preExisting .debateGroupHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold-deep);
+}
+.preExisting .debateCount {
+  display: inline-grid;
+  place-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(255,253,247,.7);
+  border: 1px solid var(--gold-line);
+  font-size: 11px;
+  letter-spacing: 0;
+  color: var(--ink-soft);
+}
+
+/* auto-fill + minmax: as many cards per row as fit, stacking on
+   their own as the viewport narrows — no breakpoints needed. */
+.preExisting .debateCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 16px;
+}
+
+/* ── the card ─────────────────────────────────────────────────── */
+.preExisting .debateCard {
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px 16px;
+  border: 1px solid var(--hairline);
+  /* the status rail — one wide left border, the only large area of colour */
+  border-left: 5px solid var(--rail);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(36,29,12,.06);
+  transition: box-shadow .14s, transform .14s;
+}
+.preExisting .debateCard:hover {
+  box-shadow: 0 6px 18px rgba(36,29,12,.13);
+  transform: translateY(-1px);
+}
+
+/* The three variants. Everything else about a card is identical. */
+.preExisting .approvedDebate { --rail: #2f855a; --tint: #e7f5ed; --ink-status: #22613f; }
+.preExisting .draftDebate    { --rail: #c9a437; --tint: #f9f0d4; --ink-status: #7a5f10; }
+.preExisting .rejectedDebate { --rail: #c53030; --tint: #fdeaea; --ink-status: #8f2323; }
+
+.preExisting .debateCardTitle {
+  margin: 0 0 14px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+/* ── label / value rows ───────────────────────────────────────── */
+.preExisting .cardRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 7px 0;
+  border-top: 1px solid var(--hairline);
+}
+.preExisting .cardRow:first-of-type { border-top: none; }
+
+.preExisting .cardLabel {
+  margin: 0;
+  flex: none;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: var(--ink-faint);
+}
+.preExisting .cardValue {
+  margin: 0;
+  min-width: 0;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+}
+/* A 'both' prize stacks cash over description; the wrapper is a div,
+   so its <p>s need their margins reset too. */
+.preExisting .cardPrize p { margin: 0; }
+.preExisting .cardPrize p + p {
+  margin-top: 3px;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+/* ── footer: action or state ──────────────────────────────────── */
+/* margin-top:auto pins this to the bottom edge, so cards of unequal
+   height still line their buttons up across a row. */
+.preExisting .cardFoot {
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+.preExisting .cardButton {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  width: 100%;
+  padding: 9px 16px;
+  border: 1px solid var(--rail);
+  border-radius: 8px;
+  background: var(--tint);
+  color: var(--ink-status);
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.preExisting .cardButton:hover { background: var(--rail); color: #fff; }
+.preExisting .cardButton:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rail) 35%, transparent);
+}
+
+/* A draft has no action — it is waiting on someone else. Reads as a
+   status pill rather than something you can press. */
+.preExisting .cardPending {
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--tint);
+  color: var(--ink-status);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.preExisting .cardReason {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+/* ── empty state ──────────────────────────────────────────────── */
+.preExisting .preExistingEmpty {
+  margin: 0;
+  padding: 40px 24px;
+  border: 1px dashed var(--gold-line);
+  border-radius: var(--radius);
+  background: rgba(255,253,247,.55);
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 560px) {
+  .preExisting { padding: 28px 18px 60px; }
+  .preExisting .preExistingHead h1 { font-size: 27px; }
+  .preExisting .addDebate { width: 100%; }
+}

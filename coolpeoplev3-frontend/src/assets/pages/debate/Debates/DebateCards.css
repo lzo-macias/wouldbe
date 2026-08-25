@@ -1,0 +1,903 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ============================================================================
+   DebateCards.css — the debate detail page (AnyDebate) and everything it
+   renders: the pre-debate cards, the live view, the nomination board and the
+   popups.
+
+   THE THEME IS DARK INK + GOLD, not the light gold wash the rest of the app
+   uses. A debate is a broadcast: the stream, the bracket and the prize are the
+   only bright things on screen, and every one of them reads better lit against
+   ink than printed on paper. The palette is a single ramp of warm near-blacks
+   (#131109 → #201D15) with ONE accent (#E0B551) plus a live green, so the gold
+   never has to compete with a second colour for attention.
+
+   Type is three families with three jobs, and they don't trade places:
+       Archivo         — display: titles, prize figures, tallies (700/800, tight)
+       Instrument Sans — body: everything you actually read
+       JetBrains Mono  — micro-labels: uppercase, 9–11px, widely tracked
+
+   Scoping: tokens are --dbt-* on :root so a card rendered outside .dbt-page
+   still resolves them; every selector is either .dbt-* or descends from
+   .dbt-page, so nothing here can reach the light-themed pages.
+   ============================================================================ */
+
+:root {
+    /* surfaces, darkest to lightest */
+    --dbt-ink: #131109;
+    --dbt-surface: #1a1710;
+    --dbt-raised: #201d15;
+    --dbt-sunken: #17140c;
+
+    /* hairlines — three weights, used in that order as things get closer */
+    --dbt-line: #262218;
+    --dbt-line-2: #332e22;
+    --dbt-line-3: #443e2e;
+
+    /* text */
+    --dbt-fg: #f6f2e7;
+    --dbt-fg-2: #ada491;
+    --dbt-fg-3: #7a7263;
+    --dbt-fg-4: #5f5849;
+
+    /* the one accent */
+    --dbt-gold: #e0b551;
+    --dbt-gold-hi: #f0cb74;
+    --dbt-gold-2: #c9993a;
+    --dbt-gold-3: #4a3d1e;
+    --dbt-gold-wash: rgba(224, 181, 81, 0.09);
+
+    --dbt-live: #64c08c;
+    --dbt-danger: #e0685f;
+
+    --dbt-r: 12px;          /* card radius */
+    --dbt-r-sm: 10px;       /* control radius */
+    --dbt-ease: 0.16s ease;
+
+    --dbt-display: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+    --dbt-body: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+    --dbt-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+/* ----------------------------------------------------------------------------
+   The page.
+   ---------------------------------------------------------------------------- */
+.dbt-page {
+    min-height: 100vh;
+    /* One soft gold bloom behind the top of the page — the only gradient on the
+       screen, so the ink doesn't read as a flat rectangle. */
+    background:
+        radial-gradient(900px 420px at 50% -160px, rgba(224, 181, 81, 0.10), transparent 70%),
+        var(--dbt-ink);
+    color: var(--dbt-fg);
+    font-family: var(--dbt-body);
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 72px;
+}
+
+/* index.css gives every p and heading a bottom margin. Inside the page, spacing
+   is the flex/grid gap's job, so it's reset once here instead of `margin: 0` on
+   twenty separate rules. */
+.dbt-page p,
+.dbt-page h1,
+.dbt-page h2,
+.dbt-page h3,
+.dbt-page ol,
+.dbt-page ul {
+    margin: 0;
+}
+
+.dbt-page :focus-visible {
+    outline: 2px solid var(--dbt-gold);
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+
+/* ----------------------------------------------------------------------------
+   Header, re-lit. <Header /> is a shared component styled for white pages: on
+   ink its black logo and hairline search box disappear. These overrides are
+   scoped to .dbt-page so no other route sees them.
+   ---------------------------------------------------------------------------- */
+.dbt-page .WouldBeHeader {
+    margin: 0;
+    padding: 16px clamp(16px, 4vw, 34px);
+    align-items: center;
+    border-bottom: 1px solid var(--dbt-line);
+    background: rgba(19, 17, 9, 0.7);
+}
+.dbt-page .LogoandSearch {
+    width: auto;
+    flex: 1;
+    gap: clamp(16px, 4vw, 40px);
+    justify-content: flex-start;
+    align-items: center;
+    min-width: 0;
+}
+/* The mark is solid black artwork; inverting is the whole fix. */
+.dbt-page .WouldbeLogo img { filter: invert(1); opacity: 0.94; height: 26px; width: auto; }
+.dbt-page .SearchContainer {
+    flex: 1;
+    max-width: 420px;
+    min-width: 0;
+    height: 38px;
+    background: var(--dbt-surface);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r-sm);
+    transition: border-color var(--dbt-ease);
+}
+.dbt-page .SearchContainer:hover { border-color: var(--dbt-line-3); }
+.dbt-page .SearchIcon { filter: invert(1); opacity: 0.42; width: 15px; height: 15px; }
+.dbt-page .SearchContainer p {
+    margin: 0 12px;
+    font-size: 13px;
+    color: var(--dbt-fg-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dbt-page .actionbtns { gap: 10px; margin-right: 0; }
+.dbt-page .actionbtns button,
+.dbt-page .signout button {
+    height: 34px;
+    padding: 0 16px;
+    font-family: var(--dbt-body);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dbt-fg-2);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color var(--dbt-ease), background var(--dbt-ease), border-color var(--dbt-ease);
+}
+.dbt-page .actionbtns button:hover,
+.dbt-page .signout button:hover { color: var(--dbt-fg); background: var(--dbt-raised); }
+.dbt-page .actionbtns .login {
+    padding: 0 20px;
+    color: var(--dbt-ink);
+    background: var(--dbt-gold);
+    border-color: var(--dbt-gold);
+}
+.dbt-page .actionbtns .login:hover { background: var(--dbt-gold-hi); color: var(--dbt-ink); }
+
+/* ----------------------------------------------------------------------------
+   Layout. Two peer cards, side by side on a wide screen and stacked below it —
+   neither is a sidebar, so they share a track width rather than one filling.
+   ---------------------------------------------------------------------------- */
+.dbt-main {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    align-items: start;
+    gap: 18px;
+    width: min(1060px, 100% - clamp(32px, 8vw, 68px));
+    margin: clamp(28px, 5vw, 46px) auto 0;
+}
+
+/* ----------------------------------------------------------------------------
+   The card shell — one family, two cards.
+   ---------------------------------------------------------------------------- */
+.dbt-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 462px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #211c11 0%, #1a170f 100%);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+}
+
+/* The title block. Not a plate any more: the title IS the emphasis, so it sits
+   straight on the card with one hairline under it. */
+.dbt-titlebar {
+    display: flex;
+    align-items: flex-end;
+    min-height: 0;
+    padding: 22px 22px 18px;
+    border-bottom: 1px solid var(--dbt-line);
+}
+/* Room for the ribbon, but only on the card that has one. */
+.dbt-card:has(.dbt-ribbon) .dbt-titlebar { padding-top: 52px; }
+
+.dbt-titlebar h1,
+.dbt-titlebar h3 {
+    font-family: var(--dbt-display);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.08;
+    color: var(--dbt-fg);
+    text-wrap: pretty;
+}
+.dbt-titlebar h1 { font-size: clamp(24px, 3.2vw, 29px); }
+.dbt-titlebar h3 { font-size: 19px; letter-spacing: -0.02em; }
+
+/* Was a rotated corner flash. Now a mono chip in the card's top-left corner —
+   same job (say what this is at a glance), none of the 2011 styling. */
+.dbt-ribbon {
+    position: absolute;
+    top: 18px;
+    left: 22px;
+    z-index: 2;
+    padding: 3px 9px 4px;
+    font-family: var(--dbt-mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--dbt-gold);
+    background: var(--dbt-gold-wash);
+    border: 1px solid var(--dbt-gold-3);
+    border-radius: 999px;
+}
+
+.dbt-body {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    flex: 1;
+    padding: 20px 22px 22px;
+}
+
+/* ----------------------------------------------------------------------------
+   Follow — a quiet pill until you hover it, gold once it's done.
+   ---------------------------------------------------------------------------- */
+.dbt-follow {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 3;
+    height: 26px;
+    padding: 0 12px;
+    font-family: var(--dbt-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-2);
+    background: var(--dbt-raised);
+    border: 1px solid var(--dbt-line-3);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color var(--dbt-ease), border-color var(--dbt-ease), background var(--dbt-ease);
+}
+.dbt-follow:hover:not(:disabled) {
+    color: var(--dbt-gold);
+    border-color: var(--dbt-gold-3);
+    background: var(--dbt-gold-wash);
+}
+.dbt-follow:disabled {
+    color: var(--dbt-gold);
+    background: var(--dbt-gold-wash);
+    border-color: var(--dbt-gold-3);
+    cursor: default;
+}
+
+.dbt-error {
+    font-size: 13px;
+    color: var(--dbt-danger);
+}
+
+/* ----------------------------------------------------------------------------
+   Micro-label + value. Every "small caps label over a value" pair on the page
+   uses these two, which is what makes the card read as a spec sheet.
+   ---------------------------------------------------------------------------- */
+.dbt-label {
+    font-family: var(--dbt-mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-3);
+}
+
+.dbt-when {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.dbt-when p {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--dbt-fg);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------------------------
+   The prize — the loudest thing on the page, because it is the reason anyone
+   enters. Cash gets the big Archivo numeral; a non-cash prize reuses the panel
+   with prose in place of the figure.
+   ---------------------------------------------------------------------------- */
+.dbt-prize {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 18px 18px;
+    background: var(--dbt-sunken);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+}
+.dbt-prize-amt {
+    font-family: var(--dbt-display);
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.06;
+    color: var(--dbt-gold);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;   /* a long prose prize must not widen the card */
+}
+.dbt-prize-note {
+    padding-top: 10px;
+    border-top: 1px dashed var(--dbt-line-3);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--dbt-fg-2);
+}
+
+/* ----------------------------------------------------------------------------
+   Nominated — overlapping avatars, then the headcount. The ring around each
+   circle is the card's own background, which is what separates them.
+   ---------------------------------------------------------------------------- */
+.dbt-nominated {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 4px;
+}
+.dbt-avatars {
+    display: flex;
+    padding-left: 10px;   /* offsets the first circle's negative margin */
+}
+.dbt-avatars img,
+.dbt-more {
+    width: 34px;
+    height: 34px;
+    margin-left: -10px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--dbt-raised);
+    box-shadow: 0 0 0 2px #1d1910;
+}
+.dbt-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--dbt-mono);
+    font-size: 10px;
+    color: var(--dbt-fg-2);
+}
+.dbt-count {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    white-space: nowrap;
+}
+.dbt-count span {
+    font-family: var(--dbt-display);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--dbt-fg);
+    font-variant-numeric: tabular-nums;
+}
+.dbt-count p { font-size: 13px; color: var(--dbt-fg-3); }
+
+/* ----------------------------------------------------------------------------
+   Actions. `margin-top: auto` pins them to the bottom so both cards' controls
+   sit on the same line even when the content above differs in height.
+   ---------------------------------------------------------------------------- */
+.dbt-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 20px;
+}
+.dbt-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    width: 100%;
+    height: 46px;
+    font-family: var(--dbt-body);
+    font-size: 14.5px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    border: 1px solid transparent;
+    border-radius: var(--dbt-r-sm);
+    cursor: pointer;
+    transition: background var(--dbt-ease), border-color var(--dbt-ease), color var(--dbt-ease);
+}
+.dbt-btn--gold {
+    color: #1a1509;
+    background: var(--dbt-gold);
+    border-color: var(--dbt-gold);
+}
+.dbt-btn--gold:hover { background: var(--dbt-gold-hi); border-color: var(--dbt-gold-hi); }
+/* The star artwork is gold-on-gold; flattened to ink it reads as an icon again. */
+.dbt-btn--gold img { filter: brightness(0); opacity: 0.72; }
+
+.dbt-btn--outline {
+    color: var(--dbt-fg);
+    background: transparent;
+    border-color: var(--dbt-line-3);
+}
+.dbt-btn--outline:hover { background: var(--dbt-raised); border-color: #6b6250; }
+/* The plus is stroked #1E1E1E — invisible on ink until it's inverted. */
+.dbt-btn--outline img { filter: invert(1); opacity: 0.85; }
+.dbt-btn img { width: 15px; height: 15px; }
+
+/* Share. The brand marks in /socialicons are solid black artwork, so on ink
+   they vanish entirely — inverting them and giving each one a raised disc is
+   what makes the row visible at all. */
+.dbt-share { display: flex; justify-content: center; padding-top: 4px; }
+.dbt-page .shareBar { gap: 8px; justify-content: center; }
+.dbt-page .shareBar .shareBtn {
+    width: 34px;
+    height: 34px;
+    background: var(--dbt-raised);
+    border: 1px solid var(--dbt-line-2);
+    transition: border-color var(--dbt-ease), background var(--dbt-ease), transform 0.12s;
+}
+.dbt-page .shareBar .shareBtn:hover { border-color: var(--dbt-line-3); }
+.dbt-page .shareBar .shareBtn img { width: 15px; height: 15px; filter: invert(1); opacity: 0.55; }
+.dbt-page .shareBar .shareBtn:hover img { opacity: 0.95; }
+.dbt-page .shareBar .shareToast {
+    padding: 4px 8px;
+    font-family: var(--dbt-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #1a1509;
+    background: var(--dbt-gold);
+}
+
+/* ----------------------------------------------------------------------------
+   Prompts / Criteria — a numbered list with mono numerals in gold rings, and
+   one pill that flips between the two panels.
+   ---------------------------------------------------------------------------- */
+.dbt-blurb {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--dbt-fg-2);
+    text-wrap: pretty;
+}
+.dbt-blurb img {
+    width: 19px;
+    height: 19px;
+    border-radius: 50%;
+    object-fit: cover;
+    vertical-align: -4px;
+    margin: 0 5px;
+}
+.dbt-blurb span { font-weight: 600; color: var(--dbt-fg); }
+
+.dbt-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 0;
+    list-style: none;
+    counter-reset: dbt;
+}
+.dbt-list li {
+    counter-increment: dbt;
+    position: relative;
+    padding-left: 34px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--dbt-fg-2);
+}
+/* The numeral is generated, so a re-ordered list can never disagree with it. */
+.dbt-list li::before {
+    content: counter(dbt);
+    position: absolute;
+    left: 0;
+    top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 21px;
+    height: 21px;
+    font-family: var(--dbt-mono);
+    font-size: 10px;
+    color: var(--dbt-gold);
+    background: var(--dbt-gold-wash);
+    border: 1px solid var(--dbt-gold-3);
+    border-radius: 50%;
+}
+.dbt-list strong {
+    display: block;
+    margin-bottom: 3px;
+    font-family: var(--dbt-body);
+    font-size: 14.5px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--dbt-fg);
+}
+
+.dbt-empty {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--dbt-fg-3);
+}
+
+.dbt-flip {
+    align-self: flex-end;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+    height: 34px;
+    padding: 0 14px;
+    font-family: var(--dbt-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-2);
+    background: transparent;
+    border: 1px solid var(--dbt-line-3);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color var(--dbt-ease), border-color var(--dbt-ease), background var(--dbt-ease);
+}
+.dbt-flip:hover {
+    color: var(--dbt-gold);
+    border-color: var(--dbt-gold-3);
+    background: var(--dbt-gold-wash);
+}
+.dbt-flip .dbt-flip-arrow { font-size: 12px; line-height: 1; }
+
+/* ----------------------------------------------------------------------------
+   The nomination board.
+   ---------------------------------------------------------------------------- */
+.dbt-board {
+    width: min(1060px, 100% - clamp(32px, 8vw, 68px));
+    margin: 22px auto 0;
+    background: var(--dbt-surface);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+    overflow: hidden;
+}
+.dbt-board-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--dbt-line);
+}
+.dbt-board-head h2 {
+    font-family: var(--dbt-display);
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--dbt-fg);
+}
+.dbt-board > ol { padding: 6px 22px 12px; list-style: none; }
+.dbt-board > ol > li {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--dbt-line);
+}
+.dbt-board > ol > li:last-child { border-bottom: 0; }
+.dbt-board .dbt-empty { padding: 26px 22px; }
+
+.dbt-rank {
+    flex-shrink: 0;
+    width: 22px;
+    font-family: var(--dbt-mono);
+    font-size: 11px;
+    color: var(--dbt-fg-3);
+    font-variant-numeric: tabular-nums;
+}
+/* The top three are the only ranks anyone reads; gold says so without a badge. */
+.dbt-board > ol > li:nth-child(-n + 3) .dbt-rank { color: var(--dbt-gold); }
+
+.dbt-who {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    flex: 1;
+    min-width: 0;
+}
+.dbt-who img {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--dbt-raised);
+}
+.dbt-who p {
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--dbt-fg);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.dbt-tally {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+.dbt-tally span {
+    font-family: var(--dbt-display);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--dbt-fg);
+    font-variant-numeric: tabular-nums;
+}
+.dbt-tally p {
+    font-family: var(--dbt-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-3);
+}
+.dbt-links {
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+    max-width: 220px;
+}
+.dbt-links a {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--dbt-gold-2);
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: color var(--dbt-ease);
+}
+.dbt-links a:hover { color: var(--dbt-gold); }
+
+/* ----------------------------------------------------------------------------
+   The live view — stream slot above, bracket below.
+   ---------------------------------------------------------------------------- */
+.ongoing {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: min(1060px, 100% - clamp(32px, 8vw, 68px));
+    margin: clamp(28px, 5vw, 46px) auto 0;
+}
+.ongoing-stream {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 16 / 9;
+    background: #0e0c06;
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+    font-family: var(--dbt-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-4);
+}
+.ongoing-bracket {
+    background: var(--dbt-surface);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+}
+
+/* ----------------------------------------------------------------------------
+   Popups.
+   ---------------------------------------------------------------------------- */
+.dbt-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(9, 8, 4, 0.72);
+    backdrop-filter: blur(3px);
+}
+.dbt-popup {
+    position: relative;
+    width: 100%;
+    max-width: 380px;
+    padding: 34px 28px 28px;
+    text-align: center;
+    background: var(--dbt-surface);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+.dbt-popup p {
+    margin-bottom: 22px;
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--dbt-fg-2);
+    text-wrap: pretty;
+}
+.dbt-popup-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 26px;
+    height: 26px;
+    font-family: var(--dbt-body);
+    font-size: 13px;
+    line-height: 1;
+    color: var(--dbt-fg-3);
+    background: transparent;
+    border: 1px solid var(--dbt-line-2);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: color var(--dbt-ease), border-color var(--dbt-ease);
+}
+.dbt-popup-close:hover { color: var(--dbt-fg); border-color: var(--dbt-line-3); }
+.dbt-popup-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+.dbt-popup-actions a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 42px;
+    padding: 0 22px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: var(--dbt-r-sm);
+    text-decoration: none;
+    transition: background var(--dbt-ease), border-color var(--dbt-ease);
+}
+.dbt-popup-actions a:first-child {
+    color: #1a1509;
+    background: var(--dbt-gold);
+}
+.dbt-popup-actions a:first-child:hover { background: var(--dbt-gold-hi); }
+.dbt-popup-actions a:last-child {
+    color: var(--dbt-fg);
+    border: 1px solid var(--dbt-line-3);
+}
+.dbt-popup-actions a:last-child:hover { background: var(--dbt-raised); border-color: #6b6250; }
+
+/* ----------------------------------------------------------------------------
+   Loading / error / concluded — one centred line, not a bare sentence.
+   ---------------------------------------------------------------------------- */
+.dbt-status {
+    width: min(1060px, 100% - clamp(32px, 8vw, 68px));
+    margin: clamp(28px, 5vw, 46px) auto 0;
+    padding: 54px 24px;
+    text-align: center;
+    background: var(--dbt-surface);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+    font-family: var(--dbt-mono);
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-3);
+}
+.dbt-status[role='alert'] { color: var(--dbt-danger); border-color: #3a2620; }
+
+@media (max-width: 760px) {
+    .dbt-card { min-height: 0; }
+    .dbt-links { display: none; }   /* the row is already tight at this width */
+    .dbt-board > ol { padding-inline: 16px; }
+    .dbt-board-head { padding-inline: 16px; }
+    .dbt-page .SearchContainer { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dbt-page * { transition-duration: 0.001ms !important; }
+}
+
+/* ----------------------------------------------------------------------------
+   ACTION DIALOGS — nominate + join the debate.
+
+   Both reuse .dbt-scrim/.dbt-popup, but they are FORMS, not one-sentence
+   prompts: the copy is read left-to-right, the search results and criteria are
+   lists, and neither survives the centred 380px column the popups use. So the
+   modifier widens the panel and un-centres the text, and everything below is
+   scoped under it so the plain popups are untouched.
+   ---------------------------------------------------------------------------- */
+.dbt-popup--wide {
+    max-width: 520px;
+    padding: 30px 26px 24px;
+    text-align: left;
+}
+.dbt-popup--wide p { margin-bottom: 16px; }
+.dbt-modal-title {
+    margin-bottom: 8px;
+    font-family: var(--dbt-display);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--dbt-fg);
+}
+
+.dbt-field { display: block; margin-bottom: 14px; }
+.dbt-field .dbt-label { display: block; margin-bottom: 6px; }
+.dbt-field input {
+    width: 100%;
+    height: 44px;
+    padding: 0 13px;
+    font-family: var(--dbt-body);
+    font-size: 14.5px;
+    color: var(--dbt-fg);
+    background: var(--dbt-sunken);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r-sm);
+    outline: none;
+    transition: border-color var(--dbt-ease);
+}
+.dbt-field input::placeholder { color: var(--dbt-fg-3); }
+.dbt-field input:focus { border-color: var(--dbt-gold); }
+
+/* A short note under a field — what the optional phone number actually does.
+   Sits inside the <label>, which is a block, so it needs its own display. */
+.dbt-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--dbt-fg-3);
+}
+
+/* The criteria + rules the entrant is acknowledging. Scrollable rather than
+   truncated — an ack over text the person could not reach is worth nothing. */
+.dbt-terms {
+    max-height: 200px;
+    margin-bottom: 16px;
+    padding: 14px;
+    overflow-y: auto;
+    background: var(--dbt-sunken);
+    border: 1px solid var(--dbt-line);
+    border-radius: var(--dbt-r-sm);
+}
+.dbt-terms .dbt-label { display: block; margin-bottom: 8px; }
+.dbt-terms .dbt-label + .dbt-label,
+.dbt-terms .dbt-list + .dbt-label { margin-top: 16px; }
+.dbt-rules-text {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--dbt-fg-2);
+    white-space: pre-wrap;
+}
+
+.dbt-checks { display: flex; flex-direction: column; gap: 11px; margin-bottom: 16px; }
+.dbt-checks label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--dbt-fg-2);
+    cursor: pointer;
+}
+.dbt-checks input {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    accent-color: var(--dbt-gold);
+    cursor: pointer;
+}
+
+/* The buttons sit side by side here, unlike the stacked .dbt-actions column on
+   the card, so the width rule from .dbt-btn has to be relaxed. */
+.dbt-modal-foot { display: flex; gap: 10px; }
+.dbt-modal-foot .dbt-btn { flex: 1; width: auto; height: 44px; }
+.dbt-modal-foot .dbt-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+@media (max-width: 560px) {
+    .dbt-popup--wide { padding: 26px 18px 20px; }
+}

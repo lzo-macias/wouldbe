@@ -1,0 +1,127 @@
+/* Updated "would be" nav bar. Scoped under .wbNav so its resets (button, svg)
+   never leak into the rest of the app. */
+.wbNav {
+  --ink: #0d0d0f;
+  --ink-2: #3a3a40;
+  --muted: #8a8a93;
+  --line: #e7e7ea;
+  --panel: #f6f6f4;
+  --gold: #c9a437;
+  --gold-deep: #b48f22;
+
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: saturate(1.4) blur(10px);
+  background: rgba(255, 255, 255, 0.82);
+  border-bottom: 1px solid var(--line);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: var(--ink);
+}
+
+.wbNav-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 72px;
+}
+
+.wbNav-logo {
+  font-weight: 800;
+  font-size: 26px;
+  letter-spacing: -0.03em;
+  font-style: italic;
+  margin-right: 6px;
+}
+
+.wbNav-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 11px 18px;
+  color: var(--muted);
+  font-size: 14.5px;
+  transition: 0.18s;
+  max-width: 420px;
+  cursor: text;
+}
+.wbNav-search:hover {
+  border-color: #d8d8dc;
+  background: #fff;
+}
+.wbNav-search svg {
+  flex: none;
+}
+
+.wbNav-qualify {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--gold);
+  color: #241b00;
+  font-weight: 700;
+  font-size: 14px;
+  border: none;
+  border-radius: 999px;
+  padding: 11px 20px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(201, 164, 55, 0.28);
+  transition: 0.18s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.wbNav-qualify:hover {
+  background: var(--gold-deep);
+  transform: translateY(-1px);
+}
+
+.wbNav-auth {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.wbNav-ghost {
+  background: none;
+  border: none;
+  font-weight: 600;
+  font-size: 14.5px;
+  color: var(--ink-2);
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.wbNav-ghost:hover {
+  background: var(--panel);
+}
+
+.wbNav-outline {
+  background: #fff;
+  border: 1.5px solid var(--ink);
+  font-weight: 700;
+  font-size: 14.5px;
+  padding: 9px 22px;
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--ink);
+  font-family: inherit;
+}
+.wbNav-outline:hover {
+  background: var(--ink);
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  .wbNav-search {
+    display: none;
+  }
+}

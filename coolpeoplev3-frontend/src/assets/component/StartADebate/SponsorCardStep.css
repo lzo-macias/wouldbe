@@ -1,0 +1,89 @@
+/* SponsorCardStep — the save-card step between submission and approval.
+   Scoped under .applyPage so it inherits that page's tokens (they're declared on
+   .applyPage, not :root, so a component outside the page would resolve them to
+   nothing). */
+
+.applyPage .cardStep {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--gold-line);
+}
+
+.applyPage .cardStepHead {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gold-ink);
+}
+
+.applyPage .cardStepLoading {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.applyPage .cardStepForm {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 460px;
+}
+
+/* The money breakdown. Bordered and set apart because this is the disclosure the
+   mandate rests on — it should read as terms, not as a caption. */
+.applyPage .cardStepDisclosure {
+  padding: 16px;
+  border: 1px solid var(--gold-line);
+  border-radius: var(--radius);
+  background: var(--gold-pale);
+}
+
+.applyPage .cardStepLine {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+  color: var(--ink-soft);
+  padding: 4px 0;
+}
+.applyPage .cardStepLine strong {
+  font-weight: 500;
+  color: var(--gold-ink);
+  /* Tabular figures so the amounts align on their decimal points. */
+  font-variant-numeric: tabular-nums;
+}
+
+.applyPage .cardStepTotal {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--gold-line);
+  font-size: 15px;
+  color: var(--gold-ink);
+}
+.applyPage .cardStepTotal strong { font-weight: 700; }
+
+.applyPage .cardStepNote {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  /* color:inherit is load-bearing — index.css has a global
+     `p { color: var(--ink-2) }` and an element selector beats inherited color. */
+  color: var(--ink-soft);
+}
+.applyPage .cardStepNote strong { font-weight: 600; color: var(--gold-ink); }
+
+.applyPage .cardStepForm button[type="submit"] {
+  align-self: flex-start;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 28px;
+  border: 1px solid var(--gold-deep);
+  border-radius: var(--radius);
+  background: var(--gold-deep);
+  color: #fffdf7;
+  cursor: pointer;
+  transition: background .12s;
+}
+.applyPage .cardStepForm button[type="submit"]:hover:not(:disabled) { background: #7a5c0d; }
+.applyPage .cardStepForm button[type="submit"]:disabled { opacity: .55; cursor: progress; }
