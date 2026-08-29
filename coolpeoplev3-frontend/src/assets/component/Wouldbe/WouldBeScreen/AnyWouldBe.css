@@ -1,48 +1,381 @@
-/* align-items: flex-start, NOT center. Centring inside a fixed 75vh box pushes a
-   tall card UPWARD past the top of that box — which is what was putting it under
-   the header. Starting at the top means the card grows downward and the page
-   scrolls instead.
-   width: 100% not 100vw: 100vw includes the scrollbar gutter, so on any page with
-   a vertical scrollbar it's ~15px wider than the viewport and creates a permanent
-   horizontal scroll. */
-.anyWouldbeOverallContainer {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    width: 100%;
-    padding: 24px 16px 40px;
-    box-sizing: border-box;
+/* ============================================================================
+   AnyWouldBe — the campaign page.
+
+   ONE LAYOUT DECISION drives the rest: the funding rail is STICKY and the pitch
+   scrolls beside it. On a page whose whole job is persuasion, the ask has to
+   stay reachable while somebody reads the case for it — otherwise a reader who
+   is convinced on paragraph three has to scroll back up to act on it.
+
+   Everything below reads the gold system in index.css. Nothing here declares a
+   gold value of its own.
+   ============================================================================ */
+
+.wb-campaign {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px 96px;
+  display: grid;
+  gap: 40px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+@media (min-width: 980px) {
+  .wb-campaign { grid-template-columns: minmax(0, 1fr) 358px; gap: 48px; }
+}
+.wb-campaign__main { display: grid; gap: 26px; min-width: 0; }
+
+/* A grid item's default `min-width: auto` means a child that cannot shrink
+   pushes the TRACK wider rather than being clipped or wrapped — which is how the
+   pledge card ended up running off the right edge of the rail. Both columns are
+   told they may shrink; the card inside then honours its own width:100%. */
+.wb-rail { min-width: 0; }
+.wb-rail > * { min-width: 0; max-width: 100%; }
+
+/* ---- the sticky rail ------------------------------------------------------ */
+.wb-rail { display: grid; gap: 14px; }
+@media (min-width: 980px) {
+  .wb-rail {
+    position: sticky;
+    top: 20px;
+    align-self: start;
+    /* THE GUARD. A position:sticky element taller than the viewport seats at the
+       wrong offset and appears frozen mid-scroll — the single most common
+       sticky-sidebar bug, and the pledge card is tall. */
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    /* EXPLICIT, because `visible` is not available here: once one axis is a
+       scroll container the other cannot stay visible — it computes to auto. So
+       the rail silently became horizontally scrollable too, and a card that
+       overflowed turned into a sideways drag over the whole rail instead of
+       showing up as the layout bug it was. */
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    padding-right: 2px;
+  }
+  .wb-rail::-webkit-scrollbar { width: 6px; }
+  .wb-rail::-webkit-scrollbar-thumb { background: var(--wb-rule, #EAE5DA); border-radius: 3px; }
 }
 
-/* .sidebyside is gone — the pledge card is the only card now. */
-
-/* .sidebyside div:first-child {
-    padding: 20px;
-    box-shadow:
-        0 1px 3px rgba(16,24,40,.10),
-        0 1px 2px rgba(16,24,40,.06);
-} */
-
-.NeedProofOfFundraisingCommitteeParentDiv {
-    margin-top: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 70vh;
-    width: 100vw;
-    margin-bottom: 50px;
+/* ---- hero ----------------------------------------------------------------- */
+.wb-hero { display: grid; gap: 18px; }
+.wb-hero__media {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: var(--line);
 }
-/* Committee submitted, waiting on admin verification. Deliberately calmer than
-   the "still missing" panel — there is nothing for the candidate to do here. */
+.wb-hero__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* THE FALLBACK, and it is the common case: most campaigns have no hero image on
+   day one. Rather than collapsing the column or showing a grey box, the hero
+   becomes a typographic plate built from data the page already has — the thesis
+   set large on the brushed ground, with the candidate inset. */
+.wb-hero__plate {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--wb-brushed);
+  background-size: 150% 150%;
+  padding: 34px 32px;
+  display: grid;
+  gap: 18px;
+  align-content: center;
+  min-height: 236px;
+}
+.wb-hero__plate::after {
+  content: "";
+  position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: repeating-linear-gradient(152deg, rgba(255,255,255,.05) 0 1px, transparent 1px 3px);
+}
+.wb-hero__thesis {
+  margin: 0;
+  font-size: clamp(21px, 2.6vw, 29px);
+  font-weight: 800;
+  line-height: 1.16;
+  letter-spacing: -.025em;
+  color: var(--wb-on-gold);
+  text-wrap: balance;
+  max-width: 22ch;
+  text-shadow: 0 1px 0 rgba(255,244,205,.35);
+}
+.wb-hero__by { display: flex; align-items: center; gap: 11px; }
+.wb-hero__by img, .wb-hero__by .wb-hero__byblank {
+  width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex: none;
+  box-shadow: 0 0 0 2px rgba(255,244,205,.5);
+}
+.wb-hero__byblank {
+  display: grid; place-items: center;
+  background: var(--wb-gold-950, #241906);
+  color: var(--wb-gold-100);
+  font-weight: 800;
+}
+.wb-hero__byline { display: grid; gap: 1px; min-width: 0; }
+.wb-hero__byname { font-size: 14px; font-weight: 700; color: var(--wb-on-gold); }
+.wb-hero__bymeta { font-size: 12px; font-weight: 600; color: var(--wb-gold-900); }
+
+.wb-hero__head { display: grid; gap: 9px; }
+.wb-hero__title {
+  margin: 0;
+  font-size: clamp(24px, 3vw, 33px);
+  font-weight: 800;
+  letter-spacing: -.028em;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+.wb-hero__facts { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.wb-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 11px; border-radius: 999px;
+  border: 1px solid var(--line); background: transparent;
+  font-size: 12px; font-weight: 600; color: var(--ink-2);
+  white-space: nowrap;
+}
+.wb-chip--gold {
+  border-color: var(--wb-gold-hair);
+  background: var(--wb-gold-wash);
+  color: var(--wb-gold-wash-ink);
+}
+
+/* ---- section nav ---------------------------------------------------------- */
+/* It LOOKS like tabs and behaves like anchors. Real tabs hide content from
+   Ctrl+F, from a screen reader scanning the page, and from search — on a page
+   whose entire job is persuasion, hiding three quarters of the pitch behind a
+   click is the wrong trade. Same visual, all content present. */
+.wb-secnav {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+  padding: 4px 0 0;
+  margin: 0 0 6px;
+}
+.wb-secnav::-webkit-scrollbar { display: none; }
+.wb-secnav a {
+  flex: none;
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 11px 14px;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color .15s var(--wb-ease);
+}
+.wb-secnav a:hover { color: var(--ink); }
+.wb-secnav a[aria-current="true"] {
+  color: var(--wb-gold-ink);
+  border-bottom-color: var(--wb-gold-mark);
+}
+.wb-secnav a:focus-visible { outline: 2px solid var(--wb-gold-ink); outline-offset: -2px; }
+
+.wb-sections { display: grid; gap: 46px; }
+/* scroll-margin, so an anchored section does not land underneath the sticky nav
+   that sent you to it. */
+.wb-sec { scroll-margin-top: 62px; display: grid; gap: 16px; }
+/* The nav gives the section focus so the keyboard follows the jump. That is a
+   programmatic focus, not a user tabbing to it, so it must not draw a ring —
+   :focus-visible would already refuse, but Safari still paints :focus here. */
+.wb-sec:focus { outline: none; }
+.wb-sec__h {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -.018em;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.wb-sec__h span {
+  font-size: 12px; font-weight: 700; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.wb-body { font-size: 15.5px; line-height: 1.68; color: var(--ink-2); max-width: 66ch; }
+.wb-body p { margin: 0 0 1em; }
+.wb-body p:last-child { margin-bottom: 0; }
+
+/* ---- empty ---------------------------------------------------------------- */
+.wb-empty {
+  border: 1px dashed var(--wb-gold-hair);
+  border-radius: 10px;
+  background: var(--wb-gold-wash);
+  padding: 26px 22px;
+  display: grid; gap: 8px; justify-items: start;
+  color: var(--ink-2); font-size: 14px; line-height: 1.55;
+  max-width: 66ch;
+}
+.wb-empty__t { font-weight: 700; color: var(--ink); font-size: 14.5px; }
+
+/* The owner-only committee panels keep their own components; this only stops
+   them running edge to edge now that the page has a measure. */
+.NeedProofOfFundraisingCommitteeParentDiv,
 .committeePendingPanel {
-    background: #F1FBF4;
-    border: 1px solid #BFE6CB;
-    color: #1E5130;
-    border-radius: 12px;
-    padding: 16px 20px;
-    margin: 0 auto 16px;
-    max-width: 900px;
+  max-width: 1180px;
+  margin: 0 auto 20px;
+  padding-inline: 24px;
 }
 
-.committeePendingPanel h3 { margin: 0 0 6px; font-size: 16px; }
-.committeePendingPanel p  { margin: 0; font-size: 14px; line-height: 1.5; }
+/* ---- debate record --------------------------------------------------------
+   The same brushed tile the debate feed uses. A card has to mean the same thing
+   wherever it appears, and this section is the one place on the page carrying
+   evidence the candidate did not write themselves.
+
+   Gold is spent here because a debate IS the meaningful graphic — everything
+   structural on this page stays neutral. */
+.wb-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+}
+
+.wb-card { display: flex; flex-direction: column; gap: 10px; text-decoration: none; }
+
+.wb-tile {
+  aspect-ratio: 4 / 3.05;
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+
+  background: var(--wb-brushed);
+  background-size: 190% 190%;
+  background-position: 0% 0%;
+  color: var(--wb-on-gold);
+  box-shadow: 0 1px 0 rgba(255,244,205,.4) inset;
+  transition: background-position .55s var(--wb-ease),
+              transform .2s var(--wb-ease), box-shadow .2s var(--wb-ease);
+}
+/* Anisotropic streaks — what makes it read BRUSHED rather than airbrushed. A
+   flat gradient at this size looks like a swatch; metal has a grain. */
+.wb-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: repeating-linear-gradient(152deg,
+    rgba(255,255,255,.055) 0 1px, transparent 1px 3px);
+}
+.wb-card:hover .wb-tile,
+.wb-card:focus-visible .wb-tile {
+  background-position: 100% 60%;
+  transform: translateY(-2px);
+  box-shadow: 0 1px 0 rgba(255,244,205,.5) inset, 0 8px 22px rgba(66,40,10,.20);
+}
+.wb-card:focus-visible { outline: none; }
+.wb-card:focus-visible .wb-tile { outline: 2px solid var(--wb-gold-800); outline-offset: 3px; }
+
+.wb-tile__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.wb-tile__status {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: rgba(36,25,6,.16);
+  color: var(--wb-gold-950);
+  border: 1px solid rgba(36,25,6,.14);
+}
+/* Live inverts — the darkest ink on the plate, so the one debate you can still
+   act on is the first thing found in a grid of them. */
+.wb-tile__status--live {
+  background: var(--wb-gold-950);
+  color: var(--wb-gold-100);
+  border-color: transparent;
+}
+/* A win is the strongest claim on the page and gets the only solid light chip. */
+.wb-tile__status--win {
+  background: var(--wb-gold-050);
+  color: var(--wb-gold-900);
+  border-color: rgba(36,25,6,.14);
+}
+
+/* THE CLAMP AND flex:1 CANNOT LIVE ON THE SAME ELEMENT — -webkit-box wins the
+   display property and the flex sizing stops applying, so a fourth line bleeds
+   past the tile. Wrapper owns the flex and the overflow; the <p> owns the clamp. */
+.wb-tile__body { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; }
+.wb-tile__q {
+  margin: 0;
+  align-self: flex-start;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.26;
+  letter-spacing: -.01em;
+  text-wrap: balance;
+  color: var(--wb-on-gold);
+  text-shadow: 0 1px 0 rgba(255,244,205,.4);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.wb-tile__prize {
+  margin: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  white-space: nowrap;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--wb-gold-900);
+}
+.wb-tile__prize b {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -.025em;
+  font-variant-numeric: tabular-nums;
+  color: var(--wb-on-gold);
+}
+
+/* The meta row sits OUTSIDE the plate, in the page's own neutrals — it is
+   annotation, not part of the object. */
+.wb-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 0 2px;
+}
+.wb-meta__who {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: auto;
+  color: var(--ink-2);
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wb-meta__dot {
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .45;
+  flex: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-tile { transition: none; }
+  .wb-card:hover .wb-tile { transform: none; }
+}

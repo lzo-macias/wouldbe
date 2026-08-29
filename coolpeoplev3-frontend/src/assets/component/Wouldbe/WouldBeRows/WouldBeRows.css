@@ -1,263 +1,32 @@
-/* The split: fills the height left under the header, two columns side by side.
-   LEFT = fixed-width regulations panel, RIGHT = scrollable office-card column. */
-.mainContainer {
-    display: flex;
-    flex: 1;
-    min-height: 0;      /* let children scroll instead of growing the row */
-    gap: 32px;
-    overflow: hidden;
-    padding: 0 32px;
+/* ============================================================================
+   Office browser — the page's own remainder.
+   ----------------------------------------------------------------------------
+   Everything structural is now .wb-browse in index.css: the two-column shell,
+   the toolbar, the ~72px rows, the sticky detail panel, the verdict banner and
+   the dev banner.
+
+   What this file held before — .wouldbeCard / .hoveredWouldBeCard (a 130px
+   black card that grew on hover), the .dl* timeline that duplicated
+   StartAWouldBe's, and .devDeadlineBypassBanner — is gone with the markup that
+   used it. The timeline lives in FilingTimeline.jsx now, shared by both screens.
+   ========================================================================== */
+
+.wbr-list { min-width: 0; }
+
+/* The list is the long half of the page and the panel beside it is sticky, so
+   the list gets a floor: with three offices matching a filter, a 200px column
+   next to a 600px panel reads as a rendering fault rather than a short result. */
+@media (min-width: 1000px) {
+  .wbr-list { min-height: 60vh; }
 }
 
-/* LEFT — fixed width, always visible. Scrolls internally if its own content is
-   taller than the viewport; does NOT move when the list on the right scrolls. */
-.regulationContainer {
-    flex: 0 0 360px;
-    height: 100%;
-    overflow-y: auto;
-    padding: 24px 8px;
-    box-sizing: border-box;
-    min-width: 500px; 
-    margin-left: 100px;
-    margin-top: 100px;
-}
-
-.regulationsPlaceholder {
-    color: #6b6b7b;
-    font-style: italic;
-}
-
-/* RIGHT — the scrollable column of office cards. */
-.wouldBeRowsMainContainer {
-    flex: 1 1 0;
-    min-width: 0;
-    height: 100%;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-    padding: 24px 0;
-}
-
-.wouldbeCard {
-    display: flex;
-    flex-direction: column;
-    background-color: #000000;
+/* The pager. Full width so it reads as the end of the list rather than as a
+   stray control beside it, and the remaining count is on it because "Show 60
+   more" out of 7,000 and out of 63 are very different offers. */
+.wbr-more {
     width: 100%;
-    max-width: 760px;
-    color: white;
-    margin-bottom: 24px;
-    border-radius: 12px;
-    height: 130px;
-    flex-shrink: 0;   /* don't let the flex column squish cards into slivers */
-    transition: height 0.2s ease;   /* animate the grow/shrink on hover */
+    margin-top: 10px;
+    justify-content: center;
+    gap: 6px;
 }
-
-.deadlineAndAmount {
-    display: flex;
-    flex-direction: row;
-    margin: 20px;
-    gap: 20px;
-}
-
-.deadline {
-    color: #FFFFFF;
-}
-
-.redCircle{
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background-color: #E12D39
-}
-
-.amount {
-    color: #E12D39
-}
-
-.officeOrWouldbeName {
-    font-size: 30px;
-    color: white;
-    margin-left: 30px;
-    font-weight: 700;
-}
-
-/* Relevant-mode grouped feed: section + age-interval headers, empty/no-qualify
-   notes. Added for the qualify-aware WouldBe view. */
-.wouldbeSectionHeader {
-    grid-column: 1 / -1;
-    margin: 20px 0 8px;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #1a1a2e;
-}
-.wouldbeAgeHeader {
-    grid-column: 1 / -1;
-    margin: 12px 0 4px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    color: #6b6b7b;
-}
-.wouldbeEmptyNote {
-    grid-column: 1 / -1;
-    margin: 12px 0;
-    color: #5b5b6b;
-    line-height: 1.4;
-}
-
-.hoveredWouldBeCard {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    background: linear-gradient(90deg, rgba(153, 153, 153, 0.1) 0%, rgba(204, 204, 204, 0.2) 17.79%, rgba(204, 204, 204, 0.2) 58.89%, rgba(153, 153, 153, 0.1) 100%);
-    width: 100%;
-    max-width: 760px;       /* identical footprint to the collapsed .wouldbeCard */
-    color: black;
-    margin-bottom: 24px;
-    border-radius: 12px;
-    height: 165px;          /* a little taller than the collapsed 130px */
-    overflow: hidden;
-    z-index: 1;
-    flex-shrink: 0;         /* don't let the flex column squish it into a sliver */
-    transition: height 0.2s ease;   /* sleek expand from the collapsed card */
-}
-
-/* ---- hover timeline ------------------------------------------------------ */
-.hoveredWouldBeName {
-    margin: 12px 0 0 18px;
-    font-size: 16px;
-    font-style: italic;
-    font-weight: 700;
-    color: #000000;
-}
-/* recommended financing goal, pinned to the top-right of the hovered card */
-.hoveredGoalChip {
-    position: absolute;
-    top: 12px;
-    right: 16px;
-    z-index: 2;
-    font-size: 11px;
-    font-weight: 600;
-    color: #8a8a93;
-}
-.hoveredGoalChip b {
-    color: #c9a437;
-    font-size: 13px;
-}
-/* ---- hover timeline: matches StartAWouldBe (gold rail, round pins, rose YOU
-   flag) but compact and with NO per-deadline amounts ---------------------- */
-.dlTimeline {
-    overflow-x: auto;
-    padding: 8px 26px 6px;
-}
-.dlTrack {
-    position: relative;
-    display: grid;
-    align-items: start;     /* every pin sits on the rail regardless of label length */
-}
-.dlRail {
-    position: absolute;
-    left: 5.5%;
-    right: 5.5%;
-    top: 37px;
-    height: 3px;
-    border-radius: 2px;
-    /* --progress is set per-render to the "Today" pin position */
-    background: linear-gradient(
-        90deg,
-        #c9a437 0%,
-        #c9a437 var(--progress, 0%),
-        #e7e7ea var(--progress, 0%),
-        #e7e7ea 100%
-    );
-}
-.dlNode {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 0 5px;
-}
-.dlPin {
-    width: 11px;
-    height: 11px;
-    border-radius: 50%;
-    background: #fff;
-    border: 3px solid #e7e7ea;
-    margin-top: 33px;       /* pin center (~38px) lands on the rail */
-    position: relative;
-    z-index: 2;
-}
-.dlNode.dlDone .dlPin {
-    border-color: #c9a437;
-    background: #c9a437;
-}
-.dlNode.dlToday .dlPin {
-    border-color: #f5385d;
-    background: #f5385d;
-}
-.dlLabel {
-    font-size: 10px;
-    font-weight: 700;
-    color: #0d0d0f;
-    margin-top: 9px;
-    line-height: 1.2;
-}
-.dlNode.dlToday .dlLabel {
-    color: #f5385d;
-}
-.dlDate {
-    font-size: 9.5px;
-    color: #8a8a93;
-    margin-top: 2px;
-    white-space: nowrap;
-}
-/* rose "YOU" flag hanging in the empty area above the today pin, stem to rail */
-.dlYouflag {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    height: 33px;           /* spans from node top down to the pin */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    z-index: 3;
-}
-.dlBubble {
-    background: #f5385d;
-    color: #fff;
-    font-weight: 800;
-    font-size: 9.5px;
-    padding: 3px 10px;
-    border-radius: 999px;
-    box-shadow: 0 4px 12px rgba(245, 56, 93, 0.4);
-}
-.dlStem {
-    width: 2px;
-    flex: 1;                /* fills the gap down to the pin */
-    background: #f5385d;
-}
-
-
-/* ⚠️ TEMPORARY DEV SCAFFOLD — DELETE ME along with
-   DEV_SHOW_OFFICES_WITH_PASSED_DEADLINES in WouldBeRows.jsx. */
-.devDeadlineBypassBanner {
-    background: #FFF4CE;
-    border: 1px solid #E3C766;
-    color: #6B5410;
-    border-radius: 6px;
-    padding: 8px 10px;
-    margin-bottom: 12px;
-    font-size: 12px;
-    line-height: 1.4;
-}
-.devDeadlineBypassBanner code {
-    background: rgba(0,0,0,.06);
-    padding: 1px 4px;
-    border-radius: 3px;
-}
+.wbr-more span { color: var(--muted); font-weight: 500; }

@@ -57,6 +57,7 @@ const DATASETS = {
         url: (f) => `/api/debate-applications?status=${f.appStatus || 'draft'}`,
         columns: [
             ['title','Debate'],
+            ['format','Format'],
             ['category','Category'],
             ['sponsor_display_name','Sponsor'],
             // Hosting is free now. These three stay for debates created while
@@ -97,7 +98,7 @@ const DATASETS = {
 };
 
 // columns rendered as a pill badge
-const BADGE_KEYS = new Set(['office_type', 'chamber', 'type', 'authority_level', 'advancement_rule', 'category_group', 'deadline_type', 'win_type', 'status', 'tier_status', 'launch_status']);
+const BADGE_KEYS = new Set(['office_type', 'chamber', 'type', 'authority_level', 'advancement_rule', 'category_group', 'deadline_type', 'win_type', 'status', 'tier_status', 'launch_status', 'format']);
 
 // The lifecycle states an application can be filtered by in the review queue.
 // 'draft' is the actual inbox: submitted and not yet acted on.
@@ -151,6 +152,13 @@ function Admin() {
     const [notice, setNotice] = useState(null);
     // Bumped after a review to re-run the fetch effect.
     const [refresh, setRefresh] = useState(0);
+    // Which application's prompts are open, and what came back. A typed debate
+    // is REVIEWED ON ITS PROMPTS — they are the questions two strangers will be
+    // told to argue, published under the platform's name — so the queue cannot
+    // just say "15" and call that visible.
+    const [openPrompts, setOpenPrompts] = useState(null);   // debate id
+    const [promptData, setPromptData] = useState(null);
+    const [promptError, setPromptError] = useState(null);
 
     const ds = DATASETS[active];
 
@@ -266,6 +274,28 @@ function Admin() {
         }
     }
 
+    // Open (or close) one application's prompts. Reads the PUBLIC match-prompts
+    // endpoint rather than the admin application detail: it returns every
+    // bracket slot whether or not it has been written, which is exactly the
+    // question an admin has — "is this thing finished?" — and the unslotted
+    // list alongside it for a live debate's ordered prompts.
+    async function togglePrompts(row) {
+        if (openPrompts === row.id) {
+            setOpenPrompts(null);
+            setPromptData(null);
+            return;
+        }
+        setOpenPrompts(row.id);
+        setPromptData(null);
+        setPromptError(null);
+        try {
+            const { data } = await api.get(`/api/debates/${row.id}/match-prompts`);
+            setPromptData(data);
+        } catch (err) {
+            setPromptError(err.response?.data?.error || 'Could not load the prompts');
+        }
+    }
+
     // client-side free-text search across the visible columns
     const filtered = useMemo(() => {
         if (!search.trim()) return rows;
@@ -348,7 +378,11 @@ function Admin() {
                     </thead>
                     <tbody>
                         {filtered.map((r, i) => (
-                            <tr key={r.id || i}>
+                            <React.Fragment key={r.id || i}>
+                            <tr
+                                className={ds.kind !== 'wouldbe' && ds.actions ? 'admin__row--expandable' : undefined}
+                                onClick={ds.kind !== 'wouldbe' && ds.actions ? () => togglePrompts(r) : undefined}
+                            >
                                 {ds.columns.map(([k]) => <td key={k}>{cell(k, r[k])}</td>)}
                                 {ds.actions && ds.kind === 'wouldbe' && (
                                     <td className="admin__actions">
@@ -395,7 +429,10 @@ function Admin() {
                                     </td>
                                 )}
                                 {ds.actions && ds.kind !== 'wouldbe' && (
-                                    <td className="admin__actions">
+                                    /* stopPropagation: the row opens the prompt
+                                       panel, and approving must not also toggle
+                                       it open behind the confirm dialog. */
+                                    <td className="admin__actions" onClick={(e) => e.stopPropagation()}>
                                         {r.status === 'draft' ? (
                                             <>
                                                 {/* No payment gate — hosting is free. The
@@ -425,6 +462,67 @@ function Admin() {
                                     </td>
                                 )}
                             </tr>
+
+                            {/* The prompts themselves, under the row they belong
+                                to. For a TYPED debate this is the whole review:
+                                one question per bracket match, and any slot left
+                                empty is a match two people would be asked to
+                                argue with nothing in front of them. */}
+                            {openPrompts === r.id && (
+                                <tr className="admin__promptrow">
+                                    <td colSpan={ds.columns.length + (ds.actions ? 1 : 0)}>
+                                        {promptError && <p className="admin__error">{promptError}</p>}
+                                        {!promptData && !promptError && <p className="admin__muted">Loading prompts…</p>}
+                                        {promptData && (
+                                            <div className="admin__prompts">
+                                                <p className="admin__prompts-head">
+                                                    <span className="admin__badge">{promptData.format}</span>
+                                                    {promptData.format === 'typed' ? (
+                                                        <>
+                                                            {promptData.filled} of {promptData.required} match prompts written
+                                                            {promptData.filled < promptData.required && (
+                                                                <strong className="admin__prompts-warn">
+                                                                    {' '}— incomplete
+                                                                </strong>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <>{promptData.unslotted.length} prompt{promptData.unslotted.length === 1 ? '' : 's'}, no bracket slots (live debate)</>
+                                                    )}
+                                                </p>
+
+                                                {promptData.format === 'typed' ? (
+                                                    <ol className="admin__prompt-list">
+                                                        {promptData.slots.map((slot) => (
+                                                            <li key={slot.key} className={slot.body ? '' : 'is-empty'}>
+                                                                <span className="admin__prompt-slot">{slot.label}</span>
+                                                                <span className="admin__prompt-body">
+                                                                    {slot.body || <em>not written</em>}
+                                                                </span>
+                                                            </li>
+                                                        ))}
+                                                    </ol>
+                                                ) : (
+                                                    <ol className="admin__prompt-list">
+                                                        {promptData.unslotted.map((p) => (
+                                                            <li key={p.id}>
+                                                                <span className="admin__prompt-slot">
+                                                                    Prompt {p.prompt_order} · {p.prompt_type}
+                                                                </span>
+                                                                <span className="admin__prompt-body">{p.body}</span>
+                                                            </li>
+                                                        ))}
+                                                        {!promptData.unslotted.length && (
+                                                            <li className="is-empty"><em>No prompts on this debate.</em></li>
+                                                        )}
+                                                    </ol>
+                                                )}
+                                            </div>
+                                        )}
+                                    </td>
+                                </tr>
+                            )}
+                            </React.Fragment>
                         ))}
                         {!loading && filtered.length === 0 && (
                             <tr><td className="admin__empty" colSpan={ds.columns.length + (ds.actions ? 1 : 0)}>No rows.</td></tr>

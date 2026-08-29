@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import MyWouldBeShare from '../../Socialshare/MyWouldBeShare'
 import PledgeFlow from './PledgeFlow'
 import { useFollow } from '../../../lib/useFollow'
@@ -37,11 +37,20 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS
 function ProgressRing({ pct }) {
     return (
         <div className='ring'>
-            <svg width='88' height='88' viewBox='0 0 88 88'>
+            {/* THE SVG FILLS ITS BOX rather than declaring 88px of its own. The
+                label below is absolutely positioned against .ring, so a fixed
+                88px circle inside a box CSS had resized to 72px put the ring and
+                its percentage in two different places — which is why "0%" sat
+                left of centre. Sized by the box, scaled by the viewBox, the two
+                can no longer disagree. */}
+            <svg width='100%' height='100%' viewBox='0 0 88 88'>
                 <circle cx='44' cy='44' r={RADIUS} fill='none' stroke='var(--line)' strokeWidth='8' />
                 <circle
                     cx='44' cy='44' r={RADIUS} fill='none'
-                    stroke='var(--green, #34C759)' strokeWidth='8' strokeLinecap='round'
+                    /* --wb-gold-mark, not --wb-gold: this is a GRAPHIC that
+                       carries meaning, and WCAG wants 3:1 for those. --wb-gold
+                       is 2.4:1 on white; the mark is 3.9:1. */
+                    stroke='var(--wb-gold-mark)' strokeWidth='8' strokeLinecap='round'
                     strokeDasharray={CIRCUMFERENCE}
                     strokeDashoffset={CIRCUMFERENCE * (1 - pct / 100)}
                     transform='rotate(-90 44 44)'
@@ -52,12 +61,13 @@ function ProgressRing({ pct }) {
     )
 }
 
-// `office` is a SEPARATE prop, not a field on wouldbe: GET /api/wouldbes/:id is a
-// bare SELECT * with no joins, so office_name has never existed on that row.
-// `stats` comes from GET /api/wouldbes/:id/pledge-stats.
+// `stats` comes from GET /api/wouldbes/:id/pledge-stats. (`office` used to be
+// passed for the card's own heading; the heading is gone — the hero owns it —
+// so the prop is no longer read here. AnyWouldBe still passes it; an unused prop
+// costs nothing and keeps the call site honest about what this card is about.)
 // `children` renders at the BOTTOM of the card — AnyWouldBe passes UserOverView
 // in, so the profile block sits inside this card rather than beside it.
-function PledgeCardOverview({ wouldbe, office, user, differentOwner, checklist, stats, children, onPledged }) {
+function PledgeCardOverview({ wouldbe, user, differentOwner, stats, children, onPledged }) {
     const [flowOpen, setFlowOpen] = useState(false)
     const [notice, setNotice] = useState(null)
     // Persisted on the server, not in component state — see useFollow.
@@ -108,14 +118,15 @@ function PledgeCardOverview({ wouldbe, office, user, differentOwner, checklist, 
 
     return (
         <div className='pledgeCard'>
-            <div className='head'>
-                <img
-                    src={user.profile_photo_url}
-                    alt={`${user.first_name} ${user.last_name} profile photo`}
-                />
-                <h3>{user.first_name} for {office?.office_name}</h3>
-            </div>
-
+            {/* NO HEADER. It carried the candidate's photo and "<name> for
+                <office>" — and the page's own hero, three inches to the left,
+                already sets that title as the <h1> AND puts the same face and
+                office under the pitch. Repeating both inside a 358px rail is
+                what made the top of this card look cramped: a 44px portrait and
+                a two-line heading spending the card's widest, most valuable
+                space saying what the reader just read. The card opens on the
+                number instead, which is the only thing here the hero does not
+                say. */}
             <div className='hero'>
                 <ProgressRing pct={pct} />
                 <div className='amounts'>
@@ -124,25 +135,42 @@ function PledgeCardOverview({ wouldbe, office, user, differentOwner, checklist, 
                         raised of <b>{usd(goal)}</b> goal
                         {isEmpty && <> · <b className='beFirst'>be the first</b></>}
                     </div>
-                    <div className='track'>
-                        {/* A 0% fill is invisible, so an empty campaign shows a 2%
-                            stub — reads as "a bar that hasn't moved" rather than a
-                            missing element. */}
-                        <div className='fill' style={{ width: `${isEmpty ? 2 : pct}%` }} />
-                        <div className='knob' style={{ left: `${isEmpty ? 2 : pct}%` }} />
-                    </div>
                 </div>
             </div>
 
+            {/* FULL WIDTH, a sibling of the meter rather than a third line
+                inside the amounts column. Indented behind the ring it had about
+                200px to express a percentage in, and a progress bar that cannot
+                use the width of its own card is a diagram of nothing. */}
+            <div className='track'>
+                {/* A 0% fill is invisible, so an empty campaign shows a 2% stub —
+                    reads as "a bar that hasn't moved" rather than a missing
+                    element. */}
+                <div className='fill' style={{ width: `${isEmpty ? 2 : pct}%` }} />
+                <div className='knob' style={{ left: `${isEmpty ? 2 : pct}%` }} />
+            </div>
+
             <div className='stats'>
-                <div className='stat'><b>{backers}</b><span>{backers === 1 ? "backer" : "backers"}</span></div>
-                <div className='stat'><b>{days ?? "—"}</b><span>days left</span></div>
+                <div className={`stat${backers ? "" : " stat--muted"}`}>
+                    <b>{backers}</b>
+                    <span>{backers === 1 ? "backer" : "backers"}</span>
+                </div>
+                {/* Say the state, do not print a zero. "0 days left" in a stat
+                    tile reads as a bug even when it is accurate, and a bare "—"
+                    under the words "days left" reads as a value that failed to
+                    load rather than as a campaign with no deadline. */}
+                <div className={`stat${days ? "" : " stat--muted"}`}>
+                    <b>{days === null ? "—" : days}</b>
+                    <span>
+                        {days === null ? "no deadline" : days === 1 ? "day left" : "days left"}
+                    </span>
+                </div>
                 {/* Average pledge is a division by zero with no backers — show
                     what's left to raise instead, the number that matters at $0. */}
                 {backers > 0 ? (
                     <div className='stat'><b>{usd(raised / backers)}</b><span>avg pledge</span></div>
                 ) : (
-                    <div className='stat'><b>{usd(goal, { compact: true })}</b><span>to go</span></div>
+                    <div className='stat stat--muted'><b>{usd(goal, { compact: true })}</b><span>to go</span></div>
                 )}
             </div>
 

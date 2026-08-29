@@ -1,3 +1,13 @@
+/* ============================================================================
+   HomeHeader.css — logo + tagline, search bar + filter, action buttons.
+
+   The whole header is one wrapping flex row, so every breakpoint below is a
+   fallback for a case flex cannot solve on its own rather than the mechanism
+   itself. Nothing here is positioned at a hard-coded viewport offset any more:
+   the search bar used to be position:fixed at left:300px/width:750px, which
+   pinned it over the grid on scroll and broke outright under ~1100px.
+   ============================================================================ */
+
 .div, h3 {
     border: none
 }
@@ -13,76 +23,249 @@ button {
 .main_container {
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
     justify-content: space-between;
-    /* padding-right: 30px; */
+    gap: 20px 24px;
+    padding: 32px clamp(16px, 4vw, 50px) 0;
 }
+
+/* Brand and search together take the slack; the action buttons keep their size.
+   min-width:0 is what actually lets the search bar shrink — a flex item refuses
+   to go below its content width without it. */
 .Logoandsearchbar {
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
-    /* border: 1px solid black; */
-    max-width: 70vw;
-    margin: 50px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 16px 28px;
+    flex: 1 1 520px;
+    min-width: 0;
 }
 
-.HomeSearchContainer {
-    position: fixed;
-    left: 300px;
+.HomeBrand {
     display: flex;
-    flex-direction: row;
-    /* justify-content: space-between;
-    width: 50vw */
-    border: .1px solid #E6EAEF;
-    width: 750px;
-    border-radius: 12px;
-}
-
-.HomeSearchContainer p {
-    color: #777777;
-}
-
-.SearchIcon{
-    /* margin-left: 20px; */
-    /* position: fixed; */
-    /* max-width: 30px;
-    padding-right: 100px;
-    padding-left: 50px; */
-}
-.SearchIcon {
-    margin-right: 100px;
+    flex-direction: column;
+    flex-shrink: 0;
+    max-width: 100%;
 }
 
 .HomeLogo {
-    max-width: 200px;
+    width: clamp(150px, 18vw, 200px);
+    max-width: 100%;
+}
+
+/* Flush with the logo's left edge, on one line. */
+.HomeTagline {
+    margin: 8px 0 0;
+    white-space: nowrap;
+    font-size: 12px;
+    line-height: 1.35;
+    /* the app's own muted token rather than a hardcoded grey — #777 was one of
+       four near-identical greys in this file's family */
+    color: var(--muted);
+}
+
+/* ---- search bar + filter --------------------------------------------------- */
+
+/* The stacking context that lifts the bar AND the filter panel above the grid.
+   The panel's own z-index only orders it against its siblings; without a
+   context here the whole subtree competes with the cards, which come later in
+   the DOM and are position:relative, so they win. 60 clears the grid (max 1)
+   and stays under the modals (.pfScrim is 100). */
+.HomeSearchRow {
+    position: relative;
+    z-index: 60;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    /* Right-aligned so the button hugs the bar's right end on one line, and
+       lands under that same edge once it wraps. */
+    justify-content: flex-end;
+    gap: 10px 12px;
+    flex: 1 1 320px;
+    min-width: 0;
+}
+
+.HomeSearchContainer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    /* Grows to fill the row, shrinks to 240px before the filter button wraps. */
+    flex: 1 1 240px;
+    min-width: 0;
+    max-width: 750px;
+    box-sizing: border-box;
+    /* The placeholder copy used to give this box its height. With that gone the
+       bar would collapse to the 24px search glyph, so the padding carries it. */
+    padding: 10px 16px;
+    min-height: 44px;
+    border: .1px solid #E6EAEF;
+    border-radius: 12px;
+}
+
+.SearchIcon {
+    flex-shrink: 0;
 }
 
 .main_container .login {
     border: none;
     padding: 0;
-    position: fixed;
-    left: 1100px;
 }
+
+/* ---- action buttons -------------------------------------------------------- */
 
 .HomeHeaderActionButtons {
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    margin-top: 50px;
-    margin-right: 30px;
+    flex-shrink: 0;
+    gap: 12px;
 }
 
-/* .Qualify {
-    background-color: #D4B84D;
-    border-radius: 12px;
-    padding-left: 20px;
-    color: black;
-} */
-/* .HomeHeaderActionButtons img {
-    width: 180px;
-} */
+/* The 164px sizing rule for an <img> that used to live here is gone with the
+   image: both action buttons are real buttons now and take their box from
+   .headerActionBtn. */
 
-@media (max-width: 1393px) {
+/* Below this the header is stacked anyway, so a column of two buttons is just
+   wasted height — lay them side by side across the freed width. */
+@media (max-width: 860px) {
     .HomeHeaderActionButtons {
-        margin-top: 20px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+    .HomeHeaderActionButtons button { flex: 1 1 150px; }
+    .HomeHeaderActionButtons img { width: 100%; }
+}
+
+/* The tagline is ~370px on one line, which is wider than a phone. One line is
+   the desktop intent; below that it has to wrap or it pushes the page sideways. */
+@media (max-width: 700px) {
+    .HomeTagline {
+        white-space: normal;
+        max-width: 340px;
     }
 }
+
+/* The header's action buttons were two SVG images at 164x38. "+ Debate" is a
+   real .wb-btn--primary now, held to those exact dimensions so it still lines up
+   with the "+ Would Be" image beside it — swapping one of a pair is only safe if
+   the replacement occupies the same box. */
+.headerActionBtn {
+    width: 164px;
+    height: 38px;
+    padding: 0;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -.01em;
+    font-style: italic;
+}
+
+/* ── the ink half of the pair ──────────────────────────────────────────
+   "+ Would Be" was an SVG picture of a button. It is a real one now, built to
+   the same recipe as .wb-btn--primary beside it and differing only in what the
+   plate is made of — so the two read as one object in two finishes rather than
+   as two designs that happen to sit together.
+
+   WHY THE GLOSS IS A SEPARATE LAYER, and not just a lighter set of stops.
+   Measured, the gold plate runs from 0.221 to 0.647 relative luminance — its
+   specular is genuinely bright. A dark ramp cannot do that: shading black from
+   #14110C to #3E372D is a 6.8x ratio and still lands at 0.039, which the eye
+   reads as flat black. Gloss on a black object is not a lighter black, it is a
+   REFLECTION — so the sheen is its own warm-white band composited over the
+   plate, at 0.13 alpha, which lands the specular at 0.14 luminance. Bright
+   enough to be a highlight, far enough below the gold's 0.647 that it stays
+   black rather than turning grey.
+
+   Both layers share background-size and background-position so they slide
+   together on hover; animating only one would slide the reflection off its own
+   plate. Keep the band NARROW — the same note as on --wb-brushed. */
+.headerActionBtn--ink {
+    background:
+        /* the reflection */
+        linear-gradient(152deg,
+            transparent 28%,
+            rgba(255, 247, 230, .05) 39%,
+            rgba(255, 247, 230, .13) 47%,
+            rgba(255, 247, 230, .11) 50%,
+            rgba(255, 247, 230, .03) 57%,
+            transparent 66%),
+        /* the plate */
+        linear-gradient(152deg,
+            #0E0C09 0%,
+            #1C1813 20%,
+            #2A241C 40%,
+            #332C22 50%,
+            #221D16 63%,
+            #15120D 84%,
+            #0F0D0A 100%);
+    background-size: 200% 200%, 200% 200%;
+    background-position: 0% 0%, 0% 0%;
+    color: #F5F0E4;
+    border-color: transparent;
+    box-shadow:
+        /* the lip along the top edge — on ink this is most of what sells the
+           gloss, so it is brighter than the gold plate's equivalent */
+        0 1px 0 rgba(255, 247, 230, .22) inset,
+        /* and a shade under the bottom edge, so the face reads as curved */
+        0 -6px 12px -8px rgba(0, 0, 0, .9) inset,
+        0 1px 2px rgba(0, 0, 0, .4);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, .5);
+    transition: background-position .5s var(--wb-ease),
+                transform .18s var(--wb-ease),
+                box-shadow .18s var(--wb-ease);
+}
+/* The reflection slides across the face on hover, exactly as the gold one does. */
+.headerActionBtn--ink:hover:not([disabled]) {
+    background-position: 100% 50%, 100% 50%;
+    transform: translateY(-1px);
+    box-shadow:
+        0 1px 0 rgba(255, 247, 230, .28) inset,
+        0 -6px 12px -8px rgba(0, 0, 0, .9) inset,
+        0 4px 14px rgba(0, 0, 0, .45);
+}
+.headerActionBtn--ink:active:not([disabled]) { transform: translateY(0); }
+/* The focus ring goes gold on ink — the default outline colour is the ink
+   itself, which on this button is invisible. */
+.headerActionBtn--ink:focus-visible { outline: 2px solid var(--wb-gold-200); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+    .headerActionBtn--ink { transition: none !important; }
+    .headerActionBtn--ink:hover:not([disabled]) { transform: none; }
+}
+
+/* ── the profile button ────────────────────────────────────────────────
+   Sits between the filter and the two action buttons: a destination among
+   actions, so it is icon-only. A face is the universal word for "you" and needs
+   no label — and a third label in that row would make it read as three equal
+   choices rather than two actions and a way back to yourself.
+
+   Circular, because that is what an avatar is, and because the round shape
+   distinguishes it at a glance from the two 12px-radius pills beside it even
+   before you read the glyph. */
+.HomeProfileBtn {
+    flex: none;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    overflow: hidden;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink-2);
+    transition: border-color var(--ease), background var(--ease), color var(--ease);
+}
+.HomeProfileBtn:hover {
+    border-color: var(--wb-gold-hair);
+    background: var(--wb-gold-wash);
+    color: var(--wb-gold-ink);
+}
+.HomeProfileBtn:focus-visible { outline: 2px solid var(--wb-gold-ink); outline-offset: 2px; }
+.HomeProfileBtn svg { width: 19px; height: 19px; }
+/* An avatar fills the whole button — the border becomes its ring rather than a
+   box around a smaller picture. */
+.HomeProfileBtn img { width: 100%; height: 100%; object-fit: cover; display: block; }

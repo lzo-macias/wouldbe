@@ -1,38 +1,113 @@
+/* ============================================================================
+   Casual or corporate — the fork a first-time host lands on.
+
+   Sits on the dark surface StartADebate declares, so gold here is the LIGHT end
+   of the ramp (--wb-gold-ink resolves to #E8C56A under [data-surface="dark"]).
+   Nothing in this file names a gold value: it reads the system, which is what
+   lets the same markup work if the page is ever put on a light ground.
+
+   The old version was three fixed numbers — 100px padding, 300px bottom padding,
+   200px gap — inside a 100vw/100vh box. That centred nothing (the flex parent
+   had no alignment of its own), overflowed sideways on any laptop (100vw counts
+   the scrollbar), and put a 100px display face on a card with a 50px pad, so the
+   word "Corporate" was wider than its own container.
+   ============================================================================ */
+
 .casualOrCorporateContainer {
     display: flex;
-    width: 100vw;
-    height:100vh;
-    /* padding: 200px; */
+    /* Centred on both axes. The fork is the entire page — there is nothing
+       above or below it to anchor to — so it sits in the middle of what the
+       header leaves rather than at the top with a screenful of void beneath.
+       The `- 88px` is the header's own height, so "the middle" means the middle
+       of the space the cards actually have, not of the viewport. */
+    align-items: center;
+    justify-content: center;
+    /* min-height, not height: the cards must be able to grow taller than the
+       viewport on a phone rather than being clipped by it. And no 100vw — the
+       width of the parent is already the width we want, without the scrollbar. */
+    min-height: calc(100vh - 88px);
+    width: 100%;
+    /* Symmetric: an uneven pad would pull the pair off the centre the flex
+       alignment just put it on. */
+    padding: clamp(24px, 5vw, 56px) 20px;
 }
 
 .parentToTheMini {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 100px;
-    padding-bottom: 300px;
-    gap: 200px;
-
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: clamp(16px, 3vw, 28px);
+    width: min(920px, 100%);
+    padding: 0;
 }
 
-.casualOrCorporateMiniContainer{
+.casualOrCorporateMiniContainer {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    justify-content: center;
-    align-items: center;
-    border: 1px solid var(--gold-soft);
-    padding: 50px;
-    /* background-color: var(--soft); */
-    border-radius: 24px;
+    gap: 14px;
+    justify-content: flex-start;
+    align-items: flex-start;
+    padding: clamp(24px, 4vw, 38px);
+    border-radius: 20px;
+    cursor: pointer;
+    text-align: left;
+
+    /* The surface's own tokens, not three hardcoded hex values that happened to
+       match it — data-surface="dark" defines these, so the same markup works if
+       this fork is ever put on a light ground. */
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    transition: border-color .18s var(--wb-ease),
+                transform .18s var(--wb-ease),
+                box-shadow .18s var(--wb-ease);
+}
+/* The hairline goes gold on hover rather than the whole card filling: this is a
+   choice between two paths, and a card that lights up like a button implies the
+   other one is the wrong answer. */
+.casualOrCorporateMiniContainer:hover,
+.casualOrCorporateMiniContainer:focus-visible {
+    border-color: var(--wb-gold-hair);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .35);
+    outline: none;
 }
 
 .casualOrCorporateTitleCard {
-    color: var( --gold-deep);
-    font-weight: 200;
-    font-size: 100px;
+    margin: 0;
+    color: var(--wb-gold-ink);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    line-height: 1.05;
+    /* Was a hard 100px at weight 200 — a hairline display face that broke out of
+       its own card and, in gold on gold, could barely be read at all. */
+    font-size: clamp(30px, 5vw, 44px);
 }
 
 .casualOrCorporatedescription {
-    /* color: var(--) */
+    margin: 0;
+    max-width: 34ch;
+    color: var(--ink-2);
+    font-size: 15px;
+    line-height: 1.55;
+    text-wrap: pretty;
+}
+
+/* The affordance the old cards never had: they were clickable divs with no sign
+   that they were. */
+.casualOrCorporateMiniContainer::after {
+    content: "Start here →";
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--wb-gold-ink);
+    opacity: .75;
+    transition: opacity .18s var(--wb-ease);
+}
+.casualOrCorporateMiniContainer:hover::after { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+    .casualOrCorporateMiniContainer { transition: none; }
+    .casualOrCorporateMiniContainer:hover { transform: none; }
 }

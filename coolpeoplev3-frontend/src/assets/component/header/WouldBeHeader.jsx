@@ -5,7 +5,7 @@ import api from "../../lib/api"
 import { clearAuth } from "../../lib/authStorage"
 
 
-function WouldBeHeader({ onQualifyClick }) {
+function WouldBeHeader({ onQualifyClick, dontshow }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showQualify, setShowQualify] = useState(true)
@@ -38,6 +38,11 @@ function WouldBeHeader({ onQualifyClick }) {
     checkAuth()
   }, []);
 
+  useEffect(() => {
+      if(dontshow) setShowQualify(false)
+      return
+  }, dontshow)
+
   return (
     <div id = "WouldBeHeader" className='WouldBeHeader'>
       <div className='LogoandSearch'>
@@ -48,13 +53,15 @@ function WouldBeHeader({ onQualifyClick }) {
               className=''
             />
         </div>
+        {/* No placeholder copy: the box sits beside the office search below
+            it, and two search fields captioned with different sentences read
+            as two different searches. The icon says what it is. */}
         <div className='SearchContainer'>
             <img 
                 src="/homepagegraphics/Search.svg" 
                 alt="Search" 
                 className='SearchIcon'
               />
-              <p>Search for different campaigns and debate </p>   
         </div>
       </div>
 

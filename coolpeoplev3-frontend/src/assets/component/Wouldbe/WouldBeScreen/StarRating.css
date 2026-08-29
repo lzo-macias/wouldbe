@@ -1,0 +1,85 @@
+/* ============================================================================
+   StarRating — the shared star primitives.
+
+   COLOUR: the star is GOLD. Gold has to carry meaning in this system, and a
+   star is the one graphic on a profile that is nothing but meaning — a rating.
+   It shares the hue with the buttons and is told apart from them by SHAPE: a
+   button is a filled rectangle with ink on it, a rating is a glyph.
+
+   --wb-gold-mark, never --wb-gold: a graphic that carries meaning needs 3:1,
+   and --wb-gold is 2.4:1 on white. The mark is 3.9:1.
+
+   Every class is rv-prefixed. CSS in this app isn't scoped, and there is
+   already a documented history of one screen's `.left` / `.userTags` silently
+   restyling another's — a prefix is the cheapest way not to add to it.
+   ========================================================================== */
+
+.rvStarGlyph { display: block; }
+
+/* Taken from the variables .wb-reviews declares, so the stars and the
+   distribution bars can't drift apart; the fallbacks are for using these
+   primitives outside the reviews section, where that class isn't an ancestor. */
+.rvStarOn  { fill: var(--rv-star, #B07524); }
+.rvStarOff { fill: var(--rv-star-off, #e4e2dd); }
+
+/* --- read-only display ---------------------------------------------------- */
+
+.rvStars {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+}
+
+.rvStarsRow {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+/* The filled row sits on top of the empty one and is clipped to --rv-fill, so
+   a 4.3 average shows as four stars plus 30% of a fifth. `width: max-content`
+   on the inner row keeps the stars at full size while the wrapper is narrowed —
+   without it the clip would squash them instead of cropping. */
+.rvStarsRowOn {
+    position: absolute;
+    inset: 0;
+    width: var(--rv-fill, 0%);
+    max-width: 100%;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.rvStarsRowOn > * { flex: none; }
+
+.rvSrOnly {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* --- interactive input ---------------------------------------------------- */
+
+.rvStarInput {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.rvStarButton {
+    background: none;
+    border: none;
+    padding: 2px;
+    line-height: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform var(--ease, .18s ease);
+}
+
+.rvStarButton:hover  { transform: scale(1.12); }
+.rvStarButton:active { transform: scale(.95); }

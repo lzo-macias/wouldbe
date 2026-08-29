@@ -1,13 +1,13 @@
 /* Updated "would be" nav bar. Scoped under .wbNav so its resets (button, svg)
    never leak into the rest of the app. */
 .wbNav {
+  /* gold comes from the one ramp in index.css — see the note there. A local
+     copy is how --gold-deep ended up being three different colours. */
   --ink: #0d0d0f;
   --ink-2: #3a3a40;
   --muted: #8a8a93;
   --line: #e7e7ea;
   --panel: #f6f6f4;
-  --gold: #c9a437;
-  --gold-deep: #b48f22;
 
   position: sticky;
   top: 0;

@@ -331,6 +331,16 @@ const TRENDING_PLEDGE_CTE = `
 // It is sensitive personal data about the campaign owner; letting a caller
 // narrow by it is the feature, publishing every user's number on a public feed
 // is not. The filter works without the value ever leaving the database.
+// status:
+//   null / 'all' — every current campaign (the historical behaviour)
+//   'active'     — the funding window is still open: no deadline, or one that
+//                  has not passed. The home feed asks for this, because a
+//                  campaign nobody can still back is a result, not an ask.
+//   'concluded'  — the deadline has passed.
+//
+// This is a SEPARATE question from retired/general_date, which the WHERE below
+// already handles: a campaign can be perfectly current and still have closed its
+// own funding window.
 const listWouldbes = async ({
     office_id = null,
     sort = "newest",
@@ -338,6 +348,7 @@ const listWouldbes = async ({
     state = null,
     lean_min = null,
     lean_max = null,
+    status = null,
 } = {}) => {
     try{
         const ORDERINGS = {
@@ -388,6 +399,16 @@ const listWouldbes = async ({
               AND ($${isTrending ? 3 : 2}::text IS NULL OR j.state_code = $${isTrending ? 3 : 2})
               AND ($${isTrending ? 4 : 3}::int  IS NULL OR u.political_lean >= $${isTrending ? 4 : 3})
               AND ($${isTrending ? 5 : 4}::int  IS NULL OR u.political_lean <= $${isTrending ? 5 : 4})
+              -- 'active' | 'concluded' | null. A NULL deadline is an open-ended
+              -- campaign, which is active by definition and must not be dropped
+              -- by a comparison against NULL.
+              AND ($${isTrending ? 6 : 5}::text IS NULL
+                   OR ($${isTrending ? 6 : 5} = 'active'
+                       AND (w.deadline IS NULL OR w.deadline >= CURRENT_DATE)
+                       -- A failed launch is over regardless of the date on it.
+                       AND w.launch_status <> 'failed')
+                   OR ($${isTrending ? 6 : 5} = 'concluded'
+                       AND w.deadline < CURRENT_DATE))
             ORDER BY ${orderBy}
             ${limit ? `LIMIT ${Math.min(Number(limit) || 50, 200)}` : ""}
         `
@@ -398,6 +419,7 @@ const listWouldbes = async ({
             state || null,
             Number.isFinite(Number(lean_min)) && lean_min !== null ? Number(lean_min) : null,
             Number.isFinite(Number(lean_max)) && lean_max !== null ? Number(lean_max) : null,
+            status === "active" || status === "concluded" ? status : null,
         ]
         const params = isTrending
             ? [office_id, TRENDING_PLEDGE_STATUSES, ...filters]

@@ -82,6 +82,9 @@ router.get("/wouldbes", async (req, res, next) => {
                 state: req.query.state,
                 lean_min: req.query.lean_min,
                 lean_max: req.query.lean_max,
+                // ?status=active|concluded — the funding window, not the
+                // election. Omitted = everything, as before.
+                status: req.query.status,
             })
         );
     } catch (err) {

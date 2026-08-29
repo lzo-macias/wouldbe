@@ -9,9 +9,8 @@
    in exactly three declarations instead of three copies of the card. */
 
 .preExisting {
-  --gold:       #c9a437;
-  --gold-deep:  #8a6a12;
-  --gold-line:  #e3d3a0;
+  /* gold comes from the one ramp in index.css — see the note there. A local
+     copy is how --gold-deep ended up being three different colours. */
   --ink:        #241d0c;
   --ink-soft:   #6d5c33;
   --ink-faint:  #9a8a63;
@@ -23,6 +22,19 @@
   margin: 0 auto;
   padding: 40px 32px 80px;
   color: var(--ink);
+}
+
+/* THE DARK SURFACE, in five declarations. The header comment above promises
+   that every rule reads these tokens, and that promise is what makes this
+   possible without touching a single rule below: redefine the ground and the
+   whole shelf follows. The gold hairline replaces the cream one because on ink
+   a warm off-white line reads as a scratch. */
+[data-surface="dark"] .preExisting {
+  --ink:        #F5F0E4;
+  --ink-soft:   #B3AA95;
+  --ink-faint:  #7E7663;
+  --surface:    #17140E;
+  --hairline:   #262019;
 }
 
 /* ── page head ────────────────────────────────────────────────── */
@@ -55,7 +67,9 @@
   white-space: nowrap;
   transition: background .12s, box-shadow .12s;
 }
-.preExisting .addDebate:hover { background: #fff; box-shadow: 0 2px 10px rgba(36,29,12,.12); }
+.preExisting .addDebate:hover { background: var(--surface); border-color: var(--wb-gold-hair); }
+/* On ink, "lift it toward white" is not available — the hover has to be carried
+   by the gold hairline instead of by a brighter fill. */
 .preExisting .addDebate:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(201,164,55,.45);
@@ -73,7 +87,7 @@
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--gold-deep);
+  color: var(--wb-gold-ink);
 }
 .preExisting .debateCount {
   display: inline-grid;
@@ -82,7 +96,7 @@
   height: 22px;
   padding: 0 7px;
   border-radius: 999px;
-  background: rgba(255,253,247,.7);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
   border: 1px solid var(--gold-line);
   font-size: 11px;
   letter-spacing: 0;
@@ -117,8 +131,15 @@
 
 /* The three variants. Everything else about a card is identical. */
 .preExisting .approvedDebate { --rail: #2f855a; --tint: #e7f5ed; --ink-status: #22613f; }
-.preExisting .draftDebate    { --rail: #c9a437; --tint: #f9f0d4; --ink-status: #7a5f10; }
+.preExisting .draftDebate    { --rail: var(--wb-gold); --tint: #f9f0d4; --ink-status: #7a5f10; }
 .preExisting .rejectedDebate { --rail: #c53030; --tint: #fdeaea; --ink-status: #8f2323; }
+
+/* On ink, the three pale tints are three light rectangles — the status has to be
+   carried by the rail and a tinted TEXT instead of by a fill. Same three
+   declarations per variant, which is the whole point of the pattern. */
+[data-surface="dark"] .preExisting .approvedDebate { --tint: rgba(47,133,90,.16);  --ink-status: #7fd6a5; }
+[data-surface="dark"] .preExisting .draftDebate    { --tint: rgba(232,197,106,.14); --ink-status: var(--wb-gold-200); }
+[data-surface="dark"] .preExisting .rejectedDebate { --tint: rgba(197,48,48,.16);  --ink-status: #f0a1a1; }
 
 .preExisting .debateCardTitle {
   margin: 0 0 14px;
@@ -184,7 +205,7 @@
   cursor: pointer;
   transition: background .12s, color .12s;
 }
-.preExisting .cardButton:hover { background: var(--rail); color: #fff; }
+.preExisting .cardButton:hover { background: var(--rail); color: var(--wb-on-gold); }
 .preExisting .cardButton:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--rail) 35%, transparent);
@@ -218,7 +239,7 @@
   padding: 40px 24px;
   border: 1px dashed var(--gold-line);
   border-radius: var(--radius);
-  background: rgba(255,253,247,.55);
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
   text-align: center;
   color: var(--ink-soft);
 }

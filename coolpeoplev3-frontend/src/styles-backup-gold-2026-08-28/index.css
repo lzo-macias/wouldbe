@@ -1,0 +1,195 @@
+/* ============================================================================
+   DESIGN TOKENS — the single source of truth for the whole app.
+   Loaded once in main.jsx. Every component should reference these vars
+   (var(--gold), var(--s4), …) instead of hardcoding colors or pixel values.
+   Change a value here → it updates everywhere. That's the whole point.
+   ============================================================================ */
+:root {
+  /* neutrals / text */
+  --ink:      #111114;   /* primary text */
+  --ink-2:    #3d3d44;   /* secondary/body text */
+  /* Was #8b8b93 — only 3.38:1 on --paper, below the 4.5:1 AA floor for body
+     text, which is what Lighthouse's contrast audit flagged. This keeps the same
+     de-emphasized grey role at 5.28:1. */
+  --muted:    #6b6b74;   /* de-emphasized text (AA on --paper) */
+  --line:     #e8e8ea;   /* borders / hairlines */
+  --line-2:   #dcdce0;   /* border on hover */
+  --paper:    #ffffff;   /* surfaces / cards */
+  --panel:    #f7f6f3;   /* subtle filled panels */
+
+  /* brand — gold */
+  --gold:      #c9a437;
+  --gold-deep: #a9861d;
+  --gold-soft: #f6eccf;
+  --gold-ink:  #241b00;  /* text on a gold fill */
+
+  /* spacing scale — use these instead of arbitrary px.
+     4 · 8 · 12 · 16 · 24 · 32 · 48 · 64 — never a value in between. */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px; --s5: 24px;
+  --s6: 32px; --s8: 48px; --s10: 64px;
+
+  /* type scale — 6 sizes, big jumps. Weak hierarchy comes from sizes too close. */
+  --text-xs:  12px;   /* labels, captions (usually uppercase + muted) */
+  --text-sm:  14px;   /* secondary / dense body */
+  --text-md:  16px;   /* default body */
+  --text-lg:  20px;   /* card titles, section subheads */
+  --text-xl:  30px;   /* page headings */
+  --text-2xl: 60px;   /* hero / focal display */
+
+  /* font weights — hierarchy comes from weight+color, not size alone */
+  --w-normal: 400; --w-medium: 500; --w-semibold: 600; --w-bold: 700;
+
+  /* layout — full-bleed text is hard to read; cap and center content */
+  --content-max: 1160px;
+
+  /* radii */
+  --radius:    18px;
+  --radius-sm: 14px;
+  --radius-pill: 999px;
+
+  /* elevation */
+  --shadow:       0 1px 2px rgba(16,16,20,.04), 0 12px 34px rgba(16,16,20,.06);
+  --shadow-hover: 0 2px 6px rgba(16,16,20,.05), 0 22px 50px rgba(16,16,20,.10);
+
+  /* motion */
+  --ease: .18s ease;
+
+  /* type */
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* minimal base reset — box-sizing everywhere, sane body defaults */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--paper);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================================
+   BASE ELEMENTS — sensible defaults so raw <h2>, <p>, <button> already look
+   on-system. Hierarchy is carried by weight + color, not size alone.
+   ============================================================================ */
+h1, h2, h3, h4 { margin: 0 0 var(--s4); font-weight: var(--w-bold); line-height: 1.2; }
+h1 { font-size: var(--text-xl); letter-spacing: -0.02em; }
+h2 { font-size: var(--text-lg); }
+h3 { font-size: var(--text-md); }
+h4 { font-size: var(--text-sm); }
+
+p { margin: 0 0 var(--s4); color: var(--ink-2); }
+
+small, .label {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: var(--w-medium);
+}
+
+a { color: var(--gold-deep); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* one visible focus ring for the whole app — keyboard users, accent-tinted */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================================
+   LAYOUT — everything aligns to a shared grid + capped, centered content.
+   ============================================================================ */
+.container {
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding-inline: var(--s5);
+}
+/* major sections breathe: 48–64px of vertical separation */
+.section { padding-block: var(--s10); }
+.stack   { display: flex; flex-direction: column; gap: var(--s4); }
+.row     { display: flex; align-items: center; gap: var(--s3); }
+
+/* ============================================================================
+   PRIMITIVES — the accent appears ONLY on things you want clicked.
+   ============================================================================ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--s2);
+  padding: var(--s3) var(--s5);
+  font: inherit; font-weight: var(--w-semibold); font-size: var(--text-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--paper); color: var(--ink);
+  cursor: pointer;
+  transition: transform var(--ease), box-shadow var(--ease),
+              background var(--ease), border-color var(--ease);
+}
+.btn:hover { border-color: var(--line-2); transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+/* the ONE accented action per screen — the focal point */
+.btn-primary {
+  background: var(--gold); color: var(--gold-ink);
+  border-color: transparent;
+}
+.btn-primary:hover { background: var(--gold-deep); box-shadow: var(--shadow); }
+
+.card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--s6);            /* 24–32px internal breathing room */
+  box-shadow: var(--shadow);
+}
+
+.input {
+  width: 100%;
+  padding: var(--s3) var(--s4);
+  font: inherit; font-size: var(--text-md);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--ease), box-shadow var(--ease);
+}
+.input::placeholder { color: var(--muted); }
+.input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-soft);
+}
+
+.pill {
+  display: inline-flex; align-items: center;
+  padding: var(--s1) var(--s3);
+  font-size: var(--text-sm); font-weight: var(--w-medium);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--panel); color: var(--ink-2);
+  cursor: pointer;
+  transition: background var(--ease), border-color var(--ease), color var(--ease);
+}
+.pill[aria-pressed="true"], .pill.is-selected {
+  background: var(--gold-soft); border-color: var(--gold);
+  color: var(--gold-ink);
+}
+
+/* Respect users who ask for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* Shown only while a lazily-loaded route chunk is in flight. Deliberately plain:
+   a tall skeleton here would push content around when the real page arrives,
+   and that shift is exactly what CLS measures. */
+.routeFallback {
+  padding: var(--s10) var(--s5);
+  text-align: center;
+  color: var(--muted);
+}

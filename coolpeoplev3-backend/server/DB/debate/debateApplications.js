@@ -2,9 +2,11 @@ const { client, withTransaction } = require("../index.js");
 const { WIN_TYPES, CONTRIBUTION_TYPES, PARTICIPATION_TYPES } = require("./debates.js");
 const { PROMPT_KINDS } = require("./prompts.js");
 const { applyCategoryCriteria } = require("./categoryCriteria.js");
+const { ensureDebateCriteria } = require("./debateCriteria.js");
 const { validateJudgePanel, addJudgePanel } = require("./debateJudges.js");
 const { normalizeStart } = require("./debateStart");
 const { scheduleDebateStream, normalizeTwitchChannel } = require("./debateStreams.js");
+const { validateMatchPrompts, insertMatchPrompts } = require("./matchPrompts.js");
 
 // ============================================================================
 // Debate applications — the SPONSOR-FACING create path.
@@ -39,6 +41,9 @@ const httpError = (status, message) => {
 // needs state registration. Checked here too so the sponsor gets a specific
 // message instead of the generic "violates a check constraint" 23514.
 const PRIZE_POOL_CAP_CENTS = 500000;
+
+// debates.format — how the debate is argued. Mirrors the DB CHECK.
+const DEBATE_FORMATS = ["typed", "live"];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -202,6 +207,16 @@ const submitDebateApplication = async ({
     // generated column.
     prize_type = "cash",
     prize_description = null,
+    // HOW THE DEBATE IS ARGUED. 'live' is the streamed shape this form has
+    // always produced; 'typed' has no stream and carries one written prompt per
+    // bracket match instead. Defaulted rather than required so an older client
+    // submitting without it still lands a valid live debate.
+    format = "live",
+    // FOR FUN — no prize, no gate, one question. Typed and open to everyone,
+    // both forced below rather than validated: a sponsor who ticks "for fun"
+    // has chosen those two things whether they realise it or not, and refusing
+    // their submission to teach them that would be pedantry.
+    is_for_fun = false,
     // hard cap on competitors; even numbers only (the form steps by two).
     max_contestants = null,
     entry_amount,
@@ -223,6 +238,23 @@ const submitDebateApplication = async ({
     judges = null,
 }) => {
     if (!user_id) throw httpError(401, "authentication required");
+
+    // FOR FUN, NORMALISED BEFORE ANYTHING VALIDATES. These three are what the
+    // mode MEANS rather than settings it happens to imply, so a sponsor who
+    // ticks the box has chosen them whether they realise it or not — refusing
+    // their submission to teach them that would be pedantry.
+    //
+    // It has to run here, ahead of the prize checks: those reject a debate with
+    // no money on it, and a for-fun debate has none by definition. The DB
+    // carries the same rules as CHECK constraints; this makes the row satisfy
+    // them instead of bouncing the person filling in the form.
+    if (is_for_fun) {
+        format = "typed";              // written only
+        participation_type = "open";   // no gate, though nominating still works
+        prize_type = "non_cash";       // nothing at stake but the arrow
+        prize_description = "For fun — no prize.";
+        prize_amount = null;
+    }
 
     const cleanTitle = title != null ? String(title).trim() : "";
     if (!cleanTitle) throw httpError(400, "title is required");
@@ -290,7 +322,28 @@ const submitDebateApplication = async ({
     // null = a free debate. 0 would claim "there is a fee, and it is nothing".
     const sponsor_entry_fee_cents = toCents(entry_amount);
 
-    const rounds = validatePrompts(prompts);
+    if (!DEBATE_FORMATS.includes(format)) {
+        throw httpError(400, `format must be one of: ${DEBATE_FORMATS.join(", ")}`);
+    }
+
+    // TWO DIFFERENT PROMPT SHAPES, and the format decides which.
+    //
+    //   live  — an ordered list the sponsor writes as many of as they like. The
+    //           stream is the debate; prompts are supporting material.
+    //   typed — EXACTLY ONE PER BRACKET MATCH, because in a typed debate the
+    //           prompt IS the match: two people answer that question against
+    //           each other. The count is not the sponsor's choice, it is
+    //           arithmetic on the field size (16 contestants -> 15 matches), and
+    //           a missing one is a match with no question in front of it. That
+    //           cannot be repaired while it is being played, so it is refused
+    //           here rather than discovered later.
+    const isTyped = format === "typed";
+    if (isTyped && !maxContestants) {
+        throw httpError(400, "a typed debate needs a contestant cap — the number of prompts is derived from it");
+    }
+    const rounds = isTyped
+        ? validateMatchPrompts({ prompts, field_size: maxContestants })
+        : validatePrompts(prompts);
     // max_contestants IS the broadcast's seat count — one number, asked once on
     // the form. Injected here so validateStream sees it as invite_slots and the
     // two can never drift apart. The DB caps invite_slots at 100; a bigger field
@@ -343,7 +396,7 @@ const submitDebateApplication = async ({
                     scoring_methodology, status, start_date, end_date, concluding_stream_at,
                     min_age_required, excluded_states,
                     prize_type, prize_description, max_contestants,
-                    start_at, start_timezone
+                    start_at, start_timezone, format, is_for_fun
                  )
                  VALUES (
                     $1, $2, $3, $4, $5, $6,
@@ -352,7 +405,7 @@ const submitDebateApplication = async ({
                     $13, 'draft', $14, $15, $16,
                     COALESCE($17, 18), COALESCE($18::text[], '{}'),
                     $19, $20, $21,
-                    $22, $23
+                    $22, $23, $24, $25
                  )
                  RETURNING *;`,
                 [
@@ -369,7 +422,7 @@ const submitDebateApplication = async ({
                     prize_type, wantsOther ? cleanPrizeDescription : null, maxContestants,
                     // start_at is the instant; start_timezone is the zone the
                     // sponsor picked it in, which the instant cannot remember.
-                    broadcast.scheduled_at, broadcast.timezone,
+                    broadcast.scheduled_at, broadcast.timezone, format, is_for_fun,
                 ]
             );
             const debate = debateResult.rows[0];
@@ -377,15 +430,25 @@ const submitDebateApplication = async ({
             // Prompts are text + position. No title, no example video, and no
             // release_at/response_deadline — those columns stay NULL, which is
             // what "released with no per-prompt schedule" looks like in the DB.
-            const created = [];
-            for (const r of rounds) {
-                const { rows } = await tx.query(
-                    `INSERT INTO prompts (debate_id, prompt_order, prompt_type, body)
-                     VALUES ($1, $2, $3, $4)
-                     RETURNING *;`,
-                    [debate.id, r.prompt_order, r.prompt_type, r.body]
-                );
-                created.push(rows[0]);
+            //
+            // A TYPED debate's prompts additionally carry their bracket slot
+            // (round/side/position), which is what ties each one to the match it
+            // is the question for. Same table, same transaction; the extra three
+            // columns are what makes the row findable from the bracket.
+            let created;
+            if (isTyped) {
+                created = await insertMatchPrompts({ debate_id: debate.id, rows: rounds }, tx);
+            } else {
+                created = [];
+                for (const r of rounds) {
+                    const { rows } = await tx.query(
+                        `INSERT INTO prompts (debate_id, prompt_order, prompt_type, body)
+                         VALUES ($1, $2, $3, $4)
+                         RETURNING *;`,
+                        [debate.id, r.prompt_order, r.prompt_type, r.body]
+                    );
+                    created.push(rows[0]);
+                }
             }
 
             // Pre-disclosed judging criteria. Copied from the category catalog
@@ -403,6 +466,17 @@ const submitDebateApplication = async ({
             );
             debate.criteria_version = rubric.criteria_version;
 
+            // ...and if that applied nothing, the platform default rubric does.
+            // EVERY DEBATE HAS CRITERIA: one with none can't be entered honestly
+            // (you don't know what you're judged on), can't be voted on (the
+            // ballot IS the criteria list) and can't be defended afterwards.
+            // Leaving it to "an admin fills them in" meant the free-text
+            // categories shipped unjudgeable. Idempotent, and on the same tx.
+            await ensureDebateCriteria(
+                { debate_id: debate.id, category: resolvedCategory },
+                tx
+            );
+
             // Same transaction as the debate: a hybrid debate never exists
             // without the panel that decides it.
             const judgePanel = panel.length
@@ -419,17 +493,29 @@ const submitDebateApplication = async ({
             // — it has to list the domains the iframe is embedded on, and getting
             // it wrong is the single most common cause of a black Twitch embed,
             // so it is not something to guess from an application.
-            const streamRow = await scheduleDebateStream(
-                {
-                    debate_id: debate.id,
-                    method: broadcast.method,
-                    host_user_id: user_id,
-                    twitch_channel: broadcast.twitch_channel,
-                    scheduled_at: broadcast.scheduled_at,
-                    invite_slots: broadcast.invite_slots,
-                },
-                tx
-            );
+            //
+            // ONLY A LIVE DEBATE GETS ONE. A typed debate is argued in writing
+            // and never broadcasts, so a debate_streams row for it would be a
+            // scheduled event that can never happen — it would sit in the
+            // upcoming-broadcast queries, invite people to a stream with no
+            // channel, and give an admin a Twitch embed to configure for a
+            // debate with no video. The DATE still exists either way: it is on
+            // the debate itself (start_at / start_date), which is what
+            // "when is this debate" has always actually read.
+            const streamRow =
+                format === "live"
+                    ? await scheduleDebateStream(
+                          {
+                              debate_id: debate.id,
+                              method: broadcast.method,
+                              host_user_id: user_id,
+                              twitch_channel: broadcast.twitch_channel,
+                              scheduled_at: broadcast.scheduled_at,
+                              invite_slots: broadcast.invite_slots,
+                          },
+                          tx
+                      )
+                    : null;
 
             return {
                 debate,
@@ -464,6 +550,10 @@ const listDebateApplications = async ({ status = "draft", limit = 100 } = {}) =>
                 s.user_id       AS sponsor_user_id,
                 s.verified_at   AS sponsor_verified_at,
                 COUNT(p.id)::int AS prompt_count,
+                -- 'typed' | 'live'. An admin reviewing the queue needs to know
+                -- which one they are looking at before they open it: a typed
+                -- debate is reviewed on its prompts, a live one on its stream.
+                d.format,
                 -- the host tier the sponsor bought. t.display_name is what the
                 -- inbox shows; tier_price_cents on the debate is what they
                 -- actually paid, which can differ if the catalog price moved.

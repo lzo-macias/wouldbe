@@ -78,3 +78,53 @@
 .admin__btn:disabled { opacity: .45; cursor: not-allowed; }
 .admin__btn--approve:hover:not(:disabled) { background: #059669; border-color: #059669; color: #fff; }
 .admin__btn--reject:hover:not(:disabled)  { background: #dc2626; border-color: #dc2626; color: #fff; }
+
+/* ── the prompt panel ─────────────────────────────────────────────
+   A typed debate is reviewed ON ITS PROMPTS: they are the questions
+   two strangers will be told to argue, published under the platform's
+   name. A count in a cell is not that, so the row opens. */
+.admin__row--expandable { cursor: pointer; }
+.admin__row--expandable:hover { background: rgba(255, 255, 255, 0.03); }
+
+.admin__promptrow > td { padding: 0 !important; }
+
+.admin__prompts { padding: 14px 16px 18px; }
+
+.admin__prompts-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    opacity: 0.85;
+}
+/* An incomplete typed set is the one thing on this panel that should stop an
+   approval, so it is the one thing coloured. */
+.admin__prompts-warn { color: #e0685f; }
+
+.admin__prompt-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 6px;
+}
+.admin__prompt-list li {
+    display: grid;
+    grid-template-columns: minmax(150px, 200px) 1fr;
+    gap: 12px;
+    padding: 7px 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    border-left: 2px solid rgba(224, 181, 81, 0.5);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 6px;
+}
+.admin__prompt-list li.is-empty { border-left-color: #e0685f; opacity: 0.75; }
+
+.admin__prompt-slot { font-size: 11px; letter-spacing: 0.04em; opacity: 0.7; }
+.admin__prompt-body { text-wrap: pretty; }
+
+@media (max-width: 720px) {
+    .admin__prompt-list li { grid-template-columns: 1fr; gap: 2px; }
+}

@@ -1,965 +1,352 @@
-/* ── page-local design tokens ─────────────────────────────────────
-   Scoped to .applyPage, NOT :root. Three of these names already exist
-   in src/index.css (the app-wide token file) with DIFFERENT values —
-   --radius is 18px there vs 10px here, and --gold-deep / --gold-ink
-   differ too. Declaring them on :root from a component stylesheet
-   would leak into every other page and shrink every card radius in
-   the app. Custom properties inherit, so scoping them to the page
-   root reaches every descendant here and nothing outside. */
-
-
-/* box-shadow: 0 0 0 3px rgba(201,164,55,0.22); */
-.applyPage {
-  --gold:        #c9a437;
-  --gold-deep:   #8a6a12;
-  --gold-soft:   #f6eccf;
-  --gold-pale:   #fdfaf2;
-  --gold-line:   #e3d3a0;
-  --gold-ink:    #241d0c;
-  --ink-soft:    #6d5c33;
-  --ink-faint:   #9a8a63;
-  --surface:     #fffdf7;
-  --field:       #f7f0dc;
-  --hairline:    #f0e8d2;
-  --radius:      10px;
-  --radius-lg:   16px;
-}
-
-/* ── page background ──────────────────────────────────────────────
-   Gated on :has(.applyPage) so only a route rendering this page gets
-   the gradient. A bare `body { … }` here would repaint the whole app:
-   index.css and HomeGrid.css already own body, and bundle order would
-   silently decide the winner. min-height is what stops the gradient
-   collapsing into the content box on a short page. Literal hex here,
-   not var() — the tokens above live on .applyPage, which is a
-   DESCENDANT of body, so they aren't in scope on this selector. */
-body:has(.applyPage) {
-  margin: 0;
-  min-height: 100dvh;
-  color: #241d0c;
-  background:
-    radial-gradient(900px 520px at 90% -5%, rgba(201,164,55,0.28), transparent 65%),
-    linear-gradient(178deg, #fdfaf2 0%, #f6eccf 55%, #efe1b8 100%);
-  background-attachment: fixed;
-}
-
-.applyPage {
-  max-width: 880px;
-  margin: 0 auto;
-  padding: 56px 32px 96px;
-  color: var(--gold-ink);
-}
-
-/* ── page header ──────────────────────────────────────────────────*/
-.eyebrow {
-  margin: 0 0 6px;
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-.pageTitle {
-  margin: 0 0 8px;
-  font-size: 40px;
-  font-weight: 800;
-  font-style: italic;      /* echoes the "would be" wordmark */
-  letter-spacing: -0.03em;
-}
-
-.pageLede {
-  margin: 0 0 40px;
-  max-width: 62ch;
-  color: var(--ink-soft);
-  line-height: 1.6;
-}
-
-.sectionHead {
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  margin: 48px 0 18px;
-}
-.sectionHead:first-of-type { margin-top: 0; }
-.sectionHead h2 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  font-style: italic;
-  letter-spacing: -0.02em;
-}
-.sectionHead .rule {
-  flex: 1;
-  height: 1px;
-  background: var(--gold-line);
-}
-
-/* ── the card ─────────────────────────────────────────────────────
-   The single biggest fix: the form was gold-on-gold with no value
-   separation, so nothing had an edge. Three tiers now — gradient
-   page, near-white card, tinted fields. */
-.applyPage .formContainer {
-  background: var(--surface);
-  border: 1px solid var(--gold-line);
-  border-radius: var(--radius-lg);
-  padding: 28px 32px;
-}
-
-/* ── field rows ───────────────────────────────────────────────────
-   Grid, not flex: a fixed label column means every label lines up
-   regardless of its length. */
-.applyPage .regularLabelAndInput,
-.applyPage .radioOtionInputAndLabel {
-  display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
-  gap: 20px;
-  align-items: start;
-  padding: 16px 0;
-  border-top: 1px solid var(--hairline);
-}
-
-.applyPage .formContainer > .regularLabelAndInput:first-child,
-.applyPage .formContainer > .radioOtionInputAndLabel:first-child {
-  border-top: 0;
-  padding-top: 0;
-}
-
-.applyPage .regularLabelAndInput > label,
-.applyPage .rowLabel {
-  padding-top: 9px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ink-soft);
-}
-
-.fieldStack { min-width: 0; }
-
-/* ── text inputs ──────────────────────────────────────────────────
-   The old width:80ch was ~1100px, which is why the title field ran
-   half the viewport. The grid column sizes them now. */
-.applyForm input[type="text"],
-.applyForm input[type="number"],
-.applyForm input[type="date"],
-.applyForm textarea {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  width: 100%;
-  font: inherit;
-  color: var(--gold-ink);
-  background: var(--field);
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  padding: 9px 12px;
-  outline: none;
-  transition: border-color .12s, background .12s, box-shadow .12s;
-}
-
-.applyForm ::placeholder { color: var(--ink-faint); }
-
-.applyForm input:hover,
-.applyForm textarea:hover { border-color: var(--gold-line); }
-
-/* :focus-visible, not :focus — keyboard users get the ring, mouse
-   users don't get a flash on every click. */
-.applyForm input:focus-visible,
-.applyForm textarea:focus-visible {
-  border-color: var(--gold);
-  background: var(--gold-pale);
-  box-shadow: 0 0 0 3px rgba(201,164,55,0.22);
-}
-
-.applyForm textarea { min-height: 92px; resize: vertical; }
-
-.applyPage .wMd { max-width: 260px; }
-.applyPage .otherinput { max-width: 22ch; }
-
-/* Kill the date input's tinted native calendar button. */
-.applyForm input[type="date"]::-webkit-calendar-picker-indicator {
-  opacity: .5;
-  cursor: pointer;
-}
-
-/* ── helper text ──────────────────────────────────────────────────
-   Was floating ~800px right of its field. Sits under it now. */
-.applyPage .hint {
-  display: block;
-  /* margin-top: 7px; */
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--ink-soft);
-}
-.applyPage .hint strong { font-weight: 500; color: var(--gold-ink); }
-
-.applyPage .inputandCanBeChangedLater {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  min-width: 0;
-}
-.applyPage .inputandCanBeChangedLater .hint { margin-top: 0; }
-
-/* ── helper text ────────────────────────────────────────────────── */
-
-.applyPage .hint1 {
-  display: block;
-  margin-top: 7px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--ink-soft);
-}
-.applyPage .hint1 strong { font-weight: 500; color: var(--gold-ink); }
-
-.applyPage .inputandCanBeChangedLater {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  min-width: 0;
-}
-.applyPage .inputandCanBeChangedLater .hint1 { margin-top: 0; }
-
-
-
-
-/* ── radios as pills ──────────────────────────────────────────────
-   The old 12px white circles had no border, so unchecked ones were
-   invisible against a light background. */
-.applyPage .radioRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.applyPage .radios {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  align-items: center;
-  padding-top: 2px;
-}
-
-.applyPage .radiolable {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  padding: 8px 15px 8px 12px;
-  border: 1px solid var(--gold-line);
-  border-radius: 999px;
-  background: var(--surface);
-  cursor: pointer;
-  font-size: 14px;
-  white-space: nowrap;
-  transition: background .12s, border-color .12s;
-}
-.applyPage .radiolable:hover { background: var(--gold-pale); }
-.applyPage .radiolable:has(input:checked) {
-  background: var(--gold-soft);
-  border-color: var(--gold);
-}
-
-.applyPage .radiolable input {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  margin: 0;
-  width: 15px;
-  height: 15px;
-  flex: none;
-  border: 1.5px solid var(--gold-line);
-  border-radius: 50%;
-  background: #fff;
-  display: grid;
-  place-content: center;
-  transition: border-color .12s;
-}
-.applyPage .radiolable input::after {
-  content: "";
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--gold-deep);
-  transform: scale(0);
-  transition: transform .12s ease-out;
-}
-.applyPage .radiolable input:checked { border-color: var(--gold-deep); }
-.applyPage .radiolable input:checked::after { transform: scale(1); }
-.applyPage .radiolable input:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(201,164,55,0.3);
-}
-
-/* ── judging rubric ───────────────────────────────────────────────
-   Rendered as a child of RadioGroup, so it lands inside the .radios
-   flex row alongside the pills. flex-basis:100% is what drops it onto
-   its own line instead of squeezing in beside them — .radios already
-   sets flex-wrap:wrap, so the card just takes the next row. */
-.applyPage .rubric {
-  flex-basis: 100%;
-  min-width: 0;
-  margin-top: 14px;
-  border: 1px solid var(--gold-line);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  overflow: hidden;
-}
-
-.applyPage .rubricHead {
-  padding: 14px 18px 12px;
-  background: var(--gold-pale);
-  border-bottom: 1px solid var(--hairline);
-}
-.applyPage .rubricHead h3 {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--gold-deep);
-}
-/* color:inherit — the app-wide `p` rule would otherwise repaint these
-   #3d3d44 and lose the --ink-soft the card asked for. Same override as
-   .hoverTipWrapper p and .PromptExplanations p above. */
-.applyPage .rubricHead p {
-  margin: 5px 0 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--ink-soft);
-}
-
-.applyPage .rubricList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.applyPage .rubricRow {
-  display: flex;
-  align-items: baseline;
-  gap: 16px;
-  padding: 13px 18px;
-  border-top: 1px solid var(--hairline);
-}
-.applyPage .rubricRow:first-child { border-top: none; }
-
-.applyPage .rubricText { min-width: 0; flex: 1; }
-.applyPage .rubricText h4 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--gold-ink);
-}
-.applyPage .rubricText p {
-  margin: 3px 0 0;
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--ink-soft);
-}
-
-/* Tabular figures keep the percent column optically aligned even though
-   the pills aren't in a real table cell. */
-.applyPage .rubricWeight {
-  flex: none;
-  align-self: center;
-  min-width: 48px;
-  padding: 4px 10px;
-  border: 1px solid var(--gold-line);
-  border-radius: 999px;
-  background: var(--gold-soft);
-  color: var(--gold-deep);
-  font-size: 12px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-}
-
-@media (max-width: 560px) {
-  .applyPage .rubricRow {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  .applyPage .rubricWeight { align-self: flex-start; }
-}
-
-/* ── judge panel (hybrid debates only) ────────────────────────────
-   Sits between two .regularLabelAndInput rows rather than inside the
-   RadioGroup, so it is a normal block — no flex-basis trick needed
-   (unlike .rubric above, which IS a child of the .radios flex row). */
-.applyPage .judgePanel {
-  margin: 4px 0 22px;
-  padding: 18px;
-  border: 1px solid var(--gold-line);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-}
-
-.applyPage .judgePanelHead h3 {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--gold-deep);
-}
-/* color:inherit — same app-wide `p` override as .rubricHead p. */
-.applyPage .judgePanelHead p {
-  margin: 6px 0 0;
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--ink-soft);
-  max-width: 62ch;
-}
-
-.applyPage .judgeRow {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 16px;
-  padding: 14px;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius);
-  background: var(--gold-pale);
-}
-.applyPage .judgeRow > label,
-.applyPage .judgeRow > .rowLabel {
-  margin-top: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-soft);
-}
-.applyPage .judgeRow input,
-.applyPage .judgeRow textarea { width: 100%; }
-.applyPage .judgeRow textarea { min-height: 68px; }
-
-.applyPage .judgeRowHead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-.applyPage .judgeIndex {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--gold-deep);
-}
-
-/* The link input and its × share a row; the input takes the slack.
-   min-width:0 on the input stops flex's automatic min-content floor
-   from pushing the × off the edge on narrow screens. */
-.applyPage .judgeLinkRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.applyPage .judgeLinkRow input { min-width: 0; flex: 1; }
-
-.applyPage .judgeRemove,
-.applyPage .judgeLinkRemove,
-.applyPage .judgeAddLink,
-.applyPage .judgeAdd {
-  font: inherit;
-  border-radius: var(--radius);
-  border: 1px solid var(--gold-line);
-  background: var(--surface);
-  color: var(--ink-soft);
-  cursor: pointer;
-  transition: background .12s, border-color .12s, color .12s;
-}
-.applyPage .judgeRemove:hover,
-.applyPage .judgeLinkRemove:hover,
-.applyPage .judgeAddLink:hover,
-.applyPage .judgeAdd:hover {
-  background: var(--gold-soft);
-  border-color: var(--gold);
-  color: var(--gold-ink);
-}
-
-.applyPage .judgeRemove { padding: 3px 10px; font-size: 12px; }
-.applyPage .judgeLinkRemove {
-  flex: none;
-  width: 30px;
-  height: 30px;
-  line-height: 1;
-  font-size: 15px;
-}
-.applyPage .judgeAddLink {
-  align-self: flex-start;
-  margin-top: 2px;
-  padding: 5px 12px;
-  font-size: 12px;
-}
-.applyPage .judgeAdd {
-  margin-top: 16px;
-  padding: 9px 16px;
-  font-size: 14px;
-}
-
-.applyPage .judgeRemove:focus-visible,
-.applyPage .judgeLinkRemove:focus-visible,
-.applyPage .judgeAddLink:focus-visible,
-.applyPage .judgeAdd:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(201,164,55,0.3);
-}
-
-/* ── hover tips ───────────────────────────────────────────────────*/
-.applyPage .hoverTipAnchor {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  flex: none;
-}
-
-.tipMark {
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: 1px solid var(--gold-line);
-  border-radius: 50%;
-  background: transparent;
-  color: var(--ink-soft);
-  font: inherit;
-  font-size: 11px;
-  line-height: 1;
-  cursor: help;
-  display: grid;
-  place-content: center;
-}
-.tipMark:hover { border-color: var(--gold); color: var(--gold-ink); }
-.tipMark:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(201,164,55,0.3);
-}
-
-/* pointer-events:none is load-bearing — without it, a bubble under the
-   cursor fires mouseleave on the trigger (it's a sibling, not a
-   descendant) → hide → mouseenter → show → flicker loop. */
-.applyPage .hoverTipWrapper {
-  position: absolute;
-  left: calc(100% + 12px);
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 20;
-  pointer-events: none;
-  width: max-content;
-  max-width: 34ch;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--gold-ink);
-  color: var(--gold-soft);
-  font-size: 13px;
-  line-height: 1.5;
-  box-shadow: 0 8px 24px rgba(36,29,12,0.18);
-}
-
-.tipMarkV2 {
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: 1px solid var(--gold-line);
-  border-radius: 50%;
-  background: transparent;
-  color: var(--ink-soft);
-  font: inherit;
-  font-size: 11px;
-  line-height: 1;
-  cursor: help;
-  display: grid;
-  place-content: center;
-  /* position: relative; */
-}
-.tipMarkV2:hover { border-color: var(--gold); color: var(--gold-ink); }
-.tipMarkV2:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(201,164,55,0.3);
-}
-
-.practicePop {
-  position: fixed;                 /* rect gives viewport coords */
-  transform: translateX(-50%);     /* centre on the anchor */
-  z-index: 20;
-  pointer-events: none;
-  width: max-content;
-  max-width: min(34ch, calc(100vw - 40px));
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: #241d0c;             /* literal, not var() — see below */
-  color: #f6eccf;
-  font-size: 13px;
-  line-height: 1.5;
-  box-shadow: 0 8px 24px rgba(36,29,12,0.18);
-}
-.practicePop p { margin: 0; color: inherit; }
-
-/* `color: inherit` is load-bearing, not decoration. index.css has a global
-   `p { color: var(--ink-2) }` (#3d3d44), and an element selector setting color
-   BEATS inherited color — inheritance only applies when nothing matches the
-   element directly. Without this the cream set on .hoverTipWrapper never
-   reaches the text, and you get dark gray on near-black (~1.3:1). */
-.applyPage .hoverTipWrapper p {
-  margin: 0;
-  color: inherit;
-}
-
-.hint2{
-    margin-top: 0px;
-}
-
-.hintAndPop {
-    display: flex;
-    align-items: center;
-    margin-top: 7px;
-    justify-content: space-between;
-}
-
-/* ── prompts ──────────────────────────────────────────────────────*/
-.applyPage .PromptExplanations {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-width: 62ch;
-  margin-bottom: 24px;
-  color: var(--ink-soft);
-  line-height: 1.6;
-}
-/* Same global-`p` override as the tooltip — without color:inherit these read
-   #3d3d44 instead of the --ink-soft the parent asked for. */
-.applyPage .PromptExplanations p {
-  margin: 0;
-  color: inherit;
-}
-
-.promptToolbar {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 22px;
-}
-.promptToolbar label {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ink-soft);
-}
-.promptToolbar input[type="number"] { width: 78px; }
-.promptToolbar .spacer { flex: 1; }
-
-.applyPage .addLivestream {
-  font: inherit;
-  font-size: 14px;
-  padding: 10px 18px;
-  border: 1px solid var(--gold-line);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--gold-ink);
-  cursor: pointer;
-  transition: background .12s, border-color .12s;
-}
-.applyPage .addLivestream:hover { background: var(--gold-pale); border-color: var(--gold); }
-
-/* The rail: prompts ARE a schedule, so the list reads as one. The
-   dashed line encodes the interval between releases. */
-.promptRail { position: relative; padding-left: 34px; }
-.promptRail::before {
-  content: "";
-  position: absolute;
-  left: 11px;
-  top: 14px;
-  bottom: 46px;
-  width: 2px;
-  background: repeating-linear-gradient(to bottom, var(--gold-line) 0 5px, transparent 5px 10px);
-}
-
-.applyPage .promptContainer {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  background: var(--surface);
-  border: 1px solid var(--gold-line);
-  border-radius: var(--radius-lg);
-  padding: 18px 20px;
-  margin-bottom: 14px;
-}
-.applyPage .promptContainer::before {
-  content: attr(data-n);
-  position: absolute;
-  left: -34px;
-  top: 16px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--gold-deep);
-  color: var(--gold-pale);
-  font-size: 12px;
-  font-weight: 500;
-  display: grid;
-  place-content: center;
-}
-
-.promptHead {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--hairline);
-}
-
-.applyPage .dragHandle {
-  cursor: grab;
-  color: var(--ink-faint);
-  font-size: 15px;
-  letter-spacing: -2px;
-  user-select: none;
-  flex: none;
-}
-.applyPage .dragHandle:active { cursor: grabbing; }
-
-.promptWindow { font-size: 13px; color: var(--ink-soft); }
-.promptWindow em { font-style: normal; color: var(--gold-ink); }
-
-.applyPage .deletepromptbutton {
-  margin-left: auto;
-  width: 26px;
-  height: 26px;
-  flex: none;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--ink-faint);
-  font: inherit;
-  font-size: 15px;
-  line-height: 1;
-  cursor: pointer;
-  transition: background .12s, color .12s, border-color .12s;
-}
-.applyPage .deletepromptbutton:hover {
-  background: #f8e3e3;
-  color: #7a1f1f;
-  border-color: #e0b4b4;
-}
-
-.applyPage .promptContainerList { display: flex; flex-direction: column; }
-.applyPage .promptContainerList label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-soft);
-  margin-bottom: 6px;
-}
-.applyPage .promptContainerList input[type="text"],
-.applyPage .promptContainerList textarea { margin-bottom: 12px; }
-
-/* The dropzone is the <label> for a hidden file input, so clicking it
-   opens the picker with no JS. */
-.videoDrop {
-  border: 1.5px dashed var(--gold-line);
-  border-radius: var(--radius);
-  padding: 18px;
-  text-align: center;
-  font-size: 13px;
-  font-weight: 400 !important;
-  color: var(--ink-faint) !important;
-  background: rgba(247,240,220,0.4);
-  cursor: pointer;
-  transition: border-color .12s, color .12s;
-}
-.videoDrop:hover {
-  border-color: var(--gold);
-  color: var(--ink-soft) !important;
-}
-
-/* Not display:none — the input has to stay keyboard-focusable so the
-   dropzone label can receive focus styling from it. */
-.visuallyHidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-  border: 0;
-}
-.visuallyHidden:focus-visible + .videoDrop,
-.promptContainerList input[type="file"]:focus-visible ~ .videoDrop {
-  border-color: var(--gold);
-}
-
-.addPromptButton {
-  font: inherit;
-  font-size: 14px;
-  width: 100%;
-  padding: 10px 18px;
-  border: 1px dashed var(--gold-line);
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--ink-soft);
-  cursor: pointer;
-  transition: background .12s, border-color .12s, color .12s;
-}
-.addPromptButton:hover {
-  background: var(--gold-pale);
-  border-color: var(--gold);
-  color: var(--gold-ink);
-}
-
-/* ── submit ───────────────────────────────────────────────────────*/
-.formActions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid var(--gold-line);
-}
-.formActions .note { font-size: 13px; color: var(--ink-soft); }
-
-.formActions button[type="submit"] {
-  font: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 12px 28px;
-  border: 1px solid var(--gold-deep);
-  border-radius: var(--radius);
-  background: var(--gold-deep);
-  color: #fffdf7;
-  cursor: pointer;
-  transition: background .12s;
-}
-.formActions button[type="submit"]:hover:not(:disabled) { background: #7a5c0d; }
-.formActions button[type="submit"]:disabled { opacity: .55; cursor: progress; }
-
-.applyForm button:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(201,164,55,0.3);
-}
-
-/* ── form feedback ────────────────────────────────────────────────*/
-.applyPage .formError,
-.applyPage .formSuccess {
-  max-width: 60ch;
-  margin: 20px 0 0;
-  padding: 12px 16px;
-  border-radius: var(--radius);
-  font-size: 14px;
-  line-height: 1.5;
-}
-.applyPage .formError {
-  background: #f8e3e3;
-  color: #7a1f1f;
-  border: 1px solid #e0b4b4;
-}
-.applyPage .formSuccess {
-  background: var(--gold-soft);
-  color: var(--gold-ink);
-  border: 1px solid var(--gold);
-}
+/* ============================================================================
+   Apply to host — the form.
+   ----------------------------------------------------------------------------
+   THE FIX THAT MATTERS MOST: the page declares data-surface="dark". This form
+   was rendering --wb-gold-700 — the LIGHT-surface ink — on a near-black page,
+   which measures 1.29:1. The section headings were not hard to read; they were
+   invisible. Declaring the surface flips every gold token to the light end of
+   the ramp automatically. Nothing in this file names a gold value: the surface
+   picks it, so the same markup would work on a white ground.
+
+   The rest, in order of how much they cost the reader:
+
+   ONE SURFACE. The form was a cream card floating in a black page, so the
+   screen read as two unrelated designs stacked on each other.
+
+   TWO CONTROL SHAPES FOR SINGLE CHOICE, not four. It had a 3-way segment, a
+   2-way segment, big option cards, AND pills with empty radio circles that read
+   as broken. Now: a segment when the options are a word each, option cards when
+   the choice needs a sentence to explain itself.
+
+   A SUMMARY RAIL. The form is four screens long with no sense of progress and
+   no way to know what is still missing until submit answers with one error at
+   a time.
+   ========================================================================== */
+
+.wb-form-page {
+    min-height: 100vh;
+    color: var(--ink);
+}
+
+/* The reading column and the rail. The rail gets max-height + overflow: a
+   position:sticky element TALLER than the viewport seats at the wrong offset
+   and appears frozen mid-scroll. */
+.wb-form-wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: clamp(24px, 4vw, 44px) 24px 96px;
+    display: grid;
+    gap: 40px;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+}
+@media (min-width: 1000px) {
+    .wb-form-wrap { grid-template-columns: minmax(0, 1fr) 320px; gap: 44px; }
+}
+
+/* ---- page head ----------------------------------------------------------- */
+.wb-form-head { margin-bottom: 28px; }
+.wb-form-kicker {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--wb-gold-ink);
+}
+.wb-form-title {
+    margin: 6px 0 10px;
+    font-size: clamp(30px, 4.5vw, 44px); font-weight: 800;
+    letter-spacing: -.03em; line-height: 1.05; color: var(--ink);
+}
+.wb-form-dek {
+    margin: 0 0 8px; max-width: 64ch;
+    font-size: 15.5px; line-height: 1.6; color: var(--ink-2);
+}
+
+/* ---- sections ------------------------------------------------------------ */
+.wb-fs { border: 0; margin: 0 0 30px; padding: 0; min-width: 0; }
+/* A <legend> is not a flex item and cannot carry the hairline itself, so the
+   rule is a ::after on a block that replaces it. */
+.wb-fs__legend {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 0; margin: 0 0 14px;
+    font-size: 15px; font-weight: 700; letter-spacing: -.01em;
+    color: var(--wb-gold-ink);
+}
+.wb-fs__legend::after { content: ""; flex: 1; height: 1px; background: var(--wb-gold-hair); }
+
+.wb-panel {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 4px 22px;
+}
+
+/* ---- one field ----------------------------------------------------------- */
+.wb-row {
+    display: grid; gap: 6px 24px; align-items: start;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--line);
+}
+.wb-row:last-child { border-bottom: 0; }
+@media (min-width: 760px) {
+    /* The label column is fixed so every control on the form starts at the same
+       x. Ragged control starts were most of why this read as a long list of
+       unrelated boxes rather than one form. */
+    .wb-row { grid-template-columns: 168px minmax(0, 1fr); }
+}
+.wb-row__l { font-size: 14px; font-weight: 700; color: var(--ink); padding-top: 9px; }
+.wb-row__req { color: var(--wb-gold-ink); margin-left: 3px; }
+.wb-row__c { display: grid; gap: 10px; min-width: 0; justify-items: start; }
+.wb-row__c > * { max-width: 100%; }
+
+.wb-hint { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); max-width: 60ch; }
+.wb-err  { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--wb-warn); }
+
+.wb-inline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* ---- text inputs --------------------------------------------------------- */
+.wb-input, .wb-textarea, .wb-date {
+    font: inherit; font-size: 14.5px;
+    width: 100%;
+    padding: 11px 14px;
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--line-2);
+    border-radius: 10px;
+    transition: border-color .16s var(--wb-ease), box-shadow .16s var(--wb-ease);
+}
+.wb-input::placeholder, .wb-textarea::placeholder { color: var(--muted); }
+.wb-input:focus, .wb-textarea:focus, .wb-date:focus {
+    outline: none;
+    border-color: var(--wb-gold-hair);
+    box-shadow: 0 0 0 3px var(--wb-gold-wash);
+}
+.wb-input[aria-invalid="true"] { border-color: var(--wb-warn); }
+.wb-input--short { width: min(220px, 100%); }
+.wb-textarea { min-height: 84px; resize: vertical; line-height: 1.55; }
+
+/* A raw datetime-local renders a grey box with mm/dd/yyyy in it and matches
+   nothing else on the page. color-scheme is what tints the browser's own
+   calendar glyph and picker to the dark surface — without it the icon stays
+   black-on-black and there is no CSS that reaches it. */
+.wb-date { color-scheme: dark; width: min(260px, 100%); }
+
+/* ---- segmented control (short choices) ----------------------------------- */
+.wb-seg {
+    display: inline-flex; padding: 3px; gap: 3px;
+    background: var(--panel);
+    border: 1px solid var(--line-2);
+    border-radius: 999px;
+    flex-wrap: wrap;
+}
+.wb-seg button {
+    font: inherit; font-size: 13px; font-weight: 600;
+    padding: 8px 16px; border: 0; border-radius: 999px;
+    background: transparent; color: var(--ink-2); cursor: pointer;
+    transition: color .16s var(--wb-ease), background .16s var(--wb-ease);
+}
+.wb-seg button:hover { color: var(--ink); }
+.wb-seg button[aria-pressed="true"] {
+    background: var(--wb-brushed); background-size: 180% 180%;
+    color: var(--wb-on-gold);
+    text-shadow: 0 1px 0 rgba(255, 244, 205, .3);
+}
+.wb-seg button:focus-visible { outline: 2px solid var(--wb-gold-ink); outline-offset: 2px; }
+
+/* ---- option cards (choices that need a sentence) ------------------------- */
+.wb-opts { display: grid; gap: 10px; width: 100%; }
+@media (min-width: 620px) { .wb-opts { grid-template-columns: 1fr 1fr; } }
+.wb-opt {
+    font: inherit; text-align: left; cursor: pointer;
+    display: grid; gap: 6px; align-content: start;
+    padding: 15px 16px;
+    background: var(--panel);
+    border: 1px solid var(--line-2);
+    border-radius: 12px;
+    color: var(--ink);
+    transition: border-color .16s var(--wb-ease), background .16s var(--wb-ease);
+}
+.wb-opt:hover { border-color: var(--wb-gold-hair); }
+.wb-opt[aria-pressed="true"] {
+    border-color: var(--wb-gold-mark);
+    background: var(--wb-gold-wash);
+}
+.wb-opt:focus-visible { outline: 2px solid var(--wb-gold-ink); outline-offset: 2px; }
+.wb-opt__t {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 15px; font-weight: 700; letter-spacing: -.01em;
+}
+/* The tick is the selected state. It occupies its space when unselected so the
+   title does not shift sideways on pick — an empty circle sitting there instead
+   is what made the old pills read as broken. */
+.wb-opt__t svg { width: 14px; height: 14px; color: var(--wb-gold-ink); opacity: 0; flex: none; }
+.wb-opt[aria-pressed="true"] .wb-opt__t svg { opacity: 1; }
+.wb-opt__d { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+
+/* ---- chips --------------------------------------------------------------- */
+.wb-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.wb-chipbtn {
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 14px; border-radius: 999px;
+    background: transparent; color: var(--ink-2);
+    border: 1px solid var(--line-2);
+    transition: border-color .16s var(--wb-ease), background .16s var(--wb-ease), color .16s var(--wb-ease);
+}
+.wb-chipbtn:hover { border-color: var(--wb-gold-hair); color: var(--ink); }
+.wb-chipbtn svg { width: 12px; height: 12px; opacity: 0; flex: none; transition: opacity .16s var(--wb-ease); }
+.wb-chipbtn[aria-pressed="true"] {
+    border-color: var(--wb-gold-hair);
+    background: var(--wb-gold-wash);
+    color: var(--wb-gold-wash-ink);
+}
+.wb-chipbtn[aria-pressed="true"] svg { opacity: 1; }
+.wb-chipbtn:focus-visible { outline: 2px solid var(--wb-gold-ink); outline-offset: 2px; }
+
+/* ---- the little round "?" ------------------------------------------------ */
+.wb-help {
+    font: inherit; font-size: 12px; font-weight: 700; cursor: help;
+    width: 22px; height: 22px; flex: none;
+    display: grid; place-items: center;
+    border-radius: 50%;
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--line-2);
+}
+.wb-help:hover { color: var(--wb-gold-ink); border-color: var(--wb-gold-hair); }
+
+/* ---- prompts ------------------------------------------------------------- */
+.wb-prompts { display: grid; gap: 10px; }
+.wb-prompt { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 12px; align-items: start; }
+.wb-prompt__n {
+    width: 26px; height: 26px; display: grid; place-items: center;
+    border-radius: 50%; margin-top: 4px;
+    font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+    color: var(--wb-gold-ink);
+    background: var(--wb-gold-wash);
+    border: 1px solid var(--wb-gold-hair);
+}
+.wb-prompt__body { display: grid; gap: 6px; min-width: 0; }
+.wb-prompt__bar { display: flex; align-items: center; gap: 4px; }
+
+.wb-iconbtn {
+    font: inherit; font-size: 13px; line-height: 1; cursor: pointer;
+    width: 26px; height: 26px; display: grid; place-items: center;
+    border-radius: 7px;
+    background: transparent; color: var(--ink-2);
+    border: 1px solid var(--line-2);
+    transition: color .16s var(--wb-ease), background .16s var(--wb-ease), border-color .16s var(--wb-ease);
+}
+.wb-iconbtn:hover:not([disabled]) { color: var(--ink); background: var(--panel); border-color: var(--wb-gold-hair); }
+.wb-iconbtn[disabled] { opacity: .35; cursor: not-allowed; }
+
+.wb-addrow {
+    font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+    padding: 10px 16px; border-radius: 10px;
+    background: transparent; color: var(--wb-gold-ink);
+    border: 1px dashed var(--wb-gold-hair);
+    width: 100%;
+}
+.wb-addrow:hover { background: var(--wb-gold-wash); }
+
+/* ---- judges -------------------------------------------------------------- */
+.wb-judge {
+    display: grid; gap: 8px;
+    padding: 16px; border-radius: 12px;
+    background: var(--panel); border: 1px solid var(--line-2);
+}
+.wb-judge__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.wb-judge__n {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--wb-gold-ink);
+}
+.wb-judge__l { font-size: 12.5px; font-weight: 600; color: var(--muted); margin-top: 4px; }
+.wb-judge__link { display: flex; gap: 6px; align-items: center; }
+
+/* ---- rubric -------------------------------------------------------------- */
+.wb-rubric {
+    width: 100%;
+    border: 1px solid var(--wb-gold-hair); border-radius: 12px;
+    background: var(--wb-gold-wash);
+    padding: 14px 16px;
+}
+.wb-rubric h3 { margin: 0; font-size: 13px; font-weight: 800; color: var(--wb-gold-ink); }
+.wb-rubric > p { margin: 3px 0 10px; font-size: 12.5px; color: var(--ink-2); }
+.wb-rubric ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.wb-rubric li { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+.wb-rubric h4 { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.wb-rubric li p { margin: 1px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-2); }
+.wb-rubric__w {
+    flex: none; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums;
+    color: var(--wb-gold-ink);
+}
+
+/* ---- the summary rail ---------------------------------------------------- */
+.wb-summary { display: grid; gap: 14px; }
+@media (min-width: 1000px) {
+    .wb-summary {
+        position: sticky; top: 20px; align-self: start;
+        max-height: calc(100vh - 40px); overflow-y: auto; overscroll-behavior: contain;
+        scrollbar-width: thin;
+    }
+    .wb-summary::-webkit-scrollbar { width: 6px; }
+    .wb-summary::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
+}
+.wb-summary__card {
+    display: grid; gap: 14px;
+    padding: 18px;
+    background: var(--paper); border: 1px solid var(--line); border-radius: 16px;
+}
+.wb-summary__h {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--wb-gold-ink);
+}
+
+.wb-prog { display: grid; gap: 7px; }
+.wb-prog__bar { height: 6px; border-radius: 999px; background: var(--line-2); overflow: hidden; }
+.wb-prog__bar i {
+    display: block; height: 100%; border-radius: 999px;
+    background: var(--wb-brushed); background-size: 200% 100%;
+    transition: width .35s var(--wb-ease);
+}
+.wb-prog__n { font-size: 12.5px; color: var(--muted); }
+.wb-prog__n b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.wb-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.wb-checks li {
+    display: flex; align-items: center; gap: 9px;
+    font-size: 13px; color: var(--muted);
+}
+.wb-checks svg { width: 13px; height: 13px; flex: none; opacity: .3; }
+/* Done is carried by BOTH colour and the tick's opacity — colour alone is not a
+   state a colour-blind reader can see. */
+.wb-checks li[data-done="true"] { color: var(--ink); }
+.wb-checks li[data-done="true"] svg { opacity: 1; color: var(--wb-gold-ink); }
+
+.wb-summary .wb-btn { width: 100%; }
+
+/* ---- submit results ------------------------------------------------------ */
+.formError, .formSuccess {
+    margin: 0; padding: 12px 15px; border-radius: 10px;
+    font-size: 14px; line-height: 1.5;
+}
+.formError { color: var(--wb-warn); background: rgba(230, 134, 108, .1); border: 1px solid rgba(230, 134, 108, .3); }
+.formSuccess { color: var(--wb-gold-wash-ink); background: var(--wb-gold-wash); border: 1px solid var(--wb-gold-hair); }
 
 @media (prefers-reduced-motion: reduce) {
-  .applyPage *, .applyPage *::before, .applyPage *::after {
-    transition: none !important;
-  }
+    .wb-seg button, .wb-opt, .wb-chipbtn, .wb-iconbtn, .wb-prog__bar i,
+    .wb-input, .wb-textarea, .wb-date { transition: none !important; }
 }
 
-@media (max-width: 720px) {
-  .applyPage { padding: 32px 18px 64px; }
-  .pageTitle { font-size: 30px; }
-  .applyPage .formContainer { padding: 20px; }
-  .applyPage .regularLabelAndInput,
-  .applyPage .radioOtionInputAndLabel {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-  .applyPage .regularLabelAndInput > label,
-  .applyPage .rowLabel { padding-top: 0; }
-  .applyPage .wMd { max-width: none; }
-  /* Drop below the "?" and CENTRE on it. `right: 0` (the old rule) pinned the
-     bubble's right edge to the anchor's right edge, so the whole width grew
-     leftward and it looked like it was hanging off to one side. left:50% puts
-     the bubble's own left edge at the anchor's midpoint; translateX(-50%) pulls
-     it back by half its own width, which is what actually centres it.
-     `right: auto` is required to undo the base rule's left/right pairing. */
-  .applyPage .hoverTipWrapper {
-    left: 50%;
-    right: auto;
-    top: calc(100% + 8px);
-    transform: translateX(-50%);
-    /* Never wider than the viewport minus the page's 18px gutters. */
-    max-width: min(34ch, calc(100vw - 40px));
-  }
-  .promptRail { padding-left: 0; }
-  .promptRail::before { display: none; }
-  .applyPage .promptContainer::before {
-    position: static;
-    margin-bottom: 10px;
-  }
-}
-
-
-/* ── twitch channel field ─────────────────────────────────────────
-   The "twitch.tv/" prefix sits OUTSIDE the input rather than as a
-   placeholder, so it survives typing and never gets submitted as
-   part of the value. */
-.applyPage .twitchField {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  min-width: 0;
-}
-.applyPage .twitchPrefix {
-  padding: 10px 2px 10px 12px;
-  border: 1px solid var(--gold-line);
-  border-right: none;
-  border-radius: var(--radius) 0 0 var(--radius);
-  background: var(--field);
-  color: var(--ink-soft);
-  font-size: 14px;
-  white-space: nowrap;
-}
-.applyPage .twitchField input[type="text"] {
-  border-radius: 0 var(--radius) var(--radius) 0;
-  min-width: 0;
-}
-
-/* ── segmented toggles (cash/non-cash prize, open/invite-only) ─────
-   Two buttons behaving as one control. Real <button aria-pressed>
-   rather than radios: they read as actions, and the pressed state is
-   what a screen reader announces. */
-.applyPage .prizeToggleRow {
-  display: inline-flex;
-  margin-bottom: 10px;
-  border: 1px solid var(--gold-line);
-  border-radius: 999px;
-  background: var(--surface);
-  padding: 3px;
-  gap: 3px;
-}
-.applyPage .segButton {
-  font: inherit;
-  font-size: 13px;
-  padding: 7px 16px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--ink-soft);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background .12s, color .12s;
-}
-.applyPage .segButton:hover { color: var(--gold-ink); }
-.applyPage .segButtonOn {
-  background: var(--gold-soft);
-  color: var(--gold-ink);
-  font-weight: 500;
-  box-shadow: inset 0 0 0 1px var(--gold);
-}
-.applyPage .segButton:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(201,164,55,0.3);
+/* The lead-time note under the start date. Gold-washed rather than muted grey:
+   it is not a hint about the field, it is the one piece of scheduling the
+   sponsor has to plan around, and a sponsor who reads it as a caption will pick
+   a date that gets refused at approval. */
+.wb-lead {
+    display: block;
+    padding: 9px 12px;
+    border-radius: 9px;
+    background: var(--wb-gold-wash);
+    border: 1px solid var(--wb-gold-hair);
+    color: var(--wb-gold-wash-ink);
+    font-size: 12.5px;
+    line-height: 1.5;
+    max-width: 56ch;
 }

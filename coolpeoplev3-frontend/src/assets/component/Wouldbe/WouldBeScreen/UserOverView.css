@@ -163,7 +163,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--gold-deep, #c9a437);
+    background: var(--gold-deep);
     flex: none;
 }
 
@@ -189,13 +189,26 @@
 
 
 
+/* The section heading, same treatment as every other one in the system: gold
+   ink plus a hairline rule that carries the section across the card, so the
+   colour does not have to do it alone. Two `font-size` declarations were fighting
+   here — the second won and the first was decoration. */
 .wonDebates {
-    color: var(--gold-deep);
-    font-size: var(--text-md);
-    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--wb-gold-ink);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -.01em;
     padding-top: 10px;
-    font-size: 16px;
     padding-bottom: 5px;
+}
+.wonDebates::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--wb-gold-hair);
 }
 
 .debateslistitem {

@@ -8,6 +8,10 @@
     "seed:dev": "nodemon ./server/seed.js",
     "seed": "node ./server/seed.js",
     "seed:reference": "node ./server/seed/reference/run.js",
+    "seed:debates": "node ./server/seed/devOngoingDebates.js",
+    "seed:past-debate": "node ./server/seed/devPastDebate.js",
+    "seed:typed-debate": "node ./server/seed/devTypedDebate.js",
+    "seed:for-fun": "node ./server/seed/devForFunDebate.js",
     "bootstrap:admin": "node ./server/seed/bootstrapAdmin.js",
     "simulate:payment": "node ./server/seed/simulateSponsorPayment.js",
     "migrate": "node-pg-migrate"

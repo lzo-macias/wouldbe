@@ -22,30 +22,16 @@ require("dotenv").config();
 // both senders queue. Named separately because email and SMS are usually
 // different vendors and one can be live before the other.
 const EMAIL_ENABLED = !!process.env.EMAIL_API_KEY;
-const SMS_ENABLED = !!process.env.SMS_API_KEY;
 
 // The address invite links point at. Falls back to localhost so a dev invite
 // still contains a link you can click.
 const APP_URL = process.env.APP_PUBLIC_URL || "http://localhost:5173";
 
-// E.164 is what every SMS provider wants: a leading + and 8–15 digits, nothing
-// else. Anything a person types ("(555) 123-4567", "555.123.4567") is stripped
-// to digits first; a bare 10-digit number is assumed US, which is the only
-// assumption this platform can make — it is US-elections-only by construction.
-// Returns null for anything that cannot be made into a valid number, so the
-// caller can reject it rather than storing junk it will never be able to text.
-const normalizePhone = (raw) => {
-    if (!raw) return null;
-    const trimmed = String(raw).trim();
-    const hadPlus = trimmed.startsWith("+");
-    const digits = trimmed.replace(/\D/g, "");
-    if (!digits) return null;
-    if (hadPlus) return digits.length >= 8 && digits.length <= 15 ? `+${digits}` : null;
-    if (digits.length === 10) return `+1${digits}`;
-    // 11 digits starting with 1 is a US number someone typed with the country code.
-    if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
-    return null;
-};
+// NOTE: there is deliberately no normalizePhone / sendSms here any more.
+// We do not collect phone numbers, so there is no number to normalise and no
+// message for us to send. Nomination-by-text is a client-side handoff into the
+// nominator's own Messages app (see buildNominationText below and
+// frontend lib/smsHandoff.js) — the number never leaves their device.
 
 // Deliberately loose: one @, something either side, a dot in the domain. Strict
 // RFC 5322 validation is a famous waste of time — the only real test of an
@@ -56,9 +42,8 @@ const normalizeEmail = (raw) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? value : null;
 };
 
-// sendEmail / sendSms — both resolve to { status, error }, and NEITHER throws.
-// A send failure is a fact about one channel, recorded on the row; it must not
-// unwind the caller's transaction or its sibling channel.
+// sendEmail resolves to { status, error } and NEVER throws. A send failure is a
+// fact recorded on the row; it must not unwind the caller's transaction.
 const sendEmail = async ({ to, subject, text }) => {
     if (!to) return { status: "skipped", error: null };
     if (!EMAIL_ENABLED) {
@@ -75,28 +60,9 @@ const sendEmail = async ({ to, subject, text }) => {
     }
 };
 
-const sendSms = async ({ to, body }) => {
-    if (!to) return { status: "skipped", error: null };
-    if (!SMS_ENABLED) {
-        console.log(`[notify] sms QUEUED (no provider configured) → ${to}`);
-        return { status: "queued", error: null };
-    }
-    try {
-        // TODO(provider): POST to the SMS API here.
-        void body;
-        return { status: "sent", error: null };
-    } catch (err) {
-        console.error("[notify] sms failed", err);
-        return { status: "failed", error: String(err.message || err).slice(0, 500) };
-    }
-};
-
 module.exports = {
     EMAIL_ENABLED,
-    SMS_ENABLED,
     APP_URL,
-    normalizePhone,
     normalizeEmail,
     sendEmail,
-    sendSms,
 };

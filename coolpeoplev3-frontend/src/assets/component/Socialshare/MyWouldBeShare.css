@@ -5,10 +5,8 @@
    the trade for using the files in /public rather than inlining every path. */
 
 .shareBar {
-  --gold:      #c9a437;
-  --gold-deep: #8a6a12;
-  --gold-soft: #f6eccf;
-  --gold-line: #e3d3a0;
+  /* gold comes from the one ramp in index.css — see the note there. A local
+     copy is how --gold-deep ended up being three different colours. */
   --ink:       #241d0c;
   --ink-soft:  #6d5c33;
   --surface:   #fffdf7;

@@ -1,0 +1,610 @@
+/* ============================================================================
+   MatchVote.css — the vote screen a host puts up on a bracket match, plus the
+   banner and host affordances the bracket grows while one is live.
+
+   It borrows the debate page's tokens (--dbt-*) rather than declaring a second
+   palette: this dialog sits on top of that page and any drift between the two
+   reads as a bug. DebateCards.css defines them on :root, and MatchVoteModal is
+   only ever rendered from inside .dbt-page, so they resolve either way.
+
+   THE ONE COLOUR RULE HERE: gold is the ACTION (submit, close the vote, the
+   selected score); green is LIVE (the pulsing dot, the open-vote banner).
+   A score button being gold when selected is the same gold as the submit
+   button on purpose — both are "what you chose".
+   ============================================================================ */
+
+.mv-scrim {
+    /* The ballot is taller than a prompt; let it scroll rather than clipping
+       the submit button off the bottom of a laptop screen. */
+    align-items: flex-start;
+    overflow-y: auto;
+    padding: clamp(16px, 4vh, 48px) 16px;
+}
+
+.mv-panel {
+    max-width: 660px;
+    max-height: none;
+}
+
+.mv-kicker {
+    display: block;
+    margin-bottom: 10px;
+}
+
+/* "voting open" with a live dot, so the state is legible before any words are
+   read. Green, never gold — gold is what you press. */
+.mv-live {
+    color: var(--dbt-live);
+}
+.mv-live::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 6px;
+    vertical-align: middle;
+    background: var(--dbt-live);
+    border-radius: 50%;
+    animation: mv-pulse 1.6s ease-in-out infinite;
+}
+@keyframes mv-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.35; }
+}
+
+.mv-lede {
+    margin: 4px 0 18px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--dbt-fg-2);
+    text-wrap: pretty;
+}
+
+/* ----------------------------------------------------------------------------
+   The two contestants.
+   ---------------------------------------------------------------------------- */
+.mv-seats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 16px 0 18px;
+}
+.mv-seat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 12px 14px;
+    text-align: center;
+    background: var(--dbt-raised);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+}
+.mv-seat-id strong {
+    display: block;
+    font-family: var(--dbt-display);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--dbt-fg);
+}
+.mv-seat-id span {
+    font-family: var(--dbt-mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--dbt-fg-3);
+}
+.mv-reviewbtn {
+    width: auto;
+    height: 32px;
+    padding: 0 16px;
+    font-size: 12.5px;
+}
+
+.mv-face {
+    object-fit: cover;
+    border-radius: 50%;
+    border: 1px solid var(--dbt-line-3);
+    background: var(--dbt-sunken);
+}
+.mv-face--blank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--dbt-display);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--dbt-gold);
+    background: var(--dbt-gold-wash);
+}
+
+/* ----------------------------------------------------------------------------
+   The ballot grid: one row per criterion, one scale per contestant.
+   ---------------------------------------------------------------------------- */
+.mv-grid {
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+    overflow: hidden;
+}
+.mv-grid-head {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--dbt-sunken);
+    border-bottom: 1px solid var(--dbt-line-2);
+}
+.mv-grid-head span:not(:first-child) { text-align: center; }
+
+.mv-crit {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 12px;
+    align-items: start;
+    padding: 14px;
+    border-bottom: 1px solid var(--dbt-line);
+}
+.mv-crit:last-child { border-bottom: 0; }
+
+.mv-crit-id strong {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--dbt-fg);
+}
+.mv-crit-weight {
+    margin-left: 6px;
+    font-family: var(--dbt-mono);
+    font-size: 10px;
+    color: var(--dbt-gold);
+}
+.mv-crit-id p {
+    margin: 4px 0 0;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--dbt-fg-3);
+    text-wrap: pretty;
+}
+
+.mv-scale { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+/* The per-row name only earns its space once the columns stack. */
+.mv-scale-who { display: none; }
+
+.mv-scale-btns { display: flex; gap: 4px; }
+.mv-score {
+    width: 30px;
+    height: 30px;
+    font-family: var(--dbt-mono);
+    font-size: 12px;
+    color: var(--dbt-fg-2);
+    background: var(--dbt-raised);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background var(--dbt-ease), color var(--dbt-ease), border-color var(--dbt-ease);
+}
+.mv-score:hover { border-color: var(--dbt-line-3); color: var(--dbt-fg); }
+.mv-score.is-on {
+    color: #1a1509;
+    background: var(--dbt-gold);
+    border-color: var(--dbt-gold);
+    font-weight: 600;
+}
+
+/* ----------------------------------------------------------------------------
+   Comment + preview.
+   ---------------------------------------------------------------------------- */
+.mv-field { display: block; margin: 16px 0 4px; }
+.mv-field .dbt-label { display: block; margin-bottom: 6px; }
+
+.mv-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    font-family: var(--dbt-body);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--dbt-fg);
+    background: var(--dbt-sunken);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r-sm);
+    resize: vertical;
+}
+.mv-textarea:focus { outline: none; border-color: var(--dbt-gold-3); }
+.mv-textarea::placeholder { color: var(--dbt-fg-4); }
+
+.mv-count {
+    display: block;
+    margin-top: 4px;
+    text-align: right;
+    font-family: var(--dbt-mono);
+    font-size: 10px;
+    color: var(--dbt-fg-4);
+}
+
+.mv-preview {
+    margin: 12px 0 4px;
+    padding: 10px 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--dbt-fg-2);
+    background: var(--dbt-gold-wash);
+    border: 1px solid var(--dbt-gold-3);
+    border-radius: var(--dbt-r-sm);
+}
+
+.mv-note {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--dbt-fg-3);
+    text-wrap: pretty;
+}
+.mv-note--pad { margin: 14px 0 18px; }
+
+.mv-done { margin: 6px 0 4px; }
+.mv-done-lede {
+    margin-bottom: 6px;
+    font-family: var(--dbt-display);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--dbt-fg);
+}
+.mv-quote {
+    margin-top: 10px;
+    padding-left: 12px;
+    border-left: 2px solid var(--dbt-gold-3);
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--dbt-fg-2);
+}
+.mv-saved { font-size: 13px; color: var(--dbt-live); margin: 6px 0; }
+
+/* ----------------------------------------------------------------------------
+   Results.
+   ---------------------------------------------------------------------------- */
+.mv-results { margin-top: 4px; }
+
+.mv-verdict {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    background: var(--dbt-raised);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+}
+.mv-verdict.is-decided { border-color: var(--dbt-gold-3); background: var(--dbt-gold-wash); }
+.mv-verdict h4 {
+    margin: 2px 0 0;
+    font-family: var(--dbt-display);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--dbt-fg);
+}
+
+.mv-tallyrow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 12px 0 6px;
+}
+.mv-tallycell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+    background: var(--dbt-sunken);
+    border: 1px solid var(--dbt-line);
+    border-radius: var(--dbt-r-sm);
+}
+.mv-tallynum {
+    font-family: var(--dbt-display);
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--dbt-gold);
+}
+
+.mv-avg {
+    width: 100%;
+    margin-top: 16px;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.mv-avg th,
+.mv-avg td {
+    padding: 8px 10px;
+    text-align: center;
+    border-bottom: 1px solid var(--dbt-line);
+    color: var(--dbt-fg-2);
+}
+.mv-avg th {
+    font-family: var(--dbt-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-3);
+}
+.mv-avg th:first-child,
+.mv-avg td:first-child { text-align: left; color: var(--dbt-fg); }
+
+.mv-comments {
+    list-style: none;
+    margin: 18px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+}
+.mv-comments li {
+    padding: 10px 12px;
+    background: var(--dbt-sunken);
+    border: 1px solid var(--dbt-line);
+    border-radius: var(--dbt-r-sm);
+}
+.mv-comments p {
+    margin: 4px 0 0;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--dbt-fg-2);
+}
+
+/* ----------------------------------------------------------------------------
+   Host controls — visually separated, because they are the only thing on this
+   screen that decides anything.
+   ---------------------------------------------------------------------------- */
+.mv-hostbar {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--dbt-line-3);
+    display: grid;
+    gap: 8px;
+}
+.mv-hostbar .dbt-btn { width: 100%; }
+.mv-tiebreak { display: flex; gap: 8px; }
+.mv-tiebreak .dbt-btn { flex: 1; width: auto; }
+
+/* ----------------------------------------------------------------------------
+   The reviews panel.
+   ---------------------------------------------------------------------------- */
+.mv-review {
+    position: relative;
+    margin: 0 0 18px;
+    padding: 16px;
+    background: var(--dbt-sunken);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+}
+.mv-review-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+.mv-review-head h4 {
+    margin: 4px 0 0;
+    font-family: var(--dbt-display);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--dbt-fg);
+}
+.mv-review-close { position: static; flex: none; }
+
+.mv-review-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0 8px;
+    font-size: 13px;
+    color: var(--dbt-fg-2);
+}
+.mv-review-note {
+    margin-bottom: 12px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--dbt-fg-3);
+}
+.mv-review-form { display: grid; gap: 8px; margin-bottom: 10px; }
+.mv-review-auth { justify-content: flex-start; }
+.mv-review .dbt-btn { width: 100%; }
+
+.mv-review-list {
+    list-style: none;
+    margin: 14px 0 0;
+    padding: 14px 0 0;
+    border-top: 1px solid var(--dbt-line);
+    display: grid;
+    gap: 10px;
+}
+.mv-review-list p {
+    margin: 3px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--dbt-fg-2);
+}
+
+/* ----------------------------------------------------------------------------
+   What the LIVE screen grows while a vote is up: the banner above the bracket
+   and the host's per-match button inside it.
+   ---------------------------------------------------------------------------- */
+.mv-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin: 0 auto 4px;
+    padding: 14px 18px;
+    background: var(--dbt-raised);
+    border: 1px solid var(--dbt-line-3);
+    border-radius: var(--dbt-r);
+}
+.mv-banner--live { border-color: rgba(100, 192, 140, 0.45); }
+.mv-banner p {
+    margin: 4px 0 0;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--dbt-fg-2);
+}
+.mv-banner .dbt-btn { width: auto; flex: none; height: 40px; padding: 0 20px; }
+
+/* The host's "put this match up" button, rendered inside a bracket match. The
+   right half of the bracket is drawn with scaleX(-1), so anything inside it has
+   to be flipped back or it renders mirrored — the same trick .bracket-slot uses. */
+.mv-matchbtn {
+    align-self: center;
+    padding: 3px 10px;
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #1a1509;
+    background: var(--dbt-gold);
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.mv-matchbtn:hover { background: var(--dbt-gold-hi); }
+.mv-matchbtn--open {
+    color: #0d1a12;
+    background: var(--dbt-live);
+}
+.bracket-half--right .mv-matchbtn { transform: scaleX(-1); }
+
+@media (max-width: 620px) {
+    .mv-seats { grid-template-columns: 1fr; }
+    .mv-grid-head { display: none; }
+    .mv-crit { grid-template-columns: 1fr; gap: 10px; }
+    .mv-scale { align-items: flex-start; }
+    /* With the header gone, each scale has to say who it is for. */
+    .mv-scale-who {
+        display: block;
+        font-family: var(--dbt-mono);
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--dbt-fg-3);
+    }
+    .mv-banner { flex-direction: column; align-items: flex-start; }
+}
+
+/* ----------------------------------------------------------------------------
+   The crown — a finished debate's winner, above the frozen bracket.
+   ---------------------------------------------------------------------------- */
+.mv-crown {
+    padding: 22px 24px;
+    background: var(--dbt-raised);
+    border: 1px solid var(--dbt-gold-3);
+    border-radius: var(--dbt-r);
+}
+.mv-crown-who {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 10px;
+}
+.mv-crown-who img,
+.mv-crown-blank {
+    width: 62px;
+    height: 62px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--dbt-gold);
+    background: var(--dbt-sunken);
+}
+.mv-crown-blank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--dbt-display);
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--dbt-gold);
+}
+.mv-crown h2 {
+    font-family: var(--dbt-display);
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--dbt-fg);
+}
+.mv-crown p {
+    margin-top: 2px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--dbt-fg-2);
+}
+.mv-crown-kicker { display: inline-flex; align-items: center; gap: 6px; color: var(--dbt-gold); }
+
+/* ── the typed ballot: pick first, then the rating board ──────────
+   A written debate is voted the other way round from a live one. You have read
+   two answers and already know which was better, so the pick is the input and
+   the rubric explains it — which is why the criteria do not appear until a
+   winner is chosen. Ten sliders in front of somebody who has already decided is
+   a form, not a ballot. */
+.mv-pick { margin: 4px 0 16px; }
+.mv-pick .dbt-label { display: block; margin-bottom: 8px; }
+.mv-pick-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mv-pick-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    text-align: left;
+    color: var(--dbt-fg);
+    background: var(--dbt-raised);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+    cursor: pointer;
+    transition: border-color var(--dbt-ease), background var(--dbt-ease);
+}
+.mv-pick-card:hover { border-color: var(--dbt-line-3); }
+.mv-pick-card strong { font-family: var(--dbt-display); font-size: 15px; font-weight: 700; }
+.mv-pick-card.is-picked {
+    background: var(--dbt-gold-wash);
+    border-color: var(--dbt-gold);
+    box-shadow: 0 0 0 2px rgba(224, 181, 81, 0.22);
+}
+
+/* With one contestant on the board the second score column is dead space. */
+.mv-grid-head.is-single, .mv-crit.is-single { grid-template-columns: 1.4fr 1fr; }
+
+/* Opt-in, not rendered unasked: ten more sliders in front of someone who has
+   finished is how a two-click ballot becomes one nobody submits. */
+.mv-rate-other {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 12px;
+    padding: 11px 14px;
+    font-family: var(--dbt-body);
+    font-size: 13.5px;
+    color: var(--dbt-fg-2);
+    background: transparent;
+    border: 1px dashed var(--dbt-line-3);
+    border-radius: var(--dbt-r-sm);
+    cursor: pointer;
+}
+.mv-rate-other:hover { color: var(--dbt-fg); border-color: var(--dbt-gold-3); }
+.mv-rate-other span {
+    margin-left: auto;
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-4);
+}
+.mv-skip {
+    margin-left: 8px;
+    padding: 0;
+    font-family: var(--dbt-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dbt-gold-2);
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+.mv-skip:hover { color: var(--dbt-gold); }
+
+@media (max-width: 620px) {
+    .mv-pick-row { grid-template-columns: 1fr; }
+}

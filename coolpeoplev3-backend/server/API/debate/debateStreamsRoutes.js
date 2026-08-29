@@ -3,6 +3,7 @@ const express = require("express");
 const {
     scheduleDebateStream,
     getDebateStream,
+    getPublicDebateStream,
     connectStreamChannel,
     skipStreamChannel,
     getStreamLineup,
@@ -64,6 +65,25 @@ router.get("/debates/:id/stream", requireAuth, async (req, res, next) => {
         const stream = await getDebateStream({ debate_id: req.params.id });
         if (!stream) return res.status(404).json({ error: "no stream for this debate" });
         return res.json(stream);
+    } catch (err) {
+        next(err);
+    }
+});
+
+// GET /api/debates/:id/stream/public — the replay-facing stream view, PUBLIC.
+//
+// The authenticated route above hands back the whole debate_streams row, which
+// is not something a logged-out visitor should get. This one returns only what
+// a page needs to say "this was streamed live" and play the replay: the channel,
+// the broadcast window, the Twitch VOD, and any R2 recording that moderation has
+// actually published.
+//
+// A debate that was never streamed answers 200 with `null` rather than 404: the
+// concluded screen asks this on every load, and "no stream" is the normal answer
+// for every typed debate on the site, not an error worth logging.
+router.get("/debates/:id/stream/public", async (req, res, next) => {
+    try {
+        return res.json(await getPublicDebateStream({ debate_id: req.params.id }));
     } catch (err) {
         next(err);
     }

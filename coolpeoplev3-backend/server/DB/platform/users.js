@@ -100,7 +100,6 @@ const createUsers = async ({
     username,
     password,
     political_lean,
-    phone_number,
     date_of_birth,
     email = null,
     address = null,
@@ -126,15 +125,15 @@ const createUsers = async ({
         const SQL = `
             INSERT INTO users (
                 id, first_name, last_name, username, password, political_lean,
-                phone_number, date_of_birth, email, address, state,
+                date_of_birth, email, address, state,
                 profile_photo_url, bio, created_at
             ) VALUES (
-                uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW()
+                uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW()
             ) RETURNING *;
         `;
         const result = await client.query(SQL, [
             first_name, last_name, username, hashedPassword, political_lean,
-            phone_number, date_of_birth, normalizedEmail, address, state,
+            date_of_birth, normalizedEmail, address, state,
             profile_photo_url, bio
         ]);
         const user = result.rows[0];
@@ -154,7 +153,7 @@ const fetchUserById = async ({ id }) => {
     try {
         const SQL = `
             SELECT id, first_name, last_name, username, date_of_birth, state,
-                   city, zip_code, address, phone_number, email, political_lean,
+                   city, zip_code, address, email, political_lean,
                    profile_photo_url, bio, is_active, created_at, last_login_at
             FROM users WHERE id = $1
         `;
@@ -240,7 +239,7 @@ const updateUser = async ({ id, payload }) => {
     try {
         const {
             first_name, last_name, username, date_of_birth, password,
-            state, city, zip_code, address, phone_number, email,
+            state, city, zip_code, address, email,
             political_lean, profile_photo_url, bio, college, link
         } = payload;
 
@@ -281,20 +280,19 @@ const updateUser = async ({ id, payload }) => {
                 city              = COALESCE($7, city),
                 zip_code          = COALESCE($8, zip_code),
                 address           = COALESCE($9, address),
-                phone_number      = COALESCE($10, phone_number),
-                email             = COALESCE($11, email),
-                political_lean    = COALESCE($12, political_lean),
-                profile_photo_url = COALESCE($13, profile_photo_url),
-                bio               = COALESCE($14, bio),
-                college           = COALESCE($15, college),
-                link              = COALESCE($16, link),
+                email             = COALESCE($10, email),
+                political_lean    = COALESCE($11, political_lean),
+                profile_photo_url = COALESCE($12, profile_photo_url),
+                bio               = COALESCE($13, bio),
+                college           = COALESCE($14, college),
+                link              = COALESCE($15, link),
                 updated_at        = NOW()
-            WHERE id = $17
+            WHERE id = $16
             RETURNING *;
         `;
         const result = await client.query(SQL, [
             first_name, last_name, username, date_of_birth, hashedPassword,
-            state, city, zip_code, address, phone_number, normalizedEmail,
+            state, city, zip_code, address, normalizedEmail,
             political_lean, profile_photo_url, bio, college, normalizedLink, id
         ]);
         if (result.rowCount === 0) throw new Error("no users found with this ID");

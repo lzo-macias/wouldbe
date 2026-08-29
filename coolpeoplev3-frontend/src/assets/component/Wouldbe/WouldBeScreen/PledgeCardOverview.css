@@ -1,3 +1,5 @@
+/* Gold comes from the ramp in index.css. These were raw hex, so the
+   shared tokens governed nothing here. */
 /* ============================================================================
    Pledge card. Ported from the static mock, but hooked into the tokens already
    in index.css (--gold, --gold-deep, --gold-soft, --line) rather than repeating
@@ -6,48 +8,49 @@
 
 .pledgeCard {
     box-sizing: border-box;
-    width: 520px;
-    max-width: 100%;
+    /* WAS a hard 520px. In the 358px funding rail that is 160px of overflow —
+       `max-width:100%` only caps it against the PARENT, and the parent is the
+       rail, so the card was clipped rather than fitted. `width:100%` lets it
+       take the column it is given; the cap keeps it from sprawling if it is ever
+       rendered full-width again. */
+    width: 100%;
+    max-width: 520px;
     background: #fff;
     border: 1px solid var(--line);
-    border-radius: 20px;
+    border-radius: 16px;
     box-shadow:
         0 1px 2px rgba(17,17,20,.04),
         0 12px 32px rgba(17,17,20,.06);
-    padding: 22px;
-}
+    padding: 20px;
 
-/* ---- header --------------------------------------------------------------- */
-.pledgeCard .head {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 16px;
+    /* ONE RHYTHM, OWNED BY THE CARD. Every block used to carry its own
+       margin-bottom — 16, 16, 16, 14, 14, 14 — which meant the spacing changed
+       depending on which blocks happened to render, and the whole card read as
+       pressed together at the top and loose at the bottom. A grid gap is the
+       same distance between any two neighbours, including ones added later.
+       (PledgeFlow is position:fixed, so it is out of flow and takes no track.) */
+    display: grid;
+    /* minmax(0, 1fr), NOT the implicit `auto`. An auto track's MINIMUM is the
+       largest min-content among its items, so one unshrinkable child — a long
+       debate pill, the eight-icon share row — widened the single column, and
+       because grid items stretch, EVERY block on the card then rendered at that
+       width and hung off the right edge together. A 0 minimum means no child can
+       set the column's width; each one fits or handles its own overflow. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    align-content: start;
 }
-.pledgeCard .head img {
-    width: 50px;
-    height: 50px;
-    border-radius: 9999px;
-    object-fit: cover;
-    flex: none;              /* never squashed by a long office name */
-}
-.pledgeCard .head h3 {
-    margin: 0;
-    font-size: 17px;
-    font-weight: 700;
-    line-height: 1.25;
-    letter-spacing: -.01em;
-    min-width: 0;
-}
+/* Belt and braces: a grid item's own `min-width: auto` is its min-content, so
+   this stops an individual block overflowing the track it now cannot widen. */
+.pledgeCard > * { min-width: 0; }
 
 /* ---- hero: ring + amounts ------------------------------------------------- */
 .pledgeCard .hero {
     display: flex;
     align-items: center;
-    gap: 18px;
-    margin-bottom: 16px;
+    gap: 14px;
 }
-.pledgeCard .ring { position: relative; width: 88px; height: 88px; }
+.pledgeCard .ring { position: relative; width: 84px; height: 84px; flex: none; }
 .pledgeCard .ring .pct {
     position: absolute;
     inset: 0;
@@ -55,37 +58,53 @@
     place-items: center;
     text-align: center;
 }
-.pledgeCard .ring .pct b { flex: none; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+.pledgeCard .ring .pct b {
+    flex: none;
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -.03em;
+    /* tabular so 9% and 63% are the same width — the label is dead centre in a
+       ring, where a half-pixel shift is visible. */
+    font-variant-numeric: tabular-nums;
+}
 .pledgeCard .ring .pct span {
     display: block;
-    font-size: 10px;
+    font-size: 8.5px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: .08em;
-    color: var(--muted, #8b8b93);
+    letter-spacing: .14em;
+    color: var(--muted, #6b6b74);
     margin-top: 1px;
 }
 
-.pledgeCard .amounts { flex: 1; min-width: 0; }
-.pledgeCard .raised { font-size: 28px; font-weight: 800; letter-spacing: -.02em; line-height: 1; }
-.pledgeCard .goalline { color: var(--muted, #8b8b93); font-size: 15px; margin-top: 6px; }
+.pledgeCard .amounts { flex: 1; min-width: 0; display: grid; gap: 7px; }
+.pledgeCard .raised {
+    font-size: 30px; font-weight: 800; letter-spacing: -.03em; line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+.pledgeCard .goalline { color: var(--ink-2, #3d3d44); font-size: 14px; }
 .pledgeCard .goalline b { color: var(--ink-2, #3d3d44); font-weight: 600; }
-.pledgeCard .beFirst { color: var(--gold-deep); }
+.pledgeCard .beFirst { color: var(--wb-gold-ink); }
 
 /* ---- linear track --------------------------------------------------------- */
 .pledgeCard .track {
     position: relative;      /* containing block for .fill and .knob */
     height: 8px;
-    border-radius: 4px;
+    border-radius: 999px;
     background: var(--line);
-    margin: 12px 0 0;
+    margin: 0;
 }
 .pledgeCard .fill {
     position: absolute;
     left: 0;
     top: 0;
     height: 100%;
-    border-radius: 4px;
-    background: var(--green, #34C759);
+    border-radius: 999px;
+    background: var(--wb-brushed);
+    background-size: 200% 100%;
+    /* A 0% campaign still shows a gold cap: a bar with literally nothing in it
+       reads as a component that failed, not as one that has not started. */
+    min-width: 8px;
     transition: width 400ms ease;
 }
 .pledgeCard .knob {
@@ -97,8 +116,8 @@
     width: 14px;
     height: 14px;
     border-radius: 9999px;
-    background: var(--green, #34C759);
-    border: 2px solid #fff;
+    background: var(--wb-gold-mark);
+    border: 2px solid var(--paper);
     box-shadow: 0 1px 3px rgba(0,0,0,.2);
     transition: left 400ms ease;
 }
@@ -106,25 +125,35 @@
 /* ---- stat row ------------------------------------------------------------- */
 .pledgeCard .stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-bottom: 16px;
+    /* minmax(0,1fr), not 1fr: a `1fr` track is `minmax(auto,1fr)`, so "$15K" or
+       "no deadline" sets a floor the column cannot go under and the row grows
+       past the card. */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
 }
 .pledgeCard .stat {
     text-align: center;
-    padding: 10px 8px;
-    background: var(--panel, #f4f4f5);
-    border-radius: 12px;
+    padding: 13px 10px;
+    background: var(--wb-gold-wash);
+    border: 1px solid var(--wb-gold-hair);
+    border-radius: 10px;
 }
+/* Quiet: a remainder ("to go"), or an absence ("no deadline"). Three identical
+   filled tiles give "128 backers" and "no deadline" the same weight. */
+.pledgeCard .stat--muted {
+    background: transparent;
+    border-color: var(--line);
+}
+.pledgeCard .stat { min-width: 0; }
 .pledgeCard .stat b { display: block; font-size: 18px; font-weight: 800; letter-spacing: -.01em; }
-.pledgeCard .stat span { font-size: 12px; color: var(--muted, #8b8b93); }
+.pledgeCard .stat span { font-size: 11.5px; color: var(--muted, #6b6b74); margin-top: 2px; display: block; }
 
 /* ---- actions -------------------------------------------------------------- */
 .pledgeCard .actions {
+    min-width: 0;
     display: grid;
-    grid-template-columns: 1.4fr 1fr;
-    gap: 10px;
-    margin-bottom: 14px;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 8px;
 }
 /* ---- pledge button --------------------------------------------------------
    Solid yellow, black text. The shadow is lifted verbatim from the Qualify
@@ -135,26 +164,35 @@
    box-shadow. So the box-shadow is matched exactly and the text-shadow is
    derived from the same gold at the same weight, rather than invented.
    ---------------------------------------------------------------------------- */
+/* THE PLATE, not a flat yellow. Same treatment as .wb-btn--primary — the
+   specular slides on hover, the inset highlight gives it a top edge, and the
+   ink is --wb-on-gold rather than pure black so it belongs to the gold family.
+   A drop shadow tinted with the fill colour (the old rgba(201,164,55,.28)) made
+   the button glow rather than sit on the page. */
 .pledgeCard .pledge {
-    padding: 13px;
-    border: none;
+    padding: 15px 26px;
+    border: 1px solid transparent;
     border-radius: 12px;
-    background: #d4b84d;          /* same yellow as .qualify */
-    color: #000;
+    background: var(--wb-brushed);
+    background-size: 200% 200%;
+    background-position: 0% 0%;
+    color: var(--wb-on-gold);
     font: inherit;
     font-weight: 700;
     cursor: pointer;
-    text-shadow: 0 1px 2px rgba(201,164,55,.55);
-    box-shadow: 0 8px 20px rgba(201,164,55,.28);
-    transition: background 150ms ease, box-shadow 150ms ease;
+    text-shadow: 0 1px 0 rgba(255,244,205,.35);
+    box-shadow: 0 1px 0 rgba(255,244,205,.45) inset, 0 1px 2px rgba(66,40,10,.22);
+    transition: transform .18s var(--wb-ease), box-shadow .18s var(--wb-ease),
+                background-position .5s var(--wb-ease);
 }
 .pledgeCard .pledge:hover {
-    background: #c9a437;
-    box-shadow: 0 10px 24px rgba(201,164,55,.38);
+    background-position: 100% 50%;
+    transform: translateY(-1px);
+    box-shadow: 0 1px 0 rgba(255,244,205,.5) inset, 0 4px 14px rgba(122,82,17,.28);
 }
-.pledgeCard .pledge:active { box-shadow: 0 4px 10px rgba(201,164,55,.30); }
+.pledgeCard .pledge:active { transform: translateY(0); }
 .pledgeCard .cardNotice {
-    margin: -6px 0 14px;
+    margin: -8px 0 0;
     font-size: 12.5px;
     color: #a3272b;
 }
@@ -162,10 +200,13 @@
     background: #fff;
     color: var(--ink, #111114);
     border: 1px solid var(--line-2, #dcdce0);
-    padding: 13px;
+    padding: 15px 26px;
     border-radius: 12px;
     font: inherit;
-    font-weight: 500;
+    font-size: 15px;
+    /* Same weight as the plate beside it. A 500 next to a 700 reads as the
+       disabled half of a pair rather than the quieter one. */
+    font-weight: 700;
     cursor: pointer;
     transition: background 150ms ease;
 }
@@ -173,13 +214,28 @@
 .pledgeCard .follow:disabled { opacity: .6; cursor: default; }
 /* Followed reads as a filled state, so a persisted follow is obvious on load. */
 .pledgeCard .follow.is-following {
-    background: #7a5d10;
-    border-color: #7a5d10;
+    background: var(--wb-gold-700);
+    border-color: var(--wb-gold-700);
     color: #fff;
 }
 
 /* ---- share ---------------------------------------------------------------- */
-.pledgeCard .share { margin-bottom: 14px; }
+.pledgeCard .share { margin: 0; min-width: 0; }
+/* ONE ROW THAT SCROLLS, never two that wrap. Eight 40px targets need 376px and
+   the rail gives ~310, so something has to give — and a second row holding a
+   single orphaned icon reads as a layout accident, where a strip that runs off
+   the edge reads as a strip. The list is already overflow-x:auto; these three
+   are what make it behave: nothing wraps, nothing shrinks below its tap target,
+   and a sideways swipe stays in the strip instead of dragging the rail. */
+.pledgeCard .share .shareList {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    /* Momentum scrolling on iOS, where a flex row otherwise stops dead. */
+    -webkit-overflow-scrolling: touch;
+}
+.pledgeCard .share .shareBtn { flex: none; }
+.wb-rail .pledgeCard .share .shareBtn { width: 36px; height: 36px; }
 
 /* ---- all-or-nothing ------------------------------------------------------- */
 .pledgeCard .aon {
@@ -190,17 +246,19 @@
        Border over background: the panel and the card are both light, so a fill
        barely separated them — an outline draws the boundary at full strength
        without adding another block of colour to a card that already has two. */
-    background: transparent;
-    border: 1px solid #d4b84d;
-    border-radius: 12px;
-    padding: 10px 12px;
-    margin-bottom: 14px;
+    /* The system's callout: a wash held by a gold hairline. A full-strength
+       --gold border on white was the loudest line on the card and outshouted
+       the button it sat under. */
+    background: var(--wb-gold-wash);
+    border: 1px solid var(--wb-gold-hair);
+    border-radius: 10px;
+    padding: 14px 16px;
 }
 .pledgeCard .aon .tag {
     flex: none;
-    background: var(--gold);
-    color: var(--gold-ink, #241b00);
-    font-size: 11px;
+    background: var(--wb-brushed);
+    color: var(--wb-on-gold);
+    font-size: 10.5px;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: .05em;
@@ -210,31 +268,57 @@
 }
 .pledgeCard .aon p {
     margin: 0;
-    font-size: 13.5px;
-    color: #000;
+    font-size: 14px;
+    color: var(--ink-2);
     line-height: 1.45;
 }
 
 /* ---- debates -------------------------------------------------------------- */
-.pledgeCard .divider { height: 1px; background: var(--line); margin: 0 0 12px; display: none}
+.pledgeCard .divider { height: 1px; background: var(--line); margin: 0; display: none; }
 .pledgeCard .debHead {
-    color: var(--gold-deep);
-    font-size: 14px;
-    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--wb-gold-ink);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -.01em;
     margin: 0 0 10px;
+}
+/* The rule is what lets the heading stay gold without shouting: the colour
+   marks the section, the hairline carries it across the card. */
+.pledgeCard .debHead::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--wb-gold-hair);
 }
 .pledgeCard .pillRow { display: flex; flex-wrap: wrap; gap: 8px; }
 .pledgeCard .pill {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: var(--gold-soft);
-    color: var(--gold-deep);
+    background: var(--wb-gold-wash);
+    color: var(--wb-gold-wash-ink);
+    border: 1px solid var(--wb-gold-hair);
     padding: 9px 16px;
     border-radius: 9999px;
     font-weight: 600;
     font-size: 14px;
+    transition: transform .16s var(--wb-ease);
 }
+/* A debate title is arbitrary length and the pill sits in a 310px column, so it
+   truncates rather than reaching for the width it wants. `min-width: 0` alone is
+   not enough — a flex item still refuses to go below its content unless the text
+   inside it is allowed to be cut. */
+.pledgeCard .pill {
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.pledgeCard .pill:hover { transform: translateY(-1px); }
 .pledgeCard .pill img { width: 18px; height: 18px; flex: none; }
 
 /* Bottom-left slot inside the card — holds UserOverView (tags + debates).
@@ -244,7 +328,9 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    min-width: 0;
 }
+.pledgeCard .cardFooter > * { max-width: 100%; min-width: 0; }
 
 /* UserOverView renders as a plain block in here: the card already supplies the
    border, shadow, radius and padding, and a nested card would read as a box in a
@@ -271,3 +357,19 @@
     text-align: left;
     width: 100%;
 }
+
+
+/* ---- inside the funding rail ---------------------------------------------
+   The card is the same component in a narrower column, so only the three things
+   that were sized for the wide layout need to give way. */
+.wb-rail .pledgeCard .ring { width: 72px; height: 72px; }
+.wb-rail .pledgeCard .ring .pct b { font-size: 16px; }
+.wb-rail .pledgeCard .raised { font-size: 26px; }
+.wb-rail .pledgeCard .goalline { font-size: 13.5px; }
+.wb-rail .pledgeCard .stat { padding: 11px 6px; }
+.wb-rail .pledgeCard .stat b { font-size: 16px; }
+.wb-rail .pledgeCard .aon { flex-direction: column; gap: 9px; font-size: 13px; }
+/* STACKED, not side by side. Two buttons sharing a 358px column leave ~150px
+   each, and "Be the first to pledge" — the label this button wears on exactly
+   the campaigns that most need the click — does not fit in 150px. */
+.wb-rail .pledgeCard .actions { grid-template-columns: minmax(0, 1fr); gap: 8px; }

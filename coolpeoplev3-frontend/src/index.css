@@ -8,17 +8,33 @@
   /* neutrals / text */
   --ink:      #111114;   /* primary text */
   --ink-2:    #3d3d44;   /* secondary/body text */
-  --muted:    #8b8b93;   /* de-emphasized text */
+  /* Was #8b8b93 — only 3.38:1 on --paper, below the 4.5:1 AA floor for body
+     text, which is what Lighthouse's contrast audit flagged. This keeps the same
+     de-emphasized grey role at 5.28:1. */
+  --muted:    #6b6b74;   /* de-emphasized text (AA on --paper) */
   --line:     #e8e8ea;   /* borders / hairlines */
   --line-2:   #dcdce0;   /* border on hover */
   --paper:    #ffffff;   /* surfaces / cards */
   --panel:    #f7f6f3;   /* subtle filled panels */
 
-  /* brand — gold */
-  --gold:      #c9a437;
-  --gold-deep: #a9861d;
-  --gold-soft: #f6eccf;
-  --gold-ink:  #241b00;  /* text on a gold fill */
+  /* brand — gold. ONE RAMP, AND THIS IS IT.
+     Four different scales had grown up across the app — --gold-deep alone was
+     #a9861d here, #b48f22 in the headers and #8a6a12 in the debate forms — so
+     the same "gold text" was three colours depending on which page you were on.
+
+     --gold-deep is the one that MUST carry text, and that decides its value:
+        #a9861d  3.43:1 on white — fails AA
+        #b48f22  3.05:1 on white — fails AA, the worst of the three
+        #8a6a12  5.06:1 on white — passes, and 4.29:1 on --gold-soft
+     so #8a6a12 is canonical and the lighter two are gone. Anything that wants a
+     brighter gold wants --gold (a fill) or --gold-hi (a hover), not deep. */
+  --gold:      #c9a437;   /* fills, accents, the brand mark */
+  --gold-hi:   #dbb94e;   /* hover on a gold fill */
+  --gold-deep: #8a6a12;   /* gold as TEXT on paper — AA at 5.06:1 */
+  --gold-soft: #f6eccf;   /* wash behind a gold-accented block */
+  --gold-pale: #fdfaf2;   /* the faintest gold paper */
+  --gold-line: #e3d3a0;   /* hairline in the gold family */
+  --gold-ink:  #241b00;   /* text on a gold fill — 7.18:1 */
 
   /* spacing scale — use these instead of arbitrary px.
      4 · 8 · 12 · 16 · 24 · 32 · 48 · 64 — never a value in between. */
@@ -181,3 +197,567 @@ a:hover { text-decoration: underline; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* Shown only while a lazily-loaded route chunk is in flight. Deliberately plain:
+   a tall skeleton here would push content around when the real page arrives,
+   and that shift is exactly what CLS measures. */
+.routeFallback {
+  padding: var(--s10) var(--s5);
+  text-align: center;
+  color: var(--muted);
+}
+
+/* ============================================================================
+   WOULD BE — GOLD SYSTEM
+   ----------------------------------------------------------------------------
+   Gold is not one colour. #E8C56A on the dark debate page is 11.7:1 and reads as
+   gold; the same value on white is 2.85:1 and reads as a highlighter. So gold
+   here is ONE hue family (32–43°, amber/bronze, never lemon) with TWO ink
+   values, chosen by the SURFACE an element sits on rather than by the page.
+
+   Put data-surface="dark" on any dark panel and every gold inside it flips:
+
+     <body data-surface="light">              light page  -> deep bronze ink
+     <div class="wb-panel" data-surface="dark">  dark panel -> light gold ink
+
+   This supersedes the older --gold-* ramp, which is kept below it because the
+   whole app still reads those names. --gold-deep and --wb-gold-700 are the same
+   role and now agree to within a hair; the older names are the compatibility
+   layer, this is the system.
+   ========================================================================== */
+:root {
+  /* the ramp — every stop 32–43° */
+  --wb-gold-950: #241906;
+  --wb-gold-900: #42280A;
+  --wb-gold-800: #5C3A0D;
+  --wb-gold-700: #7A5211;   /* text on light — 6.9:1 on white */
+  --wb-gold-600: #96631A;
+  --wb-gold-500: #B07524;   /* brushed-plate floor — 4.8:1 under #1A1203 */
+  --wb-gold-400: #C08F31;
+  --wb-gold-300: #D49E3C;
+  --wb-gold-200: #E8C56A;   /* text on dark — 11.4:1 */
+  --wb-gold-100: #F2CE84;   /* specular */
+  --wb-gold-050: #FBF0D4;   /* pale wash */
+
+  /* ink that sits ON gold fills */
+  --wb-on-gold: #1A1203;
+
+  /* surface-dependent. default = light. */
+  --wb-gold-ink:      var(--wb-gold-700);
+  --wb-gold-hair:     #E0CE9E;
+  --wb-gold-wash:     var(--wb-gold-050);
+  --wb-gold-wash-ink: var(--wb-gold-800);
+
+  /* THE BRUSHED PLATE. One variable, used everywhere a gold surface appears —
+     a flat fill is what made the debate tiles read as coloured rectangles
+     rather than as an object. Keep the specular band narrow; widen it and the
+     plate turns into a gradient. */
+  --wb-brushed: linear-gradient(152deg,
+      var(--wb-gold-500) 0%,
+      var(--wb-gold-400) 16%,
+      var(--wb-gold-300) 34%,
+      var(--wb-gold-100) 44%,
+      #DFAF4E            52%,
+      var(--wb-gold-400) 74%,
+      var(--wb-gold-500) 100%);
+
+  --wb-ease: cubic-bezier(.2,.7,.3,1);
+}
+
+/* Dark surfaces. Gold flips to the light end of the same ramp — and so do the
+   NEUTRALS, which is the half that was missing.
+   Without the neutrals, every .wb-* block inside a dark panel kept drawing
+   white cards and near-black text on an ink ground, because --paper, --ink and
+   --line still held their light-page values. That is what left the black
+   WouldBe logo invisible on the Start-a-debate page and its search box outlined
+   in #E6EAEF. Flipping the tokens here means a component does not have to know
+   which surface it landed on: it asks for --paper and gets the right one.
+
+   Scope is exactly the subtree that opted in with data-surface="dark", so no
+   light page can be reached by these. */
+[data-surface="dark"] {
+  --wb-gold-ink:      var(--wb-gold-200);
+  --wb-gold-hair:     #4A340F;
+  --wb-gold-wash:     rgba(232,197,106,.10);
+  --wb-gold-wash-ink: var(--wb-gold-200);
+
+  --ink:    #F5F0E4;
+  --ink-2:  #B3AA95;
+  --muted:  #7E7663;
+  --line:   #262019;
+  --line-2: #332E22;
+  --paper:  #17140E;
+  --panel:  #201D15;
+
+  color-scheme: dark;
+}
+
+/* ---- primitives ---------------------------------------------------------- */
+
+/* Section heading. Gold text on white at 2.85:1 fails WCAG, which is what
+   "Active Debates" was; --wb-gold-ink is 6.9:1 and the hairline lets the gold
+   carry the section without leaning on saturation. */
+.wb-heading {
+  font-size: 15px; font-weight: 700; letter-spacing: -.01em;
+  color: var(--wb-gold-ink);
+  display: flex; align-items: center; gap: 9px; margin: 0;
+}
+.wb-heading::after { content: ""; flex: 1; height: 1px; background: var(--wb-gold-hair); }
+
+.wb-btn {
+  font: inherit; font-weight: 700; font-size: 15px; letter-spacing: -.01em;
+  /* Through a variable so a variant can resize the button without restating the
+     shorthand — a plain `padding` override in a variant loses to any later rule
+     that also sets padding, and this cannot. */
+  --_pad: 15px 26px;
+  padding: var(--_pad); border-radius: 12px; border: 1px solid transparent;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; text-decoration: none; position: relative; isolation: isolate;
+  transition: transform .18s var(--wb-ease), box-shadow .18s var(--wb-ease),
+              background-position .5s var(--wb-ease);
+}
+.wb-btn:focus-visible { outline: 2px solid var(--wb-gold-ink); outline-offset: 2px; }
+.wb-btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+/* primary = the plate. the specular slides on hover, like real metal. */
+.wb-btn--primary {
+  background: var(--wb-brushed);
+  background-size: 200% 200%;
+  background-position: 0% 0%;
+  color: var(--wb-on-gold);
+  box-shadow: 0 1px 0 rgba(255,244,205,.45) inset, 0 1px 2px rgba(66,40,10,.22);
+  text-shadow: 0 1px 0 rgba(255,244,205,.35);
+}
+.wb-btn--primary:hover:not([disabled]) {
+  background-position: 100% 50%;
+  transform: translateY(-1px);
+  box-shadow: 0 1px 0 rgba(255,244,205,.5) inset, 0 4px 14px rgba(122,82,17,.28);
+}
+.wb-btn--primary:active:not([disabled]) { transform: translateY(0); }
+
+.wb-btn--secondary { background: transparent; color: var(--ink); border-color: var(--line); }
+.wb-btn--secondary:hover:not([disabled]) { border-color: var(--wb-gold-hair); background: var(--wb-gold-wash); }
+
+/* Ghost — the quiet half of a pair (Cancel beside Save, Edit beside a card).
+   No border and no ground until it is hovered, so it is present without
+   competing with the committing action next to it. */
+.wb-btn--ghost {
+  --_pad: 11px 16px;
+  background: transparent; border-color: transparent; color: var(--wb-gold-ink);
+  font-size: 13.5px; border-radius: 10px;
+}
+.wb-btn--ghost:hover:not([disabled]) { background: var(--wb-gold-wash); }
+
+/* on a dark surface the pill reads best as flat light gold */
+[data-surface="dark"] .wb-btn--primary {
+  background: var(--wb-gold-200); color: var(--wb-on-gold);
+  text-shadow: none; box-shadow: none;
+}
+[data-surface="dark"] .wb-btn--primary:hover:not([disabled]) { background: var(--wb-gold-100); }
+
+.wb-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  padding: 6px 11px; border-radius: 999px; white-space: nowrap;
+}
+.wb-badge--solid   { background: var(--wb-brushed); color: var(--wb-on-gold); }
+.wb-badge--outline { border: 1px solid var(--wb-gold-hair); color: var(--wb-gold-ink); }
+.wb-badge--wash    { background: var(--wb-gold-wash); color: var(--wb-gold-wash-ink); }
+
+.wb-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--wb-gold-wash); color: var(--wb-gold-wash-ink);
+  border: 1px solid var(--wb-gold-hair);
+  padding: 9px 16px; border-radius: 999px;
+  font-size: 14px; font-weight: 600; text-decoration: none;
+  transition: background .16s var(--wb-ease), transform .16s var(--wb-ease);
+}
+.wb-pill:hover { transform: translateY(-1px); }
+.wb-pill:focus-visible { outline: 2px solid var(--wb-gold-ink); outline-offset: 2px; }
+
+.wb-callout {
+  display: flex; align-items: flex-start; gap: 14px;
+  border: 1px solid var(--wb-gold-hair); border-radius: 10px;
+  background: var(--wb-gold-wash); padding: 14px 16px;
+  color: var(--ink-2); font-size: 14px; line-height: 1.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-btn, .wb-pill { transition: none !important; }
+}
+
+/* Non-text gold that must be SEEN — rails, star fills, ring strokes. WCAG wants
+   3:1 for a graphic that carries meaning, and --wb-gold is 2.4:1 on white. Never
+   use --wb-gold-hair for these: a hairline is structure, this is signal. */
+/* THE GREEN. #64c08c is the debate surface's live colour and it is right there,
+   on #131109 — on white it is 2.0:1, which is not a value words can be set in.
+   So the same hue gets a light-surface ink at 5.3:1, and the two are one family:
+   a live thing is green wherever it appears, at whatever value that ground
+   needs. */
+:root {
+  --live:      #64c08c;   /* dark surfaces — matches --dbt-live */
+  --live-ink:  #1c7a4f;   /* light surfaces — 5.3:1 on white */
+  --live-hair: rgba(28, 122, 79, .55);
+}
+
+:root { --wb-gold-mark: #B07524; }            /* 3.9:1 on white */
+[data-surface="dark"] { --wb-gold-mark: var(--wb-gold-200); }
+
+/* ============================================================================
+   GOLD SYSTEM, PART 2 — the composite blocks.
+   ----------------------------------------------------------------------------
+   The primitives above are the vocabulary; these are the sentences. Added for
+   the start-a-WouldBe screen, but deliberately generic: a campaign page, an
+   office detail panel and a filing timeline are all shapes this app repeats.
+
+   THE ONE RULE, applied throughout: gold carries MEANING (progress, milestone,
+   status, the money), neutrals carry STRUCTURE (rails, rules, wells). The old
+   start-a-WouldBe screen had that exactly backwards — a pale dotted rail was
+   doing structural work in gold it could not be seen doing, while the "today"
+   marker, which is the one thing on that timeline that means something, was
+   hot pink and belonged to no palette at all.
+
+   Non-text gold that must be SEEN uses --wb-gold-mark, never --wb-gold-hair.
+   ========================================================================== */
+
+/* Deadline urgency is SEMANTIC and gets its own hue. It must NOT be gold: on a
+   gold-branded page an amber warning is invisible as a warning. */
+:root {
+  --wb-ok:   #2F6B45;   /* 6.3:1 on white */
+  --wb-warn: #A8422C;   /* 6.0:1 on white */
+}
+[data-surface="dark"] { --wb-ok: #6FBF8E; --wb-warn: #E6866C; }
+
+/* ---- chip: a single fact ("NY", "25+", "State senate") ------------------- */
+.wb-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 11px; border-radius: 999px;
+  border: 1px solid var(--line); background: transparent;
+  font-size: 12px; font-weight: 600; color: var(--ink-2);
+  white-space: nowrap;
+}
+.wb-chip--gold {
+  border-color: var(--wb-gold-hair); background: var(--wb-gold-wash);
+  color: var(--wb-gold-wash-ink);
+}
+
+/* ---- stat row ------------------------------------------------------------ */
+.wb-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.wb-stat {
+  background: var(--wb-gold-wash); border: 1px solid var(--wb-gold-hair);
+  border-radius: 10px; padding: 13px 10px; text-align: center;
+}
+.wb-stat--muted { background: transparent; border-color: var(--line); }
+.wb-stat__n { font-size: 18px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.wb-stat__l { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+/* ---- empty state — a bordered void is not an empty state ---------------- */
+.wb-empty {
+  border: 1px dashed var(--wb-gold-hair); border-radius: 10px;
+  background: var(--wb-gold-wash);
+  padding: 26px 22px; display: grid; gap: 8px; justify-items: start;
+  color: var(--ink-2); font-size: 14px; line-height: 1.55;
+}
+.wb-empty__t { font-weight: 700; color: var(--ink); font-size: 14.5px; }
+.wb-empty--center { justify-items: center; text-align: center; }
+
+/* ============================================================================
+   campaign layout — main column + sticky rail
+   ----------------------------------------------------------------------------
+   The rail gets max-height + overflow, and that is not decoration: a
+   position:sticky element TALLER than the viewport seats at the wrong offset
+   and appears frozen mid-scroll. It is the single most common sticky-sidebar
+   bug and the guard is one line.
+   ========================================================================== */
+.wb-campaign {
+  max-width: 1180px; margin: 0 auto; padding: 0 24px 96px;
+  display: grid; gap: 40px; grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+@media (min-width: 980px) {
+  .wb-campaign { grid-template-columns: minmax(0, 1fr) 358px; gap: 48px; }
+}
+.wb-rail { display: grid; gap: 14px; }
+@media (min-width: 980px) {
+  .wb-rail {
+    position: sticky; top: 20px; align-self: start;
+    max-height: calc(100vh - 40px); overflow-y: auto; overscroll-behavior: contain;
+    scrollbar-width: thin; padding-right: 2px;
+  }
+  .wb-rail::-webkit-scrollbar { width: 6px; }
+  .wb-rail::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+}
+.wb-rail__card {
+  border: 1px solid var(--line); border-radius: 16px; padding: 20px;
+  background: var(--paper); display: grid; gap: 18px;
+}
+/* the rail is 358px, so blocks that sit side-by-side at full width stack in it */
+.wb-rail .wb-callout { flex-direction: column; gap: 9px; font-size: 13px; }
+.wb-rail .wb-stat { padding: 11px 6px; }
+.wb-rail .wb-stat__n { font-size: 16px; }
+
+/* ---- hero ---------------------------------------------------------------- */
+.wb-hero { display: grid; gap: 18px; }
+/* The typographic plate. A screen with no hero image must not collapse the
+   column, so the hero is built from the one line of copy the page already has:
+   the thesis, set large on the brushed ground. */
+.wb-hero__plate {
+  position: relative; border-radius: 14px; overflow: hidden;
+  background: var(--wb-brushed); background-size: 150% 150%;
+  padding: 34px 32px; display: grid; gap: 18px; align-content: center;
+  min-height: 236px; isolation: isolate;
+}
+/* anisotropic streaks — what makes it read brushed rather than airbrushed */
+.wb-hero__plate::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: repeating-linear-gradient(152deg, rgba(255,255,255,.05) 0 1px, transparent 1px 3px);
+}
+.wb-hero__thesis {
+  margin: 0; font-size: clamp(21px, 2.6vw, 29px); font-weight: 800;
+  line-height: 1.16; letter-spacing: -.025em; color: var(--wb-on-gold);
+  text-wrap: balance; max-width: 22ch;
+  text-shadow: 0 1px 0 rgba(255,244,205,.35);
+}
+.wb-hero__facts { display: flex; gap: 8px; flex-wrap: wrap; }
+/* on the plate a chip's neutral hairline disappears, so it borrows the ink */
+.wb-hero__plate .wb-chip {
+  border-color: rgba(36,25,6,.22); background: rgba(255,244,205,.30);
+  color: var(--wb-gold-950);
+}
+
+/* ---- sections ------------------------------------------------------------ */
+.wb-sections { display: grid; gap: 46px; }
+.wb-sec { scroll-margin-top: 62px; display: grid; gap: 16px; }
+.wb-sec__h {
+  margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -.018em;
+  display: flex; align-items: center; gap: 11px;
+}
+.wb-sec__h span { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.wb-body { font-size: 15.5px; line-height: 1.68; color: var(--ink-2); max-width: 66ch; }
+.wb-body p { margin: 0 0 1em; }
+.wb-body p:last-child { margin-bottom: 0; }
+
+/* ---- detail card + requirement rows -------------------------------------- */
+.wb-detail__card {
+  border: 1px solid var(--line); border-radius: 16px; padding: 20px;
+  background: var(--paper); display: grid; gap: 16px;
+}
+.wb-detail__eyebrow {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--wb-gold-ink);
+}
+.wb-detail__title { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; }
+
+/* Requirements read as a definition list, not an enum dump. The key is quiet,
+   the value is the answer, and the sub-line is why it is or isn't met. */
+.wb-reqs { display: grid; gap: 0; margin: 0; }
+.wb-req {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
+  padding: 11px 0; border-bottom: 1px solid var(--line);
+}
+.wb-req:last-child { border-bottom: 0; }
+.wb-req__k { font-size: 13px; color: var(--muted); }
+.wb-req__v { font-size: 14px; font-weight: 700; text-align: right; }
+.wb-req__v small {
+  display: block; font-size: 11.5px; font-weight: 500; color: var(--muted);
+  text-transform: none; letter-spacing: 0;
+}
+.wb-req--pass .wb-req__v { color: var(--ink); }
+.wb-req--fail .wb-req__v { color: var(--wb-warn); }
+
+.wb-src { font-size: 12px; color: var(--muted); word-break: break-word; }
+.wb-src a { color: var(--wb-gold-ink); }
+
+/* ============================================================================
+   filing timeline — the horizontal rail of candidacy milestones
+   ----------------------------------------------------------------------------
+   The rail spans from the FIRST node's centre to the LAST node's centre, not
+   edge to edge: a rail that runs past the outermost dot implies dates beyond
+   the ones plotted. Both insets are therefore 100/(2n)% and are set inline,
+   because only the render knows n.
+
+   "Today" is an overlay pin, not a step. It used to be spliced into the list as
+   a fake node, which made the axis lie — the gaps between nodes stopped being
+   comparable the moment one of them wasn't a deadline.
+   ========================================================================== */
+.wb-timeline-card {
+  border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px 16px;
+  background: var(--paper); display: grid; gap: 18px;
+}
+.wb-tlh { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.wb-tlh__t { font-size: 14px; font-weight: 700; letter-spacing: -.01em; }
+.wb-tlh__g { font-size: 12.5px; color: var(--muted); }
+.wb-tlh__g b { color: var(--wb-gold-ink); font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* Narrow viewports scroll the rail rather than crushing four labels into
+   slivers; .wb-ftl carries an inline min-width sized from the step count. */
+.wb-ftl-scroll { overflow-x: auto; scrollbar-width: thin; }
+.wb-ftl { position: relative; padding: 26px 0 6px; }
+.wb-ftl__rail { position: absolute; top: 32px; height: 2px; background: var(--line); border-radius: 2px; }
+.wb-ftl__done {
+  position: absolute; top: 32px; height: 2px; border-radius: 2px;
+  background: var(--wb-brushed); background-size: 200% 100%;
+}
+.wb-ftl__steps { position: relative; display: flex; justify-content: space-between; }
+.wb-ftl__step { display: grid; justify-items: center; gap: 6px; text-align: center; flex: 1; min-width: 0; }
+.wb-ftl__dot {
+  width: 11px; height: 11px; border-radius: 50%; background: var(--paper);
+  border: 2px solid var(--line); position: relative; z-index: 1;
+}
+.wb-ftl__step--done .wb-ftl__dot { background: var(--wb-gold-mark); border-color: var(--wb-gold-mark); }
+/* the next deadline gets a ring, not a hot-pink pill — it is a position
+   marker, not an alert. */
+.wb-ftl__step--now .wb-ftl__dot {
+  background: var(--wb-brushed); border-color: transparent;
+  box-shadow: 0 0 0 4px var(--wb-gold-wash);
+  width: 13px; height: 13px;
+}
+.wb-ftl__lab { font-size: 11.5px; font-weight: 700; letter-spacing: -.005em; line-height: 1.25; }
+.wb-ftl__step--now .wb-ftl__lab { color: var(--wb-gold-ink); }
+.wb-ftl__d { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* the cumulative money target at each milestone — this app's addition to the
+   pattern, and the reason the timeline is on a fundraising screen at all. */
+.wb-ftl__amt { font-size: 11.5px; font-weight: 800; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.wb-ftl__step--done .wb-ftl__amt { color: var(--wb-gold-ink); }
+.wb-ftl__you {
+  position: absolute; top: 0; transform: translateX(-50%);
+  font-size: 9px; font-weight: 800; letter-spacing: .1em;
+  background: var(--wb-gold-950); color: var(--wb-gold-100);
+  padding: 3px 8px; border-radius: 999px; white-space: nowrap;
+}
+
+/* A disabled CTA must not still look like the primary action. opacity alone
+   left a dimmed gold plate, which still read as the thing to press. */
+.wb-btn--primary[disabled] {
+  background: var(--line); color: var(--muted); opacity: 1;
+  box-shadow: none; text-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-ftl__done { transition: none !important; }
+}
+
+/* ============================================================================
+   GOLD SYSTEM, PART 3 — the office browser.
+   ----------------------------------------------------------------------------
+   The screen's job is "what can I run for", so ELIGIBILITY is the primary
+   signal and gets the accent. Deadline urgency is SEMANTIC and gets its own
+   hue (--wb-warn): it must not be gold, because on a gold-branded page an
+   amber warning is invisible as a warning.
+
+   The list rows are ~72px. They were ~250px black cards that revealed their
+   content on hover, which meant four offices per screen out of seven thousand,
+   and no way to compare two of them without moving the mouse between them.
+   ========================================================================== */
+
+.wb-browse {
+  max-width: 1240px; margin: 0 auto; padding: 20px 24px 80px;
+  display: grid; gap: 28px; grid-template-columns: minmax(0,1fr); align-items: start;
+}
+@media (min-width: 1000px) { .wb-browse { grid-template-columns: minmax(0,1fr) 384px; gap: 34px; } }
+
+/* ---- toolbar ------------------------------------------------------------- */
+.wb-toolbar { display: grid; gap: 12px; margin-bottom: 4px; }
+.wb-toolbar__row { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; }
+.wb-field {
+  flex: 1; min-width: 200px; display: flex; align-items: center; gap: 9px;
+  border: 1px solid var(--line); border-radius: 11px; padding: 10px 14px;
+  background: var(--paper);
+}
+.wb-field input {
+  font: inherit; font-size: 14.5px; border: 0; outline: 0; background: transparent;
+  color: var(--ink); width: 100%;
+}
+.wb-field:focus-within { border-color: var(--wb-gold-hair); box-shadow: 0 0 0 3px var(--wb-gold-wash); }
+.wb-filter {
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--line); background: var(--paper); color: var(--ink-2);
+  border-radius: 999px; padding: 8px 14px; white-space: nowrap;
+}
+.wb-filter[aria-pressed="true"] {
+  border-color: var(--wb-gold-hair); background: var(--wb-gold-wash); color: var(--wb-gold-wash-ink);
+}
+.wb-count { font-size: 13px; color: var(--muted); }
+.wb-count b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ---- the list ------------------------------------------------------------ */
+.wb-offices { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.wb-office {
+  width: 100%; text-align: left; font: inherit; cursor: pointer;
+  display: grid; gap: 3px 14px; align-items: center;
+  grid-template-columns: 22px minmax(0,1fr) auto;
+  border: 1px solid var(--line); border-radius: 12px;
+  padding: 13px 16px; background: var(--paper); color: var(--ink);
+  transition: border-color .14s var(--wb-ease), background .14s var(--wb-ease);
+}
+.wb-office:hover { border-color: var(--wb-gold-hair); background: var(--wb-gold-wash); }
+.wb-office:focus-visible { outline: 2px solid var(--wb-gold-ink); outline-offset: 1px; }
+.wb-office[aria-selected="true"] {
+  border-color: var(--wb-gold-mark); background: var(--wb-gold-wash);
+  box-shadow: inset 3px 0 0 var(--wb-gold-mark);
+}
+.wb-office__mark {
+  width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
+  grid-row: span 2; align-self: center; flex: none;
+}
+.wb-office__mark--ok { background: var(--wb-brushed); }
+.wb-office__mark--ok svg { width: 11px; height: 11px; color: var(--wb-on-gold); }
+.wb-office__mark--no { border: 1.5px dashed var(--line); }
+.wb-office__name {
+  font-size: 14.5px; font-weight: 700; letter-spacing: -.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wb-office__meta {
+  grid-column: 2; font-size: 12.5px; color: var(--muted);
+  display: flex; gap: 7px; align-items: center; flex-wrap: wrap;
+}
+.wb-office__meta i { font-style: normal; opacity: .5; }
+.wb-office__when { grid-row: span 2; text-align: right; display: grid; gap: 1px; justify-items: end; }
+.wb-office__days {
+  font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+  display: flex; align-items: center; gap: 6px;
+}
+.wb-office__days--soon { color: var(--wb-warn); }
+.wb-office__days--soon::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--wb-warn);
+}
+.wb-office__days--past { color: var(--muted); font-weight: 600; }
+.wb-office__date { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ---- detail panel -------------------------------------------------------- */
+/* Sticky, with the max-height guard: a sticky element TALLER than the viewport
+   seats at the wrong offset and appears frozen mid-scroll. */
+.wb-detail { display: grid; gap: 14px; }
+@media (min-width: 1000px) {
+  .wb-detail {
+    position: sticky; top: 20px; align-self: start;
+    max-height: calc(100vh - 40px); overflow-y: auto; overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  .wb-detail::-webkit-scrollbar { width: 6px; }
+  .wb-detail::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+}
+
+/* The verdict banner — the answer to the question the page exists to ask. */
+.wb-verdict {
+  display: flex; align-items: flex-start; gap: 11px; padding: 13px 15px;
+  border-radius: 10px; font-size: 14px; line-height: 1.45;
+}
+.wb-verdict--ok { background: var(--wb-gold-wash); border: 1px solid var(--wb-gold-hair); color: var(--wb-gold-wash-ink); }
+.wb-verdict--no { background: #FDF0EC; border: 1px solid #F0D5CC; color: var(--wb-warn); }
+.wb-verdict--unknown { background: var(--panel); border: 1px solid var(--line); color: var(--ink-2); }
+[data-surface="dark"] .wb-verdict--no { background: rgba(230,134,108,.12); border-color: rgba(230,134,108,.3); }
+.wb-verdict b { display: block; font-weight: 800; margin-bottom: 2px; }
+.wb-verdict__ic { flex: none; width: 18px; height: 18px; margin-top: 1px; }
+
+/* ---- dev banner: looks like a dev tool, not like product chrome ---------- */
+.wb-dev {
+  display: flex; gap: 10px; align-items: flex-start;
+  border: 1px dashed #C9B8A0; border-left: 3px solid var(--wb-gold-mark);
+  background: repeating-linear-gradient(135deg, #FBF7EE 0 8px, #F7F2E6 8px 16px);
+  border-radius: 8px; padding: 10px 13px; font-size: 12.5px; color: #6B5F49;
+  font-family: ui-monospace, Menlo, monospace; line-height: 1.5;
+  margin-bottom: 14px;
+}
+.wb-dev b { font-weight: 700; color: #4A3F2C; }
+.wb-dev code { background: rgba(0,0,0,.05); border-radius: 3px; padding: 1px 4px; }

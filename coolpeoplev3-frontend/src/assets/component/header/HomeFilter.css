@@ -1,18 +1,24 @@
+/* Gold comes from the WOULD BE gold system in index.css: --wb-gold-wash for a
+   selected chip's ground, --wb-gold-hair for its edge, --wb-gold-ink for its
+   text. Those are the three roles a filter chip needs, and reading them from
+   the system means a chip is the same gold as the callout on the WouldBe page
+   rather than a fourth interpretation of it. */
 /* ============================================================================
-   HomeFilter.css — the filter control beneath the search bar.
+   HomeFilter.css — the filter control beside the search bar.
 
-   ANCHORING: .homeFilterRoot lives INSIDE .HomeSearchContainer, which is
-   position:fixed and therefore a positioned ancestor. top:100% puts the button
-   directly under the bar and left:75% puts it three quarters across — so it
-   tracks the search bar wherever that ends up instead of repeating its
-   hard-coded left/width, which would drift the moment either changes.
+   ANCHORING: .homeFilterRoot is a plain flex item of .HomeSearchRow, sitting to
+   the right of the bar. When that line runs out of room the row wraps and the
+   button lands beneath the bar's right edge — measured, not a breakpoint, so it
+   drops exactly when it would otherwise crowd the action buttons.
+
+   position:relative here is only so the dropdown can hang off the button. The
+   subtree is lifted above the grid by .HomeSearchRow's z-index; without that,
+   no value here helps.
    ============================================================================ */
 .homeFilterRoot {
-    position: absolute;
-    top: 100%;
-    left: 75%;
-    margin-top: 8px;
-    z-index: 40;
+    position: relative;
+    flex-shrink: 0;
+    z-index: 1;
 }
 
 .homeFilterBtn {
@@ -32,21 +38,21 @@
     transition: border-color .15s ease, box-shadow .15s ease;
     white-space: nowrap;
 }
-.homeFilterBtn:hover { border-color: #d4b84d; }
+.homeFilterBtn:hover { border-color: var(--wb-gold-hair); }
 /* A filtered feed must never look like an empty one — the button carries the
    count so a short grid is explained. */
 .homeFilterBtn.is-active {
-    border-color: #d4b84d;
-    background: #faf0cf;
-    color: #7a5d10;
+    border-color: var(--wb-gold-hair);
+    background: var(--wb-gold-wash);
+    color: var(--wb-gold-ink);
 }
 
 /* ---- the dropdown ---------------------------------------------------------- */
 .homeFilterPanel {
     position: absolute;
     top: calc(100% + 8px);
-    /* Right-aligned to the button: at 75% across, a left-aligned panel would
-       hang off the right edge of the viewport on a narrow window. */
+    /* Right-aligned to the button, which sits near the right of the header in
+       both layouts: a left-aligned panel would hang off the viewport edge. */
     right: 0;
     width: 320px;
     max-height: 70vh;
@@ -68,7 +74,7 @@
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: .04em;
-    color: #7a5d10;
+    color: var(--wb-gold-ink);
 }
 .hfLabel b { color: #2a2515; }
 
@@ -76,7 +82,7 @@
     display: block;
     margin-top: 5px;
     font-size: 10.5px;
-    color: #8b8b93;
+    color: #6b6b74;
     line-height: 1.35;
 }
 
@@ -96,10 +102,10 @@
     white-space: nowrap;
     transition: background .15s ease, border-color .15s ease;
 }
-.hfSeg button:hover:not(:disabled) { border-color: #d4b84d; }
+.hfSeg button:hover:not(:disabled) { border-color: var(--wb-gold-hair); }
 .hfSeg button.is-on {
-    background: #7a5d10;
-    border-color: #7a5d10;
+    background: var(--wb-gold-ink);
+    border-color: var(--wb-gold-ink);
     color: #fff;
 }
 .hfSeg button:disabled { opacity: .4; cursor: not-allowed; }
@@ -131,13 +137,13 @@
     display: block;
     margin-top: 2px;
     font-size: 10.5px;
-    color: #8b8b93;
+    color: #6b6b74;
 }
-.hfCheck--disabled { color: #8b8b93; cursor: not-allowed; }
+.hfCheck--disabled { color: #6b6b74; cursor: not-allowed; }
 
 /* ---- the two-handle range -------------------------------------------------- */
 .hfRange { display: flex; flex-direction: column; gap: 4px; }
-.hfRange input { width: 100%; accent-color: #7a5d10; cursor: pointer; }
+.hfRange input { width: 100%; accent-color: var(--wb-gold-ink); cursor: pointer; }
 .hfRange input:disabled { cursor: not-allowed; opacity: .5; }
 
 .hfScale {
@@ -145,7 +151,7 @@
     justify-content: space-between;
     margin-top: 2px;
     font-size: 10px;
-    color: #8b8b93;
+    color: #6b6b74;
 }
 
 /* ---- footer ---------------------------------------------------------------- */
@@ -161,13 +167,13 @@
     font: inherit;
     font-weight: 700;
     color: #000;
-    background: #d4b84d;
+    background: var(--gold);
     border: none;
     border-radius: 9px;
     cursor: pointer;
     text-shadow: 0 1px 2px rgba(201, 164, 55, .55);
 }
-.hfApply:hover { background: #c9a437; }
+.hfApply:hover { background: var(--gold-hi); }
 .hfGhost {
     padding: 9px 14px;
     font: inherit;
@@ -180,7 +186,7 @@
 }
 .hfGhost:hover { background: #f7f6f3; }
 
+/* On a narrow viewport the panel is wider than the space left of the button. */
 @media (max-width: 900px) {
-    /* The search bar's fixed 750px stops applying here; keep the panel on screen. */
     .homeFilterPanel { width: min(320px, 88vw); }
 }

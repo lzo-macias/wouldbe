@@ -7,12 +7,15 @@
     min-height: 100vh;
 }
 
-/* Header + split fill the viewport as a column so the split (below the header)
-   can own the remaining height and scroll its own right column. */
+/* The browser scrolls the PAGE now, not an inner column. It used to be a
+   100vh flex column whose right half scrolled internally — which is what forced
+   the old fixed-height card list, hid the page's own scrollbar, and would trap
+   the new sticky detail panel inside a clipped ancestor (a sticky element only
+   sticks within its scroll container, so in there it would never move at all). */
 .wouldbeContent {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    min-height: 100vh;
 }
 
 /* applied to the header+rows wrapper while the Qualify modal is open */

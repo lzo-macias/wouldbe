@@ -8,8 +8,6 @@ const {
     createPasswordResetToken,
     resetPasswordWithToken,
     markEmailVerified,
-    setPhoneVerificationCode,
-    markPhoneVerified,
 } = require("../../DB/platform/auth");
 const { createUsers, updateUserLastLogin, deriveAgeBand } = require("../../DB/platform/users");
 const { createChildSafetyRecord } = require("../../DB/platform/childSafety");
@@ -48,7 +46,6 @@ router.post("/signup", async (req, res, next) => {
             username,
             password,
             political_lean,
-            phone_number,
             date_of_birth,
             email,
             state,
@@ -89,7 +86,7 @@ router.post("/signup", async (req, res, next) => {
         //    bcrypt hash (RETURNING *), which we strip before responding.
         const user = await createUsers({
             first_name, last_name, username, password, political_lean,
-            phone_number, date_of_birth, email, state, profile_photo_url, bio,
+            date_of_birth, email, state, profile_photo_url, bio,
         });
 
         // 2) Child-safety record (sets COPPA / minor-participation flags by band).
@@ -140,7 +137,7 @@ router.post("/signup", async (req, res, next) => {
             context: "signup",
         });
 
-        // 4.5) Any debate nomination someone sent to this email/phone before the
+        // 4.5) Any debate nomination someone sent to this email before the
         //      account existed becomes a real nomination now. Best-effort, like
         //      the consents above: an invite that fails to convert is a missing
         //      nomination, and that must never cost someone their signup.
@@ -148,7 +145,6 @@ router.post("/signup", async (req, res, next) => {
             const { claimed } = await claimInvitesForUser({
                 user_id: user.id,
                 email,
-                phone_number,
             });
             if (claimed) console.log(`[signup] claimed ${claimed} nomination invite(s) for ${user.id}`);
         } catch (err) {
@@ -316,46 +312,6 @@ router.post("/verify-email", requireAuth, async (req, res, next) => {
         const result = await markEmailVerified(req.user.id);
         return res.status(200).json(result);
     } catch (err) {
-        next(err);
-    }
-});
-
-// ============================================================================
-// POST /verify-phone/request  (authenticated) — send an SMS OTP
-//   TCPA: only to the number the user supplied; record sms_transactional consent
-//   separately. Returns devCode outside production until an SMS provider is wired.
-// ============================================================================
-router.post(
-    "/verify-phone/request",
-    requireAuth,
-    rateLimit({ type: "phone_code", windowMs: 15 * 60 * 1000, max: 5 }),
-    async (req, res, next) => {
-        try {
-            const { code } = await setPhoneVerificationCode(req.user.id);
-            // TODO: send `code` via SMS provider here.
-            const body = { message: "Verification code sent" };
-            if (process.env.NODE_ENV !== "production") body.devCode = code;
-            return res.status(200).json(body);
-        } catch (err) {
-            next(err);
-        }
-    }
-);
-
-// ============================================================================
-// POST /verify-phone  (authenticated) — submit the SMS OTP
-//   Body: { code }.
-// ============================================================================
-router.post("/verify-phone", requireAuth, async (req, res, next) => {
-    try {
-        const { code } = req.body;
-        if (!code) return res.status(400).json({ error: "Missing code" });
-        const result = await markPhoneVerified(req.user.id, code);
-        return res.status(200).json(result);
-    } catch (err) {
-        if (/code|expired|outstanding/i.test(err.message)) {
-            return res.status(400).json({ error: err.message });
-        }
         next(err);
     }
 });

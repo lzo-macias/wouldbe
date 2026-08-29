@@ -1,0 +1,132 @@
+/* ============================================================================
+   My prompts. Sits inside .dbt-page, so it reads the debate route's own --dbt-*
+   tokens rather than the wb system's — same reason the rest of this folder does:
+   the header, the bracket and the vote panel around it are all lit from that
+   set, and a second palette on the same route is how a page ends up looking
+   like two products.
+   ========================================================================== */
+
+.mp-wrap {
+    width: min(820px, 100% - clamp(32px, 8vw, 68px));
+    margin: clamp(24px, 4vw, 40px) auto 96px;
+    display: grid;
+    gap: 22px;
+}
+.mp-status { padding: 80px 24px; text-align: center; color: var(--dbt-fg-2); }
+
+/* ---- head ---------------------------------------------------------------- */
+.mp-kicker {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--dbt-gold);
+}
+.mp-title {
+    margin: 6px 0 12px;
+    font-family: var(--dbt-display);
+    font-size: clamp(26px, 3.6vw, 36px); font-weight: 800;
+    letter-spacing: -.03em; line-height: 1.08; color: var(--dbt-fg);
+}
+.mp-dek { margin: 0 0 8px; max-width: 66ch; font-size: 15px; line-height: 1.6; color: var(--dbt-fg-2); }
+.mp-dek--quiet { color: var(--dbt-fg-3); font-size: 14px; }
+
+/* ---- the sticky save bar -------------------------------------------------- */
+/* Sticky because the page is one long column of textareas and the button that
+   commits them cannot be at the bottom of it — somebody who writes round one
+   and closes the tab should not lose it for lack of scrolling. */
+.mp-bar {
+    position: sticky; top: 0; z-index: 4;
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0;
+    background: linear-gradient(to bottom, var(--dbt-ink) 70%, transparent);
+    font-size: 13px; color: var(--dbt-fg-2);
+}
+.mp-bar b { color: var(--dbt-fg); font-weight: 700; font-variant-numeric: tabular-nums; }
+.mp-bar__spacer { flex: 1; }
+.mp-ok { font-size: 12.5px; color: var(--dbt-live); font-weight: 600; }
+
+.mp-error {
+    margin: 0; padding: 12px 15px; border-radius: var(--dbt-r-sm);
+    background: rgba(224, 104, 95, .1); border: 1px solid rgba(224, 104, 95, .3);
+    color: var(--dbt-danger); font-size: 13.5px; line-height: 1.5;
+}
+
+/* ---- one round ------------------------------------------------------------ */
+.mp-rounds { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.mp-round {
+    display: grid; gap: 10px;
+    padding: 18px 20px;
+    background: var(--dbt-surface);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+}
+/* A closed round is a record, not a task. It loses the gold and the input, so
+   the eye skips it on the way to the ones that still need writing. */
+.mp-round--closed { background: transparent; border-style: dashed; }
+
+.mp-round__head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mp-round__n {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--dbt-gold);
+}
+.mp-round__l { font-size: 12px; color: var(--dbt-fg-3); }
+.mp-round__spacer { flex: 1; }
+
+.mp-tick {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--dbt-live);
+}
+.mp-due {
+    font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+    color: var(--dbt-gold);
+}
+.mp-due--past, .mp-round--closed .mp-due { color: var(--dbt-fg-3); font-weight: 600; }
+
+.mp-prompt {
+    margin: 0;
+    font-family: var(--dbt-display);
+    font-size: 17px; font-weight: 700; line-height: 1.35;
+    letter-spacing: -.01em; color: var(--dbt-fg);
+    text-wrap: pretty;
+}
+
+.mp-textarea {
+    font: inherit; font-family: var(--dbt-body); font-size: 15px; line-height: 1.6;
+    width: 100%; min-height: 150px; resize: vertical;
+    padding: 14px 16px;
+    color: var(--dbt-fg);
+    background: var(--dbt-sunken);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r-sm);
+    transition: border-color var(--dbt-ease), box-shadow var(--dbt-ease);
+}
+.mp-textarea::placeholder { color: var(--dbt-fg-4); }
+.mp-textarea:focus {
+    outline: none;
+    border-color: var(--dbt-gold);
+    box-shadow: 0 0 0 3px var(--dbt-gold-wash);
+}
+.mp-textarea[disabled] { opacity: .5; }
+
+/* A published answer is text, not a disabled field. A greyed-out textarea says
+   "you could edit this if something were different" — this one is final. */
+.mp-frozen {
+    margin: 0; padding: 14px 16px;
+    background: var(--dbt-sunken); border: 1px solid var(--dbt-line);
+    border-radius: var(--dbt-r-sm);
+    font-size: 15px; line-height: 1.6; color: var(--dbt-fg-2);
+    white-space: pre-wrap;
+}
+.mp-note { font-size: 12px; line-height: 1.5; color: var(--dbt-fg-3); }
+
+/* ---- not seeded yet ------------------------------------------------------- */
+.mp-empty {
+    display: grid; gap: 12px; justify-items: start;
+    padding: 30px 26px;
+    border: 1px dashed var(--dbt-gold-3);
+    border-radius: var(--dbt-r);
+    background: var(--dbt-gold-wash);
+    color: var(--dbt-fg-2); font-size: 14.5px; line-height: 1.6;
+}
+.mp-empty__t {
+    font-family: var(--dbt-display);
+    font-size: 17px; font-weight: 800; color: var(--dbt-fg);
+}

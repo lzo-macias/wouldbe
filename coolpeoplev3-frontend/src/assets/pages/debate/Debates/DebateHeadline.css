@@ -1,0 +1,178 @@
+/* ============================================================================
+   DebateHeadline — the identity band above a live or finished debate.
+
+   Same tokens as the rest of the debate page (--dbt-*, defined on :root in
+   DebateCards.css). Nothing here declares a colour of its own; a second palette
+   living next to the first is how two halves of one page drift apart.
+
+   THE SHAPE: one band, two rows.
+     row 1  what it is  ·············································  who ran it
+     row 2  the facts, in a row of small stacked pairs
+
+   The facts row is a grid with auto-fit columns, not a flex line — a debate with
+   no prize and no announced result drops two of them, and flex would leave the
+   survivors stretched across the width looking like a layout bug.
+   ============================================================================ */
+
+.dh {
+    width: min(1060px, 100% - clamp(32px, 8vw, 68px));
+    margin: clamp(28px, 5vw, 46px) auto 0;
+    padding: 24px 26px 20px;
+    background: var(--dbt-surface);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+}
+
+.dh-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 28px;
+}
+
+.dh-id { min-width: 0; }
+
+.dh-status {
+    display: inline-block;
+    margin-bottom: 8px;
+    padding: 3px 10px;
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-3);
+    border: 1px solid var(--dbt-line-3);
+    border-radius: 999px;
+}
+/* Live is the only status that should pull the eye; concluded is a fact, not an
+   alert, and cancelled is a warning rather than an accent. */
+.dh-status--live,
+.dh-status--no_posting { color: var(--dbt-live); border-color: rgba(100, 192, 140, 0.5); }
+.dh-status--closed { color: var(--dbt-gold); border-color: var(--dbt-gold-3); }
+.dh-status--cancelled { color: var(--dbt-danger); border-color: #3a2620; }
+
+.dh-id h1 {
+    font-family: var(--dbt-display);
+    font-size: clamp(20px, 2.4vw, 27px);
+    font-weight: 800;
+    line-height: 1.16;
+    letter-spacing: -0.02em;
+    color: var(--dbt-fg);
+    text-wrap: balance;
+}
+.dh-desc {
+    margin-top: 8px;
+    max-width: 62ch;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--dbt-fg-2);
+    text-wrap: pretty;
+}
+
+/* ---- the host ------------------------------------------------------------ */
+.dh-host {
+    flex-shrink: 0;
+    text-align: right;
+}
+.dh-host-who {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    /* Reversed so the face sits on the outside edge of the card, mirroring the
+       rank/face order on the board rather than fighting it. */
+    flex-direction: row-reverse;
+}
+.dh-host-who img,
+.dh-host-blank {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--dbt-line-3);
+    background: var(--dbt-raised);
+}
+.dh-host-blank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--dbt-display);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--dbt-gold);
+    background: var(--dbt-gold-wash);
+}
+.dh-host-who strong {
+    display: block;
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--dbt-fg);
+    white-space: nowrap;
+}
+.dh-verified {
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dbt-live);
+}
+
+/* ---- the facts ----------------------------------------------------------- */
+.dh-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px 22px;
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--dbt-line);
+}
+.dh-fact p {
+    margin-top: 4px;
+    font-family: var(--dbt-display);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--dbt-fg);
+    font-variant-numeric: tabular-nums;
+}
+.dh-fact-note {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--dbt-fg-3);
+}
+
+@media (max-width: 720px) {
+    .dh { padding: 20px 18px 16px; }
+    .dh-top { flex-direction: column; gap: 16px; }
+    .dh-host { text-align: left; }
+    /* Left-aligned on a phone, so the face leads the row like every other
+       identity on the page. */
+    .dh-host-who { flex-direction: row; }
+    .dh-facts { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+}
+
+/* ── the past screen's column ─────────────────────────────────────
+   THE WRAPPER OWNS THE WIDTH, not its children. Both .dh and .ongoing carry
+   their own `width: min(1060px, …); margin: … auto` for when each is the page's
+   own top-level block — and nesting them inside .past left the headline
+   full-bleed (it had been overridden to 100% of an unconstrained parent) while
+   the winner card and bracket sat at 1060px, so the card above was visibly wider
+   than everything below it. One width, declared once, and the children fill it.
+
+   The gap also replaces .ongoing's own top margin, which was adding a second,
+   larger space between the headline and the winner card than between any other
+   pair of blocks on the page. */
+.past {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: min(1060px, 100% - clamp(32px, 8vw, 68px));
+    margin: clamp(28px, 5vw, 46px) auto 0;
+}
+.past > .dh,
+.past > .ongoing {
+    width: 100%;
+    margin: 0;
+}

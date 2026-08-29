@@ -577,15 +577,19 @@
     letter-spacing: -0.02em;
     color: var(--dbt-fg);
 }
-.dbt-board > ol { padding: 6px 22px 12px; list-style: none; }
-.dbt-board > ol > li {
+/* DESCENDANT, not direct-child. The board holds two views now (responses and
+   nominations), each wrapped in its own div so switching tabs hides one rather
+   than unmounting it — which put a wrapper between .dbt-board and this list and
+   silently killed every `> ol` rule, stacking each row into three lines. */
+.dbt-board ol { padding: 6px 22px 12px; list-style: none; }
+.dbt-board ol > li {
     display: flex;
     align-items: center;
     gap: 14px;
     padding: 13px 0;
     border-bottom: 1px solid var(--dbt-line);
 }
-.dbt-board > ol > li:last-child { border-bottom: 0; }
+.dbt-board ol > li:last-child { border-bottom: 0; }
 .dbt-board .dbt-empty { padding: 26px 22px; }
 
 .dbt-rank {
@@ -597,7 +601,32 @@
     font-variant-numeric: tabular-nums;
 }
 /* The top three are the only ranks anyone reads; gold says so without a badge. */
-.dbt-board > ol > li:nth-child(-n + 3) .dbt-rank { color: var(--dbt-gold); }
+.dbt-board ol > li:nth-child(-n + 3) .dbt-rank { color: var(--dbt-gold); }
+
+/* The face sits BETWEEN the rank and the name as its own element, not inside
+   .dbt-who. Inside, it shared that box's `flex: 1` and could be squeezed by a
+   long name; out here it is a fixed 34px on every row, so the names start on one
+   vertical line all the way down the board. */
+.dbt-avatar {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--dbt-raised);
+}
+/* Someone with no photo still occupies the same 34px — the alternative is a
+   ragged left edge on the names, which is what a missing avatar used to cause. */
+.dbt-avatar--blank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--dbt-display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--dbt-gold);
+    background: var(--dbt-gold-wash);
+}
 
 .dbt-who {
     display: flex;
@@ -605,14 +634,6 @@
     gap: 11px;
     flex: 1;
     min-width: 0;
-}
-.dbt-who img {
-    width: 34px;
-    height: 34px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    object-fit: cover;
-    background: var(--dbt-raised);
 }
 .dbt-who p {
     font-size: 14.5px;
@@ -660,6 +681,16 @@
     transition: color var(--dbt-ease);
 }
 .dbt-links a:hover { color: var(--dbt-gold); }
+/* Campaigns stack when someone holds more than one, rather than pushing the two
+   number columns off the right edge. */
+.dbt-wouldbes { flex-direction: column; gap: 2px; align-items: flex-end; }
+
+/* The two counts read right to left from the edge: nominations, then points.
+   Gold on the points number is what separates them at a glance — same size,
+   same column, different meaning. */
+.dbt-tally--points span { color: var(--dbt-gold); }
+.dbt-tally--points { min-width: 74px; justify-content: flex-end; }
+.dbt-board ol > li > .dbt-tally:last-child { min-width: 108px; justify-content: flex-end; }
 
 /* ----------------------------------------------------------------------------
    The live view — stream slot above, bracket below.
@@ -690,6 +721,64 @@
     border: 1px solid var(--dbt-line-2);
     border-radius: var(--dbt-r);
 }
+
+/* ----------------------------------------------------------------------------
+   The replay block — a concluded debate's format, and the tape if there is one.
+
+   The frame is a 16/9 box that the player fills absolutely rather than a bare
+   `aspect-ratio` on the iframe itself: Twitch's player ignores CSS sizing on the
+   element it is given and renders at its own intrinsic size, which leaves a
+   letterboxed player floating inside a taller card. Positioning it to the box's
+   edges is what actually pins it.
+   ---------------------------------------------------------------------------- */
+.dbt-replay {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px 20px;
+    background: var(--dbt-surface);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+}
+.dbt-replay--typed { gap: 8px; }
+.dbt-replay-head { display: flex; flex-direction: column; gap: 6px; }
+.dbt-replay-line {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--dbt-fg-2);
+}
+.dbt-replay-line a {
+    color: var(--dbt-gold);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.dbt-replay-line a:hover { color: var(--dbt-gold-hi); }
+.dbt-replay-frame {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: #0e0c06;
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r-sm);
+}
+.dbt-replay-frame iframe,
+.dbt-replay-frame video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    /* letterbox rather than crop: a broadcast is not ours to re-frame. */
+    object-fit: contain;
+    background: #0e0c06;
+}
+.dbt-replay-note {
+    font-family: var(--dbt-mono);
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--dbt-fg-3);
+}
+.dbt-replay-note--empty { color: var(--dbt-fg-2); font-family: var(--dbt-body); font-size: 13px; }
 
 /* ----------------------------------------------------------------------------
    Popups.
@@ -790,7 +879,9 @@
 @media (max-width: 760px) {
     .dbt-card { min-height: 0; }
     .dbt-links { display: none; }   /* the row is already tight at this width */
-    .dbt-board > ol { padding-inline: 16px; }
+    .dbt-board ol { padding-inline: 16px; }
+    .dbt-board ol > li { flex-wrap: wrap; gap: 10px; }
+    .dbt-tally--points, .dbt-board ol > li > .dbt-tally:last-child { min-width: 0; }
     .dbt-board-head { padding-inline: 16px; }
     .dbt-page .SearchContainer { display: none; }
 }
@@ -841,14 +932,97 @@
 .dbt-field input::placeholder { color: var(--dbt-fg-3); }
 .dbt-field input:focus { border-color: var(--dbt-gold); }
 
-/* A short note under a field — what the optional phone number actually does.
-   Sits inside the <label>, which is a block, so it needs its own display. */
+/* A short note under a field, or under the text-handoff button. Sits inside the
+   <label>, which is a block, so it needs its own display. */
 .dbt-hint {
     display: block;
     margin-top: 6px;
     font-size: 12px;
     line-height: 1.45;
     color: var(--dbt-fg-3);
+}
+
+/* ---- nomination link banner --------------------------------------------
+   Shown at the top of the debate when the URL carries ?invite=<token>. Gold
+   because it is the reason this person is here, not a warning. */
+.dbt-invite {
+    margin: 0 0 20px;
+    padding: 16px 18px;
+    border: 1px solid var(--dbt-gold);
+    border-left-width: 3px;
+    border-radius: 10px;
+    background: var(--dbt-bg-2, rgba(217, 183, 97, .06));
+}
+
+/* A dead link is information, not an invitation — it loses the accent so it
+   doesn't read as something to act on. */
+.dbt-invite--dead {
+    border-color: var(--dbt-line);
+    background: transparent;
+}
+
+.dbt-invite-kicker {
+    margin: 0 0 6px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--dbt-gold);
+}
+
+.dbt-invite-lede {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--dbt-fg-1, inherit);
+}
+
+.dbt-invite-detail {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--dbt-fg-2);
+}
+
+/* The masked address is the bit they scan for — keep it from wrapping mid-mask. */
+.dbt-invite-detail strong { white-space: nowrap; }
+
+.dbt-invite .dbt-popup-actions { margin-top: 14px; }
+
+/* ---- text-it-to-them handoff -------------------------------------------
+   The second, optional step after a nomination is recorded: open the
+   nominator's OWN messaging app with the invite pre-written. Set apart from the
+   confirmation text above it because it is a separate decision, not a result. */
+.dbt-handoff {
+    margin: 16px 0 4px;
+    padding: 14px;
+    border: 1px solid var(--dbt-line);
+    border-radius: 10px;
+    background: var(--dbt-bg-2, rgba(255, 255, 255, .02));
+}
+
+.dbt-handoff-lede {
+    margin: 0 0 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--dbt-fg-2);
+}
+
+.dbt-handoff-btn { width: 100%; }
+
+/* The message itself, shown only when the handoff fell through to the clipboard
+   — otherwise the button looks like it did nothing. pre-wrap because the body is
+   a real sentence with a URL in it: it must wrap, but not be reflowed. */
+.dbt-handoff-text {
+    margin: 10px 0 0;
+    padding: 10px;
+    font: inherit;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--dbt-fg-2);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    background: var(--dbt-bg-1, rgba(0, 0, 0, .18));
+    border-radius: 8px;
 }
 
 /* The criteria + rules the entrant is acknowledging. Scrollable rather than
@@ -901,3 +1075,86 @@
 @media (max-width: 560px) {
     .dbt-popup--wide { padding: 26px 18px 20px; }
 }
+
+/* ----------------------------------------------------------------------------
+   The board's first place.
+
+   The trophy REPLACES the rank number rather than sitting beside it: a "1" and a
+   trophy say the same thing twice and push the whole row right by 20px, which
+   breaks the vertical line the faces and names hold down the board.
+
+   Two states, deliberately different — won (gold, solid, "Winner") and leading
+   (muted, "Leading"). A live leader has not won anything, and the board must not
+   say they have.
+   ---------------------------------------------------------------------------- */
+.dbt-crown {
+    flex-shrink: 0;
+    width: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.dbt-crown--won { color: var(--dbt-gold); }
+.dbt-crown--leading { color: var(--dbt-fg-4); }
+
+/* The winner mark paints its own gold rather than taking `color`, so the muted
+   leading state has to be taken out of it here: drained of colour and dimmed.
+   Without this a leader would be gilded identically to a champion, which is the
+   exact claim the two states exist to keep apart. */
+.dbt-crown--leading .trophy { filter: grayscale(1) opacity(0.5); }
+
+.dbt-board ol > li.is-winner {
+    /* A wash rather than a border: the row is inside a bordered board already,
+       and a second box inside it reads as a nested card. */
+    background: linear-gradient(90deg, var(--dbt-gold-wash), transparent 60%);
+    border-radius: var(--dbt-r-sm);
+    padding-inline: 8px;
+    margin-inline: -8px;
+}
+
+.dbt-winner-tag {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    border-radius: 999px;
+}
+.is-winner .dbt-winner-tag {
+    color: #1a1509;
+    background: var(--dbt-gold);
+}
+.is-leading .dbt-winner-tag {
+    color: var(--dbt-fg-3);
+    border: 1px solid var(--dbt-line-3);
+}
+
+/* ── the board's two views ────────────────────────────────────────
+   Responses and Nominations share one container. The inactive tab is greyed
+   rather than hidden: a switcher that only shows the thing you are already
+   looking at gives no reason to press anything. */
+.dbt-board-tabs { align-items: center; gap: 4px; }
+.dbt-board-tabs button {
+    padding: 4px 12px;
+    font-family: var(--dbt-display);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--dbt-fg-4);
+    background: none;
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color var(--dbt-ease), background var(--dbt-ease);
+}
+.dbt-board-tabs button:hover { color: var(--dbt-fg-2); }
+.dbt-board-tabs button.is-active {
+    color: var(--dbt-fg);
+    background: var(--dbt-raised);
+}
+.dbt-board-tabs .dbt-label { margin-left: auto; }
+/* The headline inside the LIVE screen fills the column it is given rather than
+   re-imposing the page width it uses when it is the page's own header. (The past
+   screen does the same through .past, in DebateHeadline.css.) */
+.ongoing > .dh { width: 100%; margin: 0; }

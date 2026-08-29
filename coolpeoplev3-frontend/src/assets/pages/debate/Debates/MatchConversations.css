@@ -1,0 +1,606 @@
+/* ============================================================================
+   MatchConversations — a typed debate as a messaging app.
+
+   Two panes, sidebar left, thread right, on the debate page's own tokens
+   (--dbt-*, declared on :root in DebateCards.css).
+
+   THE LAYOUT IS A FIXED-HEIGHT BOX, not a page that grows. A message app's
+   sidebar and thread scroll independently against a stable frame; letting the
+   whole thing grow with the longest answer would push the sidebar off screen and
+   make "scroll up and down to read it" mean scrolling the page instead.
+   ============================================================================ */
+
+/* THE CONVERSATIONS LIVE INSIDE THE BOARD, which already owns the page width and
+   its own 22px gutter. Re-imposing `min(1060px, 100% - clamp(…))` here made this
+   narrower than the nomination rows it shares a container with — a tab that
+   changes the width of the box it is in reads as two different panels.
+   The padding matches `.dbt-board ol`, so both tabs start on the same line. */
+.mc {
+    width: 100%;
+    padding: 6px 22px 18px;
+}
+
+/* ---- the vote strip ------------------------------------------------------ */
+.mc-votes {
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    background: var(--dbt-raised);
+    border: 1px solid var(--dbt-gold-3);
+    border-radius: var(--dbt-r);
+}
+.mc-vote-cards {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+}
+.mc-vote-card {
+    display: grid;
+    gap: 2px;
+    flex-shrink: 0;
+    padding: 8px 14px;
+    text-align: left;
+    background: var(--dbt-sunken);
+    border: 1px solid var(--dbt-line-3);
+    border-radius: var(--dbt-r-sm);
+    cursor: pointer;
+}
+.mc-vote-card:hover { border-color: var(--dbt-gold); }
+/* A ballot already filled in stops competing for attention but stays on screen —
+   removing it would make the strip look like it lost something. */
+.mc-vote-card.is-done { opacity: 0.55; }
+.mc-vote-round {
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dbt-gold);
+}
+.mc-vote-names { font-size: 13px; color: var(--dbt-fg); white-space: nowrap; }
+.mc-vote-cta {
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-3);
+}
+
+/* ---- the frame ----------------------------------------------------------- */
+.mc-body {
+    display: grid;
+    grid-template-columns: minmax(240px, 320px) 1fr;
+    height: min(72vh, 640px);
+    background: var(--dbt-surface);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+    overflow: hidden;
+}
+
+/* ---- sidebar ------------------------------------------------------------- */
+.mc-side {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-right: 1px solid var(--dbt-line-2);
+    background: var(--dbt-sunken);
+}
+.mc-side-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--dbt-line);
+}
+.mc-side-head h3 {
+    font-family: var(--dbt-display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--dbt-fg);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mc-side-head span {
+    flex-shrink: 0;
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-4);
+}
+
+.mc-list { flex: 1; min-height: 0; overflow-y: auto; list-style: none; margin: 0; padding: 0; }
+
+.mc-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 14px;
+    text-align: left;
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--dbt-line);
+    cursor: pointer;
+}
+.mc-row:hover { background: rgba(255, 255, 255, 0.02); }
+.mc-row.is-active { background: var(--dbt-raised); box-shadow: inset 3px 0 0 var(--dbt-gold); }
+
+.mc-row-faces { display: flex; align-items: center; flex-shrink: 0; }
+.mc-face {
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--dbt-raised);
+    border: 1px solid var(--dbt-ink);
+}
+/* Overlapped, the way a group chat shows its members — the pair reads as one
+   conversation rather than two separate people. */
+.mc-face.is-stacked { margin-left: -10px; }
+.mc-face--blank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--dbt-display);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--dbt-gold);
+    background: var(--dbt-gold-wash);
+}
+
+.mc-row-text { min-width: 0; flex: 1; }
+.mc-row-top, .mc-row-bottom {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+.mc-row-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dbt-fg);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mc-row-when, .mc-row-preview, .mc-row-tag {
+    font-size: 11px;
+    color: var(--dbt-fg-4);
+    white-space: nowrap;
+}
+.mc-row-preview { overflow: hidden; text-overflow: ellipsis; color: var(--dbt-fg-3); }
+.mc-row-tag {
+    flex-shrink: 0;
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+}
+.mc-row-tag.is-released { color: var(--dbt-gold); }
+.mc-row-tag.is-open { color: var(--dbt-live); }
+
+/* ---- the thread ---------------------------------------------------------- */
+.mc-pane { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+
+.mc-pane-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--dbt-line-2);
+    background: var(--dbt-raised);
+}
+.mc-pane-faces { display: flex; flex-shrink: 0; padding-left: 10px; }
+.mc-pane-round {
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dbt-gold);
+}
+.mc-pane-prompt {
+    margin-top: 3px;
+    font-size: 14.5px;
+    line-height: 1.45;
+    font-weight: 600;
+    color: var(--dbt-fg);
+    text-wrap: pretty;
+}
+
+.mc-messages {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    /* The faint grid a chat app has behind its bubbles, so a long answer does
+       not read as a document on a page. */
+    background:
+        radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.025) 1px, transparent 0)
+        0 0 / 22px 22px;
+}
+
+.mc-msg {
+    max-width: 78%;
+    display: grid;
+    gap: 6px;
+    padding: 12px 14px;
+    text-align: left;
+    background: var(--dbt-raised);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: 14px 14px 14px 4px;
+}
+/* Expanded, it stops being a bubble in a conversation and becomes the thing you
+   are reading. 78% of the pane is right for a message beside another message,
+   and wrong for a message with a comment thread inside it. */
+.mc-msg.is-open {
+    max-width: 100%;
+    border-color: var(--dbt-gold-3);
+}
+/* The second answer sits opposite the first: two people, two sides, which is
+   what makes a head-to-head legible at a glance. */
+.mc-msg.is-them {
+    align-self: flex-end;
+    border-radius: 14px 14px 4px 14px;
+    background: var(--dbt-gold-wash);
+    border-color: var(--dbt-gold-3);
+}
+.mc-msg:hover { border-color: var(--dbt-line-3); }
+
+.mc-msg-who {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--dbt-fg);
+}
+.mc-msg-body {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--dbt-fg);
+    white-space: pre-wrap;
+    text-wrap: pretty;
+}
+.mc-msg-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-4);
+}
+/* The counts sit in the middle so the two CONTROLS bracket the row — the heart
+   at the start where the thumb is, the toggle at the end where the eye leaves. */
+.mc-msg-count { margin-right: auto; }
+
+.mc-like,
+.mc-msg-toggle {
+    font: inherit;
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    transition: color var(--dbt-ease);
+}
+.mc-like {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--dbt-fg-4);
+}
+.mc-like span { font-size: 12px; line-height: 1; }
+.mc-like:hover { color: var(--dbt-fg-2); }
+/* Liked is a STATE, so it is held in the accent rather than announced with a
+   different word. */
+.mc-like.is-on { color: var(--dbt-gold); }
+
+.mc-msg-toggle { color: var(--dbt-gold-2); }
+.mc-msg-toggle:hover { color: var(--dbt-gold); }
+
+/* ---- the thread, inside the message ------------------------------------- */
+.mc-thread {
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px solid var(--dbt-line-2);
+}
+.mc-thread-empty {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--dbt-fg-3);
+}
+.mc-comments,
+.mc-replies {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+}
+.mc-comment,
+.mc-replies > li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 9px;
+    align-items: start;
+}
+.mc-comment-main { display: grid; gap: 3px; min-width: 0; }
+.mc-comment-who {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--dbt-fg);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.mc-comment-who em {
+    font-style: normal;
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-4);
+}
+.mc-comment-body {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--dbt-fg-2);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.mc-comment-reply,
+.mc-more {
+    justify-self: start;
+    font: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    color: var(--dbt-fg-3);
+}
+.mc-comment-reply:hover,
+.mc-more:hover { color: var(--dbt-gold); }
+/* One indent, never two: the API files a reply-to-a-reply against the same
+   parent, so this is the deepest the tree can go. */
+.mc-replies {
+    margin-top: 8px;
+    padding-left: 12px;
+    border-left: 1px solid var(--dbt-line-2);
+}
+
+/* Where a chat app's composer is — and now, once an answer is open, what it is.
+   It writes comments, never answers. */
+.mc-pane-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--dbt-line-2);
+    font-size: 12.5px;
+    color: var(--dbt-fg-3);
+    background: var(--dbt-sunken);
+}
+.mc-foot-error {
+    margin: 0;
+    width: 100%;
+    font-size: 12px;
+    color: var(--dbt-danger);
+}
+.mc-foot-signin {
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 16px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #1a1509;
+    background: var(--dbt-gold);
+    border-radius: 999px;
+    text-decoration: none;
+}
+
+/* The composer takes the whole foot: a text box sharing a row with a sentence
+   about who may answer reads as a search field. */
+.mc-composer { width: 100%; display: grid; gap: 7px; }
+.mc-composer-to {
+    font-size: 11.5px;
+    color: var(--dbt-fg-3);
+}
+.mc-composer-to strong { color: var(--dbt-fg-2); font-weight: 600; }
+.mc-composer-to button {
+    height: auto;
+    margin-left: 8px;
+    padding: 0;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--dbt-gold-2);
+    background: none;
+    border: 0;
+    border-radius: 0;
+    cursor: pointer;
+}
+.mc-composer-row { display: flex; align-items: flex-end; gap: 8px; }
+.mc-composer-row textarea {
+    flex: 1;
+    min-width: 0;
+    /* Grows with the text but starts as one line, like a chat box. A textarea
+       rather than an input so Shift+Enter can break a line at all. */
+    min-height: 38px;
+    max-height: 132px;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: var(--dbt-fg);
+    background: var(--dbt-raised);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: 10px;
+    resize: vertical;
+}
+.mc-composer-row textarea:focus {
+    outline: none;
+    border-color: var(--dbt-gold-3);
+}
+.mc-composer-row textarea::placeholder { color: var(--dbt-fg-4); }
+
+.mc-pane-foot button {
+    height: 32px;
+    padding: 0 16px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #1a1509;
+    background: var(--dbt-gold);
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+}
+.mc-pane-foot button[disabled] { opacity: .5; cursor: not-allowed; }
+
+.mc-empty {
+    margin: auto;
+    padding: 30px;
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--dbt-fg-3);
+}
+
+@media (max-width: 760px) {
+    /* One column on a phone: the sidebar becomes a horizontal strip of
+       conversations above the thread, which is what a messaging app does when it
+       cannot afford two panes. */
+    .mc-body { grid-template-columns: 1fr; height: auto; }
+    .mc-side { border-right: 0; border-bottom: 1px solid var(--dbt-line-2); }
+    .mc-list { max-height: 220px; }
+    .mc-messages { max-height: 60vh; }
+    .mc-msg { max-width: 92%; }
+}
+
+/* ── the outsiders' rail ───────────────────────────────────────────────
+   Answers from people who are not in this match, written on a hundred standing
+   arrows. The divider is a rule with a label rather than a heading: this is not
+   a new section of the page, it is the same conversation continuing with people
+   who were not invited to it. */
+.mc-more {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 18px 4px 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-3);
+}
+.mc-more::before, .mc-more::after {
+    content: "";
+    height: 1px;
+    background: var(--dbt-line-2);
+}
+.mc-more::before { width: 18px; flex: none; }
+.mc-more::after  { flex: 1; }
+.mc-more small {
+    font-size: 10px;
+    letter-spacing: .1em;
+    color: var(--dbt-gold-2);
+    font-variant-numeric: tabular-nums;
+}
+
+/* An outsider's card is the same card, dimmer. It carries identical controls —
+   the likes on it are what can promote it — but it must not read as one of the
+   two answers the match is actually between. */
+.mc-msg--outsider { opacity: .88; border-style: dashed; }
+
+/* Except this one. It has already out-liked a contestant, so it is not
+   commentary any more — it is taking a seat. */
+.mc-msg--backdoor {
+    opacity: 1;
+    border-style: solid;
+    border-color: var(--dbt-gold);
+    box-shadow: 0 0 0 1px var(--dbt-gold-3), 0 8px 24px rgba(0, 0, 0, .35);
+}
+
+.mc-arrows {
+    margin-left: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--dbt-gold);
+    font-variant-numeric: tabular-nums;
+}
+.mc-backdoor-tag {
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--dbt-gold);
+    color: var(--dbt-ink);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+/* ── adding your own response ──────────────────────────────────────────
+   The button is visible to EVERYONE, not only to people who can afford it. A
+   control that appears once you are rich enough is a feature nobody discovers,
+   and the threshold is meant to be something to climb toward rather than a
+   surprise. Pressing it without the standing opens the door's price.
+
+   IT TAKES .mc-pane-foot button's STYLING AS-IS — gold plate, dark ink — and
+   adds only a width. An earlier version set `color: var(--dbt-gold) !important`
+   here, which put gold text on the gold ground the footer button already has:
+   the pill rendered with its label invisible. The lesson is in the !important —
+   it was written without checking what it was overriding, and the base rule was
+   already correct. */
+.mc-add-response {
+    min-width: 168px;
+    /* The footer is space-between and this is now its only child, so without
+       this the lone button sits at the left edge where a label used to be. */
+    margin-left: auto;
+}
+
+.mc-compose {
+    flex: 1;
+    min-width: 0;
+    min-height: 64px;
+    resize: vertical;
+    padding: 10px 12px;
+    font: inherit;
+    font-family: var(--dbt-body);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--dbt-fg);
+    background: var(--dbt-sunken);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r-sm);
+}
+.mc-compose::placeholder { color: var(--dbt-fg-4); }
+.mc-compose:focus { outline: none; border-color: var(--dbt-gold); }
+
+/* ── one question, no sidebar ──────────────────────────────────────────
+   A for-fun debate has a single match, so the list that exists to choose
+   between several is a list of one — a third of the width spent offering no
+   choice. The pane takes the whole grid instead.
+
+   The height cap goes too: with the sidebar gone there is no second column
+   whose scroll has to be kept in step, and a single thread should be as tall as
+   it needs to be rather than scrolling inside a fixed box on a page that
+   already scrolls. */
+.mc--solo .mc-body {
+    grid-template-columns: 1fr;
+    height: auto;
+}
+.mc--solo .mc-messages { max-height: none; }

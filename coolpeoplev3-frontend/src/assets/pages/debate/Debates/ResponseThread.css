@@ -1,0 +1,322 @@
+/* ============================================================================
+   The typed-debate reading surface: a match screen, an answer, its thread, and
+   the most-engaged feed.
+
+   Borrows the debate page's tokens (--dbt-*, declared on :root in
+   DebateCards.css) rather than declaring a second palette — these screens sit
+   inside .dbt-page and any drift between them reads as a bug.
+
+   ONE RULE THROUGHOUT: a person is a FACE PLUS A NAME, and the pair is one
+   target. Splitting them into a decorative avatar and a separate link gives two
+   things to hit for one intention, and makes the engagement signal ambiguous.
+   ============================================================================ */
+
+.mt-page {
+    width: min(820px, 100% - clamp(32px, 8vw, 68px));
+    margin: clamp(24px, 5vw, 40px) auto 60px;
+}
+
+.mt-back {
+    display: inline-block;
+    margin-bottom: 16px;
+    font-family: var(--dbt-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-3);
+    text-decoration: none;
+}
+.mt-back:hover { color: var(--dbt-gold); }
+
+.mt-head { margin-bottom: 18px; }
+.mt-state {
+    display: inline-block;
+    margin-bottom: 8px;
+    padding: 3px 10px;
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    border: 1px solid var(--dbt-line-3);
+    border-radius: 999px;
+    color: var(--dbt-fg-3);
+}
+/* Open is the only state with a deadline attached to it, so it is the only one
+   that pulls the eye. */
+.mt-state--open { color: var(--dbt-live); border-color: rgba(100, 192, 140, 0.5); }
+.mt-state--released { color: var(--dbt-gold); border-color: var(--dbt-gold-3); }
+
+.mt-head h1 {
+    font-family: var(--dbt-display);
+    font-size: clamp(21px, 2.6vw, 28px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--dbt-fg);
+}
+.mt-when { margin-top: 4px; font-size: 13.5px; color: var(--dbt-fg-3); }
+
+.mt-prompt {
+    margin: 18px 0;
+    padding: 18px 20px;
+    font-family: var(--dbt-display);
+    font-size: clamp(16px, 2vw, 19px);
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--dbt-fg);
+    background: var(--dbt-raised);
+    border-left: 3px solid var(--dbt-gold);
+    border-radius: var(--dbt-r);
+    text-wrap: pretty;
+}
+
+.mt-note {
+    margin: 12px 0;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--dbt-fg-3);
+    text-wrap: pretty;
+}
+.mt-note--sealed {
+    padding: 10px 14px;
+    background: var(--dbt-sunken);
+    border: 1px dashed var(--dbt-line-3);
+    border-radius: var(--dbt-r-sm);
+}
+
+.mt-responses { display: flex; flex-direction: column; gap: 16px; margin-top: 18px; }
+
+/* ---- one answer --------------------------------------------------------- */
+.rt-card {
+    padding: 18px 20px;
+    background: var(--dbt-surface);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+}
+.rt-context {
+    margin-bottom: 10px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--dbt-fg-3);
+}
+.rt-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.rt-person {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 0;
+    text-align: left;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    color: inherit;
+}
+.rt-person:hover strong { color: var(--dbt-gold); }
+.rt-face {
+    flex-shrink: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--dbt-raised);
+    border: 1px solid var(--dbt-line-3);
+}
+.rt-face--blank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--dbt-display);
+    font-weight: 700;
+    color: var(--dbt-gold);
+    background: var(--dbt-gold-wash);
+}
+.rt-person-id strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--dbt-fg);
+}
+.rt-sub, .rt-comment-foot {
+    font-family: var(--dbt-mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--dbt-fg-4);
+}
+
+.rt-sealed {
+    flex-shrink: 0;
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-3);
+}
+
+.rt-body {
+    font-size: 15px;
+    line-height: 1.62;
+    color: var(--dbt-fg);
+    white-space: pre-wrap;
+    text-wrap: pretty;
+}
+
+.rt-card-foot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--dbt-line);
+}
+.rt-card-foot button {
+    height: 30px;
+    padding: 0 12px;
+    font-family: var(--dbt-body);
+    font-size: 12.5px;
+    color: var(--dbt-fg-2);
+    background: transparent;
+    border: 1px solid var(--dbt-line-2);
+    border-radius: 999px;
+    cursor: pointer;
+}
+.rt-card-foot button:hover { border-color: var(--dbt-line-3); color: var(--dbt-fg); }
+.rt-like.is-on {
+    color: #1a1509;
+    background: var(--dbt-gold);
+    border-color: var(--dbt-gold);
+}
+
+/* ---- the thread --------------------------------------------------------- */
+.rt-thread { margin-top: 14px; }
+
+.rt-composer { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.rt-composer textarea {
+    width: 100%;
+    min-height: 64px;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--dbt-fg);
+    background: var(--dbt-sunken);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r-sm);
+    resize: vertical;
+}
+.rt-composer textarea:focus { outline: none; border-color: var(--dbt-gold-3); }
+.rt-composer > button {
+    align-self: flex-start;
+    height: 36px;
+    padding: 0 18px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #1a1509;
+    background: var(--dbt-gold);
+    border: 0;
+    border-radius: var(--dbt-r-sm);
+    cursor: pointer;
+}
+.rt-composer > button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.rt-replying {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--dbt-fg-3);
+}
+.rt-replying button {
+    background: none;
+    border: 0;
+    color: var(--dbt-gold-2);
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.rt-comments { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.rt-comment { display: grid; gap: 5px; }
+.rt-comment-body {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--dbt-fg-2);
+    text-wrap: pretty;
+}
+.rt-comment-foot { display: flex; align-items: center; gap: 10px; }
+.rt-comment-foot button {
+    background: none;
+    border: 0;
+    padding: 0;
+    font-family: var(--dbt-mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-3);
+    cursor: pointer;
+}
+.rt-comment-foot button:hover { color: var(--dbt-gold); }
+
+/* One indent, ever. The API stores a reply-to-a-reply against the same parent,
+   so there is no third level to style — and nothing on a phone that ends up
+   four columns wide and one word tall. */
+.rt-replies {
+    list-style: none;
+    margin: 4px 0 0 14px;
+    padding-left: 14px;
+    border-left: 1px solid var(--dbt-line-2);
+    display: grid;
+    gap: 10px;
+}
+
+.rt-more {
+    justify-self: start;
+    margin-left: 28px;
+    padding: 0;
+    background: none;
+    border: 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--dbt-gold-2);
+    cursor: pointer;
+}
+.rt-more:hover { color: var(--dbt-gold); }
+
+.rt-empty, .rt-signin { font-size: 13px; color: var(--dbt-fg-3); }
+.rt-signin a { color: var(--dbt-gold-2); }
+.rt-error { font-size: 13px; color: var(--dbt-danger); margin-bottom: 8px; }
+
+/* ---- the most-engaged feed ---------------------------------------------- */
+.tr-feed { display: grid; gap: 14px; }
+.tr-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+.tr-head h2 {
+    font-family: var(--dbt-display);
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--dbt-fg);
+}
+.tr-score {
+    display: inline-flex;
+    gap: 10px;
+    font-family: var(--dbt-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-4);
+}
+.tr-score strong { color: var(--dbt-gold); }
+
+@media (max-width: 640px) {
+    .rt-card { padding: 14px 15px; }
+    .rt-replies { margin-left: 8px; padding-left: 10px; }
+    .rt-more { margin-left: 18px; }
+}

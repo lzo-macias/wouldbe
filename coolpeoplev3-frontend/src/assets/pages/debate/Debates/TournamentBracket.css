@@ -188,29 +188,6 @@
 
 .bracket-round--final { gap: 10px; }
 
-.bracket-champion {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 150px;
-    min-height: var(--bracket-slot-h);
-    padding: 0 14px;
-    border: 1px dashed #2f2a1f;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--bracket-muted);
-}
-
-.bracket-champion.is-crowned {
-    border-style: solid;
-    border-color: var(--bracket-live);
-    background: var(--bracket-live);
-    color: #1a1509;
-    font-weight: 600;
-    box-shadow: 0 6px 22px rgba(224, 181, 81, 0.16);
-}
-
 .bracket-empty {
     padding: 46px 24px;
     text-align: center;
@@ -223,5 +200,190 @@
 
 @media (max-width: 720px) {
     :root { --bracket-gap: 18px; }
-    .bracket-slot, .bracket-champion { min-width: 120px; font-size: 12px; }
+    .bracket-slot { min-width: 120px; font-size: 12px; }
+}
+
+/* THE CROWN REPLACES THE "FINAL" LABEL once there is a champion, sitting
+ * directly above the final match. That adjacency is the whole design: crown on
+ * top, the winner's gold capsule immediately under it. It is not a decoration
+ * floating in the column — it is the column's heading, which is why it occupies
+ * the same slot in the flex order that the label did.
+ */
+.bracket-crown {
+    display: flex;
+    justify-content: center;
+    color: var(--bracket-win);
+    filter: drop-shadow(0 2px 10px rgba(224, 181, 81, 0.4));
+    animation: bracket-crown 0.45s ease-out;
+}
+@keyframes bracket-crown {
+    from { transform: translateY(6px) scale(0.85); opacity: 0; }
+    to   { transform: none; opacity: 1; }
+}
+
+/* Under a crown, the two capsules must not read as equals. The winner is lifted
+ * (a ring, a glow) and the beaten finalist is pushed further back than a normal
+ * eliminated slot — in the final, "second" is the one thing the picture has to
+ * say unambiguously. */
+.bracket-round--final.is-decided .bracket-slot--winner {
+    box-shadow: 0 0 0 2px rgba(224, 181, 81, 0.28), 0 8px 26px rgba(224, 181, 81, 0.2);
+}
+.bracket-round--final.is-decided .bracket-slot--out { opacity: 0.32; }
+
+@media (prefers-reduced-motion: reduce) {
+    .bracket-crown { animation: none; }
+}
+
+/* ── the wire, and what it says ───────────────────────────────────
+   The connector between two contestants who have NOT yet faced off is the
+   liveliest thing in the bracket: it is where the next thing happens. So it goes
+   gold and gains a badge naming the round, while a settled match's wire stays
+   the quiet hairline it always was — a board where every wire shouts says
+   nothing. */
+.bracket-match.is-pending::after,
+.bracket-match.is-pending::before {
+    border-color: var(--bracket-win) !important;
+}
+.bracket-half .bracket-round:not(:last-child) .bracket-match.is-pending::after {
+    box-shadow: 0 0 10px rgba(224, 181, 81, 0.25);
+}
+
+/* The badge sits on the wire and is its own click target — clicking the wire
+   between two people opens their match, not just the capsules. */
+.bracket-mark {
+    position: absolute;
+    right: calc(var(--bracket-gap) / -2 - 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    padding: 2px 7px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #1a1509;
+    background: var(--bracket-win);
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.bracket-half--right .bracket-mark { transform: translateY(-50%) scaleX(-1); }
+/* The final's badge has no outgoing wire to sit on, so it centres above. */
+.bracket-round--final .bracket-mark { right: auto; left: 50%; top: -10px; transform: translateX(-50%); }
+
+/* A DIFFERENT MARK PER ROUND. Depth is counted from the end, so "Semi" means
+   semifinal whether the field is 4 or 64 — and the closer to the final, the more
+   the badge is allowed to weigh. */
+.bracket-match--early .bracket-mark {
+    color: var(--bracket-win);
+    background: transparent;
+    border: 1px dashed var(--bracket-win);
+}
+.bracket-match--quarter .bracket-mark {
+    color: var(--bracket-win);
+    background: rgba(224, 181, 81, 0.14);
+    border: 1px solid var(--bracket-win);
+}
+.bracket-match--semi .bracket-mark { background: var(--bracket-win); }
+.bracket-match--final .bracket-mark {
+    background: var(--bracket-win);
+    box-shadow: 0 0 12px rgba(224, 181, 81, 0.5);
+}
+
+/* A capsule that leads somewhere says so on hover. */
+.bracket-slot--linked { cursor: pointer; font: inherit; text-align: left; }
+.bracket-slot--linked:hover {
+    border-color: var(--bracket-win);
+    box-shadow: 0 0 0 1px var(--bracket-win);
+}
+
+/* ── the typed debate's round rail ────────────────────────────────
+   Where a live debate shows its stream. */
+.trail {
+    padding: 18px 20px;
+    background: var(--dbt-surface, #1a1710);
+    border: 1px solid var(--dbt-line-2, #332e22);
+    border-radius: var(--dbt-r, 12px);
+}
+.trail-head p {
+    margin-top: 4px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--dbt-fg-2, #ada491);
+}
+.trail-rounds { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
+.trail-round {
+    padding: 10px 12px;
+    background: var(--dbt-sunken, #17140c);
+    border: 1px solid var(--dbt-line, #262218);
+    border-left: 3px solid var(--dbt-line-3, #443e2e);
+    border-radius: 10px;
+}
+.trail-round.is-open { border-left-color: var(--dbt-live, #64c08c); }
+.trail-round.is-released { border-left-color: var(--bracket-win); }
+.trail-round-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13.5px;
+    color: var(--dbt-fg, #f6f2e7);
+}
+.trail-round-head span {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-3, #7a7263);
+}
+.trail-matches { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.trail-match {
+    padding: 3px 9px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-3, #7a7263);
+    background: transparent;
+    border: 1px solid var(--dbt-line-2, #332e22);
+    border-radius: 999px;
+    cursor: pointer;
+}
+.trail-match:hover { color: var(--bracket-win); border-color: var(--bracket-win); }
+.trail-match.is-released { color: var(--bracket-win); border-color: var(--bracket-win); }
+.trail-match.is-open { color: var(--dbt-live, #64c08c); border-color: rgba(100, 192, 140, 0.5); }
+
+/* ── the backdoor ──────────────────────────────────────────────────────
+   A seat taken by somebody who was never in the bracket: they answered the
+   match's prompt from outside, out-liked one of the two contestants, and
+   replaced them. Marked on the board because a seat that appears from nowhere
+   between two rounds is otherwise indistinguishable from a bug — and because
+   the mechanic only means anything if the room can watch it happen.
+
+   Gold, not an alert colour. Coming through the backdoor is a legitimate way in
+   and the design should not apologise for it. */
+.bracket-match.is-backdoor {
+    position: relative;
+}
+.bracket-match.is-backdoor .bracket-slot {
+    border-color: var(--dbt-gold-3);
+}
+.bracket-backdoor {
+    position: absolute;
+    top: -9px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--dbt-gold);
+    color: var(--dbt-ink);
+    font-family: var(--dbt-mono);
+    font-size: 8.5px;
+    font-weight: 800;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .45);
 }

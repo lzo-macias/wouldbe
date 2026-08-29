@@ -23,11 +23,15 @@ useEffect(() => {
             setDrafts(data.filter((d) => d.status === "draft"))
             setApproved(data.filter((d) => d.status === "open_entry"))
             setRejecteds(data.filter((d) => d.status === "cancelled"))
-            if( data.length == 0) setScreen("2")
+            if (data.length === 0) setScreen("2")
         } catch (err) {
-            // A 401 (not signed in, or the refresh failed) lands here. The lists
-            // stay empty, which renders as "no debates yet" rather than an error.
+            // A 401 (not signed in, or the refresh failed) lands here. THE CHOICE
+            // SCREEN IS STILL THE RIGHT ANSWER: somebody who has hosted nothing —
+            // whether because they have no debates or because we could not read
+            // their list — came here to start one, and an empty "your debates"
+            // shelf is a dead end that answers a question they did not ask.
             console.error(err)
+            setScreen("2")
         }
     }
     loadData()
@@ -52,7 +56,10 @@ useEffect(() => {
     }
 
   return ( 
-    <div className='debategradientV2'>
+    /* data-surface="dark" is what flips the gold system: --wb-gold-ink resolves
+       to #E8C56A here instead of #7A5211, and every primitive inside picks it up
+       without knowing it is on a dark page. */
+    <div className='debategradientV2' data-surface="dark">
         <StartADebateHeader/>
         {screens[screen]}
     </div>

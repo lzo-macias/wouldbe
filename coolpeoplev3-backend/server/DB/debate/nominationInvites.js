@@ -3,9 +3,7 @@ const crypto = require("crypto")
 
 const {
     normalizeEmail,
-    normalizePhone,
     sendEmail,
-    sendSms,
     APP_URL,
 } = require("../../services/notify")
 
@@ -23,6 +21,15 @@ const {
 //               details plus a claim token, and stays 'pending' until whoever
 //               owns that address signs up, at which point claimInvitesForUser
 //               turns it into the nomination it was always meant to be.
+//
+// TEXTING IS A HANDOFF, NOT A SEND. We do not collect phone numbers, so the
+// server has no way to text anyone and never tries. What it returns instead is
+// `share`: the link plus a prepared message. The browser opens the NOMINATOR's
+// own Messages app with that body and no recipient, and they pick the contact
+// out of their own OS picker. The number never reaches the page, the request or
+// the logs — there is nothing to store and nothing to disclose later. The cost
+// is that we cannot know whether they hit send; the token being claimed is the
+// only real signal, and that is what `claimed_at` records.
 //
 // DELIVERY NEVER FAILS THE WRITE. The sends happen AFTER the transaction
 // commits and their outcome is recorded on the row afterwards. An invite that
@@ -81,18 +88,13 @@ const resolveHandle = async (rawHandle, db = client) => {
 
 // inviteToNominate — the whole flow behind the nominate form.
 //   handle : email address OR username (required)
-//   phone  : optional; when present the invite is texted as well as emailed
-const inviteToNominate = async ({ debate_id, nominator_user_id, handle, phone }) => {
+//
+// There is no phone parameter, and adding one back would defeat the point: the
+// moment a number is accepted here it is in the request, the access log and
+// whatever this row becomes. Texting is handled entirely on the client.
+const inviteToNominate = async ({ debate_id, nominator_user_id, handle }) => {
     if (!nominator_user_id) throw httpError(401, "authentication required")
     if (!debate_id) throw httpError(400, "debate_id is required")
-
-    // Reject an unusable number BEFORE anything is written. Silently dropping it
-    // would mean the form says "we texted them" about a number we never had.
-    const rawPhone = phone == null ? "" : String(phone).trim()
-    const invitee_phone = rawPhone ? normalizePhone(rawPhone) : null
-    if (rawPhone && !invitee_phone) {
-        throw httpError(400, "that phone number isn't valid — use a 10-digit US number, or +country code")
-    }
 
     const resolved = await resolveHandle(handle)
 
@@ -134,20 +136,19 @@ const inviteToNominate = async ({ debate_id, nominator_user_id, handle, phone })
             const inviteIns = await tx.query(
                 `INSERT INTO debate_nomination_invites (
                     debate_id, nominator_user_id,
-                    invitee_email, invitee_phone, invitee_username,
+                    invitee_email, invitee_username,
                     invitee_user_id, nomination_id, token, status, expires_at
                  ) VALUES (
                     $1, $2,
-                    $3, $4, $5,
-                    $6, $7, $8, $9,
-                    NOW() + ($10 || ' days')::interval
+                    $3, $4,
+                    $5, $6, $7, $8,
+                    NOW() + ($9 || ' days')::interval
                  )
                  RETURNING *;`,
                 [
                     debate_id,
                     nominator_user_id,
                     invitee_email,
-                    invitee_phone,
                     resolved.username,
                     resolved.user?.id || null,
                     nominationRow?.id || null,
@@ -206,25 +207,19 @@ const inviteToNominate = async ({ debate_id, nominator_user_id, handle, phone })
         ? `${from} nominated you for "${debateTitle}" on CoolPeople. A nomination means you can enter free: ${link}`
         : `${from} nominated you for "${debateTitle}" on CoolPeople. Create an account with this link to claim it and enter free: ${link}`
 
-    // Both channels are attempted regardless of each other's outcome, and
-    // neither throws — sendEmail/sendSms resolve to a status either way.
-    const [emailResult, smsResult] = await Promise.all([
-        sendEmail({ to: invitee_email, subject, text: body }),
-        sendSms({ to: invitee_phone, body }),
-    ])
+    // Email is the only channel WE send. It never throws — sendEmail resolves
+    // to a status either way — so a bounce is recorded, not raised.
+    const emailResult = await sendEmail({ to: invitee_email, subject, text: body })
 
     const { rows: updated } = await client.query(
         `UPDATE debate_nomination_invites SET
              email_status  = $2,
              email_sent_at = CASE WHEN $2 = 'sent' THEN NOW() ELSE email_sent_at END,
              email_error   = $3,
-             sms_status    = $4,
-             sms_sent_at   = CASE WHEN $4 = 'sent' THEN NOW() ELSE sms_sent_at END,
-             sms_error     = $5,
              updated_at    = NOW()
          WHERE id = $1
          RETURNING *;`,
-        [row.id, emailResult.status, emailResult.error, smsResult.status, smsResult.error]
+        [row.id, emailResult.status, emailResult.error]
     )
 
     return {
@@ -239,19 +234,23 @@ const inviteToNominate = async ({ debate_id, nominator_user_id, handle, phone })
                   name: displayName(resolved.user),
               }
             : null,
-        delivery: { email: emailResult.status, sms: smsResult.status },
+        delivery: { email: emailResult.status },
+        // Everything the client needs to open the nominator's own Messages app.
+        // The server composes the wording so a text and an email say the same
+        // thing; it does NOT send it, and it is not told who it goes to.
+        share: { link, text: body },
     }
 }
 
 // listInvitesSent — the caller's own invites for one debate. Scoped to the
-// nominator: these rows hold a third party's email and phone, and the only
-// person entitled to see them is whoever typed them in.
+// nominator: these rows hold a third party's email address, and the only person
+// entitled to see it is whoever typed it in.
 const listInvitesSent = async ({ debate_id, nominator_user_id }) => {
     if (!nominator_user_id) throw httpError(401, "authentication required")
     if (!debate_id) throw httpError(400, "debate_id is required")
     const { rows } = await client.query(
-        `SELECT id, invitee_email, invitee_phone, invitee_username, invitee_user_id,
-                status, email_status, sms_status, claimed_at, created_at
+        `SELECT id, invitee_email, invitee_username, invitee_user_id,
+                status, email_status, claimed_at, created_at
          FROM debate_nomination_invites
          WHERE debate_id = $1 AND nominator_user_id = $2
          ORDER BY created_at DESC;`,
@@ -260,22 +259,85 @@ const listInvitesSent = async ({ debate_id, nominator_user_id }) => {
     return rows
 }
 
+// maskEmail — SERVER-SIDE ONLY, and the plaintext must never leave with it.
+//
+// The invite link is shareable by definition: it arrives in a text message and
+// can be forwarded to anyone. A landing page that rendered the full address
+// would therefore be an email-harvesting endpoint for whoever ends up holding
+// the link. The mask is enough for the real nominee to recognise themselves
+// ("yes, that's my gmail") and useless to anyone else.
+//
+// The local part is never revealed beyond its first character, and the dot count
+// is fixed rather than proportional — `••••` for a 4-letter local and a 40-letter
+// one alike, so the length isn't leaked either.
+const maskEmail = (email) => {
+    if (!email) return null
+    const [local, domain] = String(email).split("@")
+    if (!domain) return null
+    return `${local.slice(0, 1)}${"\u2022".repeat(4)}@${domain}`
+}
+
+// getInviteByToken — what the nomination link resolves to.
+//
+// PUBLIC, because the token IS the credential: whoever holds the link is who we
+// are willing to tell. It returns only what the landing page needs to say "you
+// were nominated, here is by whom, here is which debate" — never the raw email,
+// never the nominator's contact details, never the other invites on this debate.
+//
+// An unknown token is null, not an error, and the route turns that into a plain
+// 404: distinguishing "no such token" from "expired token" would let someone
+// probe for valid ones.
+const getInviteByToken = async ({ token }) => {
+    if (!token) return null
+    const { rows } = await client.query(
+        `SELECT i.debate_id, i.status, i.expires_at, i.claimed_at,
+                i.invitee_email, i.invitee_user_id,
+                d.title  AS debate_title,
+                d.status AS debate_status,
+                u.username, u.first_name, u.last_name
+         FROM debate_nomination_invites i
+         JOIN debates d ON d.id = i.debate_id
+         JOIN users   u ON u.id = i.nominator_user_id
+         WHERE i.token = $1;`,
+        [token]
+    )
+    const row = rows[0]
+    if (!row) return null
+
+    // Recomputed from expires_at rather than trusted from `status`: nothing
+    // sweeps the table, so a row can still say 'pending' long after it lapsed.
+    // claimInvitesForUser stamps 'expired' at signup, but that is too late to be
+    // what this page reads.
+    const lapsed =
+        row.status === "expired" ||
+        (row.expires_at && new Date(row.expires_at).getTime() < Date.now())
+
+    return {
+        debate_id: row.debate_id,
+        debate_title: row.debate_title,
+        nominated_by: displayName(row),
+        email_masked: maskEmail(row.invitee_email),
+        // 'pending'  — nobody has signed up with that address yet
+        // 'nominated'— already a real nomination; nothing left to claim
+        // 'expired' / 'revoked' — dead link
+        status: lapsed && row.status === "pending" ? "expired" : row.status,
+        claimed: !!row.claimed_at || !!row.invitee_user_id,
+    }
+}
+
 // claimInvitesForUser — turn every pending invite addressed to this person into
 // the nomination it stood for. Called once, at signup.
 //
-// Matched on email OR phone, because either is enough to identify the person the
-// nominator meant, and an invite sent to a number the user later registers with
-// is just as much theirs. Expired rows are stamped 'expired' rather than
-// silently claimed — the invite ran out, and pretending otherwise would let a
-// year-old link enter a debate.
+// Matched on EMAIL, which is now the only address an invite can carry. Expired
+// rows are stamped 'expired' rather than silently claimed — the invite ran out,
+// and pretending otherwise would let a year-old link enter a debate.
 //
 // BEST EFFORT BY DESIGN: this runs inside signup, and a failure here must never
 // cost someone their account. Errors are logged and swallowed by the caller.
-const claimInvitesForUser = async ({ user_id, email, phone_number }) => {
+const claimInvitesForUser = async ({ user_id, email }) => {
     if (!user_id) return { claimed: 0, expired: 0 }
     const normalizedEmail = normalizeEmail(email)
-    const normalizedPhone = normalizePhone(phone_number)
-    if (!normalizedEmail && !normalizedPhone) return { claimed: 0, expired: 0 }
+    if (!normalizedEmail) return { claimed: 0, expired: 0 }
 
     return withTransaction(async (tx) => {
         // Expire first, so the claim step below cannot pick up a stale row.
@@ -284,18 +346,18 @@ const claimInvitesForUser = async ({ user_id, email, phone_number }) => {
              SET status = 'expired', updated_at = NOW()
              WHERE status = 'pending'
                AND expires_at IS NOT NULL AND expires_at < NOW()
-               AND (invitee_email = $1 OR invitee_phone = $2)
+               AND invitee_email = $1
              RETURNING id;`,
-            [normalizedEmail, normalizedPhone]
+            [normalizedEmail]
         )
 
         const { rows: pending } = await tx.query(
             `SELECT id, debate_id, nominator_user_id
              FROM debate_nomination_invites
              WHERE status = 'pending'
-               AND (invitee_email = $1 OR invitee_phone = $2)
+               AND invitee_email = $1
              FOR UPDATE;`,
-            [normalizedEmail, normalizedPhone]
+            [normalizedEmail]
         )
 
         let claimed = 0
@@ -332,6 +394,7 @@ const claimInvitesForUser = async ({ user_id, email, phone_number }) => {
 }
 
 module.exports = {
+    getInviteByToken,
     inviteToNominate,
     listInvitesSent,
     claimInvitesForUser,

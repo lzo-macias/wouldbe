@@ -25,7 +25,6 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || `${JWT_SECRET}:refresh`
 const ACCESS_TTL = "7d";
 const REFRESH_TTL = "30d";
 const PASSWORD_RESET_TTL = "30m";
-const PHONE_CODE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 // Centralized token minting so the signing logic lives in one place.
 const signAccessToken = (user) =>
@@ -204,50 +203,6 @@ const markEmailVerified = async (userId) => {
     return rows[0];
 };
 
-// setPhoneVerificationCode(userId) — generate a 6-digit OTP, store ONLY its
-// bcrypt hash + a 10-min expiry, and return the plaintext code so the route can
-// SMS it. Companion to markPhoneVerified. (TCPA: only send to a number the user
-// supplied, and log sms_transactional consent separately via recordConsent.)
-const setPhoneVerificationCode = async (userId) => {
-    const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
-    const code_hash = await bcrypt.hash(code, 10);
-    const expires = new Date(Date.now() + PHONE_CODE_TTL_MS).toISOString();
-    const { rows } = await client.query(
-        `UPDATE users SET phone_verification_code_hash = $2, phone_verification_expires_at = $3
-         WHERE id = $1 RETURNING id`,
-        [userId, code_hash, expires]
-    );
-    if (!rows.length) throw new Error("no user found with this ID");
-    return { code }; // route sends via SMS; never log this
-};
-
-// markPhoneVerified(userId, code) — compare the submitted OTP to the stored
-// hash, check it hasn't expired, then stamp phone_verified_at and clear the code.
-const markPhoneVerified = async (userId, code) => {
-    const { rows } = await client.query(
-        `SELECT phone_verification_code_hash AS hash, phone_verification_expires_at AS expires
-         FROM users WHERE id = $1`,
-        [userId]
-    );
-    if (!rows.length) throw new Error("no user found with this ID");
-    const { hash, expires } = rows[0];
-    if (!hash || !expires) throw new Error("no verification code outstanding");
-    if (new Date(expires).getTime() < Date.now()) throw new Error("verification code expired");
-
-    const ok = await bcrypt.compare(String(code), hash);
-    if (!ok) throw new Error("incorrect verification code");
-
-    const { rows: updated } = await client.query(
-        `UPDATE users SET phone_verified_at = NOW(),
-                          phone_verification_code_hash = NULL,
-                          phone_verification_expires_at = NULL,
-                          updated_at = NOW()
-         WHERE id = $1 RETURNING id, phone_number, phone_verified_at`,
-        [userId]
-    );
-    return updated[0];
-};
-
 module.exports = {
     authenticate,
     findUserByToken,
@@ -257,6 +212,4 @@ module.exports = {
     createPasswordResetToken,
     resetPasswordWithToken,
     markEmailVerified,
-    setPhoneVerificationCode,
-    markPhoneVerified,
 };

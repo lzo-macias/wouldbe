@@ -1,503 +1,112 @@
-/* ============================================================
-   Start-a-WouldBe page. All selectors are scoped under the root
-   .StartAWouldBeMainContainer so the generic class names (.card,
-   .grid, input[type=range], …) never leak into the rest of the app.
-   Design tokens live on the root as CSS custom properties.
-   ============================================================ */
-.StartAWouldBeMainContainer {
-  --ink: #0d0d0f;
-  --ink-2: #3a3a40;
-  --muted: #8a8a93;
-  --line: #e7e7ea;
-  --bg: #ffffff;
-  --panel: #f6f6f4;
-  --gold: #c9a437;
-  --gold-deep: #b48f22;
-  --gold-soft: #f5ecd0;
-  --rose: #f5385d;
-  --radius: 18px;
-  --shadow: 0 1px 2px rgba(16, 16, 20, 0.04), 0 12px 34px rgba(16, 16, 20, 0.06);
-  --shadow-lg: 0 2px 6px rgba(16, 16, 20, 0.05), 0 24px 60px rgba(16, 16, 20, 0.10);
+/* ============================================================================
+   Start-a-WouldBe — the page's own remainder.
+   ----------------------------------------------------------------------------
+   Everything structural now comes from the gold system in index.css: the
+   two-column .wb-campaign shell, the sticky .wb-rail, .wb-hero__plate,
+   .wb-timeline-card / .wb-ftl, .wb-detail__card / .wb-req, .wb-chip,
+   .wb-callout and .wb-btn.
 
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 0 28px;
-  box-sizing: border-box;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color: var(--ink);
-  line-height: 1.5;
-}
-.StartAWouldBeMainContainer *,
-.StartAWouldBeMainContainer *::before,
-.StartAWouldBeMainContainer *::after {
-  box-sizing: border-box;
+   What this file previously held — a second --ink/--line/--panel palette, a
+   local shadow scale, a #f5385d "today" pin, a near-black goal card, its own
+   card and grid rules — is gone. Those were the reason this screen looked like
+   a different product from the office list that leads into it, and every one of
+   them had a system equivalent.
+
+   All that is left is what the system genuinely doesn't own: the range input
+   (no browser styles one usefully), the money figures at display sizes, and
+   the two typographic one-offs in the hero.
+   ========================================================================== */
+
+/* Double class, not `.sawb`: .wb-campaign sets `padding` as a shorthand, and a
+   later longhand only wins on equal specificity if the bundler happens to emit
+   this file second. It shouldn't depend on that. */
+.wb-campaign.sawb { padding-top: 28px; }
+.sawb-main { display: grid; gap: 24px; min-width: 0; }
+
+/* HowItWorksTimeline is a fixed 4/2/1 grid on VIEWPORT width, but here it lives
+   in a reading column with a 358px rail beside it — four cards at 1200px means
+   four 165px slivers. Sized to the column it is actually in instead. */
+.sawb .howitworksmaincontainer {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
 
-/* ---- HERO ---- */
-.StartAWouldBeMainContainer .hero {
-  padding: 24px 0 12px;
+/* ---- hero ---------------------------------------------------------------- */
+/* The logo is a black-filled SVG, so it sits on the brushed plate as ink and
+   needs no recolouring — but it must share a baseline with the words beside it,
+   which is why the thesis is a flex line rather than a plain paragraph. */
+.sawb-thesis {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px;
+  max-width: 26ch;
 }
-.StartAWouldBeMainContainer .headline {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 14px;
-  font-size: clamp(24px, 3.4vw, 38px);
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  margin: 0;
-}
-.StartAWouldBeMainContainer .headlineLogo {
-  height: 1.1em;
-  width: auto;
-}
-.StartAWouldBeMainContainer .headlineText {
-  color: var(--muted);
-  font-weight: 400;
-  font-size: 0.55em;
-}
+.sawb-logo { height: .82em; width: auto; align-self: center; }
 
-/* ---- TIMELINE PANEL ---- */
-.StartAWouldBeMainContainer .panel {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  box-shadow: var(--shadow-lg);
-  padding: 24px 32px;
-  margin-top: 20px;
+/* ---- "why this seat" figure ---------------------------------------------- */
+/* The 37% was 62px and the largest thing on the page, which put a soft
+   comparative stat above the seat you are actually deciding on. It keeps the
+   emphasis, at the size of a heading rather than of a hero. */
+.sawb-figure { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.sawb-figure__n {
+  font-size: 38px; font-weight: 800; letter-spacing: -.04em; line-height: 1;
+  color: var(--wb-gold-ink); font-variant-numeric: tabular-nums;
 }
-.StartAWouldBeMainContainer .panel-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-bottom: 6px;
-}
-.StartAWouldBeMainContainer .panel-title {
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.StartAWouldBeMainContainer .panel-title b {
-  color: var(--ink);
-  font-size: 17px;
-  letter-spacing: -0.01em;
-  text-transform: none;
-  display: block;
-  margin-top: 3px;
-}
-.StartAWouldBeMainContainer .goal-chip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: transparent;
-  color: var(--muted);
-  padding: 0;
-  font-size: 13.5px;
-  font-weight: 600;
-}
-.StartAWouldBeMainContainer .goal-chip b {
-  color: var(--gold);
-  font-size: 16px;
-}
+.sawb-figure__d { margin: 0; font-size: 14.5px; color: var(--ink-2); max-width: 32ch; }
+.sawb-figure__d b { color: var(--ink); font-weight: 700; }
 
-.StartAWouldBeMainContainer .timeline {
-  margin-top: 26px;
-  overflow-x: auto;
-  padding-bottom: 8px;
+/* ---- the goal, in the rail ----------------------------------------------- */
+.sawb-goal {
+  font-size: 38px; font-weight: 800; letter-spacing: -.03em; line-height: 1.05;
+  margin-top: 4px; font-variant-numeric: tabular-nums; color: var(--ink);
 }
-.StartAWouldBeMainContainer .track {
-  position: relative;
-  display: grid;
-  width: 100%;            /* fill the timeline panel; 1fr columns space evenly */
-  align-items: end;
-}
-.StartAWouldBeMainContainer .rail {
-  position: absolute;
-  left: 5.5%;
-  right: 5.5%;
-  top: 52px;
-  height: 3px;
-  border-radius: 2px;
-  /* --progress is set per-render to the "Today" pin position */
-  background: linear-gradient(
-    90deg,
-    var(--gold) 0%,
-    var(--gold) var(--progress, 0%),
-    var(--line) var(--progress, 0%),
-    var(--line) 100%
-  );
-}
-.StartAWouldBeMainContainer .node {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 0 6px;
-}
-.StartAWouldBeMainContainer .node .pin {
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  background: #fff;
-  border: 3px solid var(--line);
-  margin-top: 46px;
-  position: relative;
-  z-index: 2;
-}
-.StartAWouldBeMainContainer .node.done .pin {
-  border-color: var(--gold);
-  background: var(--gold);
-}
-.StartAWouldBeMainContainer .node.today .pin {
-  width: 0;
-  height: 0;
-  border: none;
-  margin: 0;
-}
-.StartAWouldBeMainContainer .node .label {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--ink);
-  margin-top: 12px;
-  line-height: 1.25;
-}
-.StartAWouldBeMainContainer .node.today .label {
-  color: var(--rose);
-}
-.StartAWouldBeMainContainer .node .date {
-  font-size: 10.5px;
-  color: var(--muted);
-  margin-top: 3px;
-}
-.StartAWouldBeMainContainer .node .amt {
-  font-size: 11.5px;
-  font-weight: 800;
-  color: var(--ink-2);
-  margin-top: 5px;
-}
-.StartAWouldBeMainContainer .node.done .amt {
-  color: var(--gold-deep);
-}
-.StartAWouldBeMainContainer .youflag {
-  position: absolute;
-  top: 2px;
-  transform: translateY(-100%);
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.StartAWouldBeMainContainer .youflag .bubble {
-  background: var(--rose);
-  color: #fff;
-  font-weight: 800;
-  font-size: 11px;
-  padding: 5px 13px;
-  border-radius: 999px;
-  box-shadow: 0 6px 16px rgba(245, 56, 93, 0.4);
-}
-.StartAWouldBeMainContainer .youflag .stem {
-  width: 2px;
-  height: 26px;
-  background: var(--rose);
-}
-.StartAWouldBeMainContainer .youflag .caret {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: var(--rose);
-  border: 3px solid #fff;
-  box-shadow: 0 0 0 2px var(--rose);
-  margin-top: -4px;
-}
+.sawb-goal__cap { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
 
-/* ---- MAIN GRID ---- */
-.StartAWouldBeMainContainer .grid {
-  display: grid;
-  grid-template-columns: 1.05fr 0.95fr 1.05fr;
-  gap: 22px;
-  margin-top: 24px;
-  align-items: stretch;
+/* The range input. Chrome/Safari and Firefox need separate thumb selectors and
+   will drop the WHOLE rule if they are comma-joined — one unknown
+   pseudo-element invalidates the selector list, which is why these are
+   duplicated rather than grouped. */
+.sawb-range {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 6px; border-radius: 999px;
+  background: var(--line); outline: none; cursor: pointer;
 }
-.StartAWouldBeMainContainer .card {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 26px;
-  display: flex;
-  flex-direction: column;
-}
-.StartAWouldBeMainContainer .card.tint {
-  background: var(--panel);
-  border-color: #ececea;
-}
-.StartAWouldBeMainContainer .card h3 {
-  margin: 0 0 18px;
-  font-size: 16px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-}
-.StartAWouldBeMainContainer .reasons {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  flex: 1;
-}
-.StartAWouldBeMainContainer .reasons li {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 14px;
-  border-bottom: 1px dashed var(--line);
-  padding-bottom: 12px;
-}
-.StartAWouldBeMainContainer .reasons li:last-child {
-  border-bottom: none;
-}
-.StartAWouldBeMainContainer .reasons .k {
-  color: var(--muted);
-  font-weight: 600;
-}
-.StartAWouldBeMainContainer .reasons .v {
-  color: var(--ink);
-  font-weight: 700;
-  text-align: right;
-}
-.StartAWouldBeMainContainer .src {
-  margin-top: 16px;
-  font-size: 12px;
-  color: var(--muted);
-}
-.StartAWouldBeMainContainer .src a {
-  color: var(--gold-deep);
-  text-decoration: none;
-  word-break: break-all;
-}
-.StartAWouldBeMainContainer .link-plain {
-  margin-top: 18px;
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--ink);
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.StartAWouldBeMainContainer .link-plain:hover {
-  color: var(--gold-deep);
-}
-
-.StartAWouldBeMainContainer .stat-card {
-  align-items: flex-start;
-  justify-content: center;
-  text-align: left;
-}
-.StartAWouldBeMainContainer .stat-top {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-}
-.StartAWouldBeMainContainer .stat-arrow {
-  color: var(--gold-deep);
-  font-size: 30px;
-  line-height: 1;
-}
-.StartAWouldBeMainContainer .stat-num {
-  font-size: 62px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 0.9;
-}
-.StartAWouldBeMainContainer .stat-desc {
-  color: var(--ink-2);
-  font-size: 14.5px;
-  margin: 14px 0 0;
-  max-width: 230px;
-}
-.StartAWouldBeMainContainer .divider {
-  height: 1px;
-  background: var(--line);
-  margin: 24px 0;
-  width: 100%;
-}
-.StartAWouldBeMainContainer .badge-incumbent {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  background: #eef7ee;
-  color: #217a3b;
-  font-weight: 800;
-  font-size: 14px;
-  letter-spacing: 0.02em;
-  padding: 11px 18px;
-  border-radius: 999px;
-  border: 1px solid #d3ecd6;
-}
-.StartAWouldBeMainContainer .badge-incumbent .b-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #28a745;
-}
-.StartAWouldBeMainContainer .incumbent-note {
-  color: var(--muted);
-  font-size: 13px;
-  margin: 12px 0 0;
-  max-width: 240px;
-}
-
-.StartAWouldBeMainContainer .goal-card {
-  background: linear-gradient(160deg, #1a1a1e 0%, #0d0d0f 100%);
-  color: #fff;
-  border: none;
-}
-.StartAWouldBeMainContainer .goal-card h3 {
-  color: #fff;
-}
-.StartAWouldBeMainContainer .goal-eyebrow {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--gold);
-  margin-bottom: 8px;
-}
-.StartAWouldBeMainContainer .goal-amount {
-  font-size: 52px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1;
-  margin: 2px 0 4px;
-}
-.StartAWouldBeMainContainer .goal-caption {
-  color: #a9a9b2;
-  font-size: 13px;
-  margin-bottom: 22px;
-}
-.StartAWouldBeMainContainer .slider-wrap {
-  margin-bottom: 6px;
-}
-.StartAWouldBeMainContainer input[type=range] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 6px;
-  border-radius: 999px;
-  background: #3a3a40;
-  outline: none;
-}
-.StartAWouldBeMainContainer input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--gold);
+.sawb-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--wb-brushed); background-size: 200% 200%;
+  border: 1px solid var(--wb-gold-600);
+  box-shadow: 0 0 0 4px var(--wb-gold-wash);
   cursor: pointer;
-  box-shadow: 0 0 0 5px rgba(201, 164, 55, 0.22);
 }
-.StartAWouldBeMainContainer input[type=range]::-moz-range-thumb {
-  width: 22px;
-  height: 22px;
-  border: none;
-  border-radius: 50%;
-  background: var(--gold);
+.sawb-range::-moz-range-thumb {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--wb-brushed); background-size: 200% 200%;
+  border: 1px solid var(--wb-gold-600);
+  box-shadow: 0 0 0 4px var(--wb-gold-wash);
   cursor: pointer;
-  box-shadow: 0 0 0 5px rgba(201, 164, 55, 0.22);
 }
-.StartAWouldBeMainContainer .range-legend {
-  display: flex;
-  justify-content: space-between;
-  color: #8a8a93;
-  font-size: 11.5px;
-  margin-top: 8px;
-}
-.StartAWouldBeMainContainer .goal-your {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  font-size: 13px;
-  color: #a9a9b2;
-}
-.StartAWouldBeMainContainer .goal-your b {
-  color: #fff;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-.StartAWouldBeMainContainer .goal-your em {
-  font-style: normal;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--gold);
-  margin-left: 6px;
+.sawb-range:focus-visible { outline: 2px solid var(--wb-gold-ink); outline-offset: 4px; }
+
+.sawb-range__legend {
+  display: flex; justify-content: space-between; margin-top: 10px;
+  font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums;
 }
 
-.StartAWouldBeMainContainer .start-btn {
-  margin-top: 22px;
-  width: 100%;
-  background: var(--gold);
-  color: #241b00;
-  font-weight: 800;
-  font-size: 16px;
-  border: none;
-  border-radius: 14px;
-  padding: 16px;
-  cursor: pointer;
-  transition: 0.18s;
-  font-family: inherit;
+.sawb-your {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding-top: 14px; border-top: 1px solid var(--line);
+  font-size: 13px; color: var(--muted);
 }
-.StartAWouldBeMainContainer .start-btn:hover {
-  background: var(--gold-deep);
-  transform: translateY(-1px);
+.sawb-your b {
+  font-size: 22px; font-weight: 800; letter-spacing: -.02em; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+/* "adjusted" only appears once the slider leaves the recommended figure, so it
+   is a state, not a label — a badge rather than a word in the number. */
+.sawb-your em {
+  display: inline-block; margin-left: 8px; font-style: normal;
+  font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--wb-gold-wash-ink); background: var(--wb-gold-wash);
+  border: 1px solid var(--wb-gold-hair); border-radius: 999px; padding: 3px 8px;
+  vertical-align: middle;
 }
 
-/* ---- HOW IT WORKS ---- */
-.StartAWouldBeMainContainer .how {
-  margin: 64px 0 80px;
-  text-align: center;
-}
-.StartAWouldBeMainContainer .how h2 {
-  font-size: 30px;
-  font-weight: 800;
-  font-style: italic;
-  letter-spacing: -0.02em;
-  margin: 0;
-}
-/* .continue {
-  width: 100%;
-  display: flex;
-} */
-
-.second {
-  display: flex;
-  justify-content: center;  
-  padding-bottom: 50px;
-
-}
-/* .barrier {
-  justify-content: center;
-  padding-bottom: 50px;
-} */
-@media (max-width: 900px) {
-  .StartAWouldBeMainContainer .grid {
-    grid-template-columns: 1fr;
-  }
-  .StartAWouldBeMainContainer .stat-card {
-    text-align: left;
-  }
-}
+.sawb-cta { width: 100%; }

@@ -32,3 +32,15 @@ export function formatUSD(cents) {
         style: "currency", currency: "USD", maximumFractionDigits: 0,
     });
 }
+
+// The milestones that gate candidacy, in chronological order. The FEC financial
+// report dates above are deliberately NOT here: they'd crowd a timeline and
+// none of them is a candidacy gate. Lives beside DEADLINE_LABELS because every
+// consumer of one wants the other.
+export const CANDIDACY_MILESTONES = [
+    "petition_circulation_start",
+    "petition_filing_deadline",
+    "filing_close",
+    "primary_date",
+    "general_date",
+];

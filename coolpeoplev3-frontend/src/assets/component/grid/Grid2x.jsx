@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react"
 import "./HomeGrid2x.css"
+import FormatBadge from "../FormatBadge/FormatBadge"
 import { Link } from "react-router-dom"
 import api from "../../lib/api"
 import { DEFAULT_FILTERS, activeCount } from "../../lib/homeFilters"
@@ -33,6 +34,16 @@ const daysUntil = (value) => {
     const when = new Date(value)
     if (Number.isNaN(when.getTime())) return null
     return Math.max(0, Math.ceil((when.getTime() - Date.now()) / MS_PER_DAY))
+}
+
+// "0 days" was on every card in the grid, and it reads as a bug even when it is
+// accurate — a countdown that has run out is a STATE, not a number. Say the
+// state; only print a figure while the figure is still counting down.
+const timeLabel = (days) => {
+    if (days === null) return null
+    if (days === 0) return "Ends today"
+    if (days === 1) return "1 day left"
+    return `${days} days left`
 }
 
 // Cents -> "$1,234" — money never crosses the wire as a float.
@@ -89,6 +100,30 @@ const interleave = (wouldbes, debates) => {
 // nothing. Both used to collapse to [], so an unreachable API rendered an empty
 // grid with no error and no explanation — a blank page that looks like "there is
 // nothing here" when it actually means "we never got an answer".
+// LOCAL date parts, never toISOString(). `deadline` is a Postgres DATE compared
+// against CURRENT_DATE on the server; toISOString() converts to UTC, so west of
+// Greenwich it would call a campaign concluded a few hours early.
+const todayLocal = () => {
+    const d = new Date()
+    const p = (n) => String(n).padStart(2, "0")
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
+// /wouldbes/recommended takes no status parameter — it is a fixed "campaigns in
+// your jurisdictions" query — so the window is applied to its rows here instead
+// of switching the whole feed off. String comparison, because both sides are
+// 'YYYY-MM-DD' and that sorts correctly without constructing a Date at all.
+const inStatusWindow = (rows, status) => {
+    if (status === "all" || !status) return rows
+    const today = todayLocal()
+    return rows.filter((w) => {
+        const past = w.deadline ? String(w.deadline).slice(0, 10) < today : false
+        return status === "concluded"
+            ? past
+            : !past && w.launch_status !== "failed"
+    })
+}
+
 const FAILED = Symbol("failed")
 const orEmpty = (v) => (v === FAILED || !Array.isArray(v) ? [] : v)
 
@@ -134,6 +169,9 @@ function Grid2x({ filters = DEFAULT_FILTERS }) {
                                 // every campaign whose owner never set one.
                                 lean_min: f.leanMin !== 1 || f.leanMax !== 10 ? f.leanMin : undefined,
                                 lean_max: f.leanMin !== 1 || f.leanMax !== 10 ? f.leanMax : undefined,
+                                // 'all' is the absence of the parameter, not a
+                                // value the API knows.
+                                status: f.status !== "all" ? f.status : undefined,
                             },
                         }).then((r) => r.data).catch(() => FAILED)
 
@@ -144,6 +182,7 @@ function Grid2x({ filters = DEFAULT_FILTERS }) {
                             sort: "featured",
                             limit: 8,
                             prize: f.prize !== "any" ? f.prize : undefined,
+                            status: f.status !== "all" ? f.status : undefined,
                         },
                     }).then((r) => r.data).catch(() => FAILED)
 
@@ -178,8 +217,12 @@ function Grid2x({ filters = DEFAULT_FILTERS }) {
                     return
                 }
 
-                const recommendedList = orEmpty(recommended)
-                const campaignList = orEmpty(campaigns)
+                const recommendedList = inStatusWindow(orEmpty(recommended), f.status)
+                // The jurisdiction-only path serves campaigns FROM the
+                // recommended endpoint, so it needs the same treatment.
+                const campaignList = jurisdictionOnly
+                    ? inStatusWindow(orEmpty(campaigns), f.status)
+                    : orEmpty(campaigns)
                 const debateList = orEmpty(debates)
 
                 // A recommended campaign is usually ALSO in the main feed —
@@ -223,6 +266,13 @@ function Grid2x({ filters = DEFAULT_FILTERS }) {
             {mixed.map(({ type, item }) => {
                 if (type === "debate") {
                     const days = daysUntil(item.start_date)
+                    // Handle first — it is what the WouldBe cards in the same
+                    // grid show — then the sponsor's display name, then a
+                    // neutral stand-in. A corporate sponsor has no backing user
+                    // and therefore no username, which is why this falls back
+                    // rather than assuming one.
+                    const sponsorLabel =
+                        item.sponsor_username || item.sponsor_name || "A sponsor"
                     // prize_is_cash false => the prize is described in prose
                     // (prize_description), and prize_pool_cents is meaningless.
                     const isCash = item.prize_is_cash !== false
@@ -236,11 +286,32 @@ function Grid2x({ filters = DEFAULT_FILTERS }) {
                             className="overarchingdebatecomponent"
                         >
                             <div className="smallgridcomponentDebate">
+                                {/* HOW IT IS ARGUED, top-left, before the title.
+                                    A live debate is watched at a time; a typed
+                                    one is read whenever — that is the first
+                                    thing a reader needs to know about a card
+                                    they are deciding whether to open, and it is
+                                    the one fact the title never carries.
+                                    The badge owns the wording: it takes the
+                                    stored `format` ('live' | 'typed') and says
+                                    Stream / Written, so the vocabulary is fixed
+                                    in one file rather than at each call site. */}
+                                <FormatBadge format={item.format} />
                                 <h3 className="DebateTitle">{item.title}</h3>
                                 {/* The prize plaque: icon on the left, label +
                                     amount stacked on the right. Non-cash prizes
                                     reuse the same plaque with prose in place of
-                                    the dollar figure. */}
+                                    the dollar figure.
+
+                                    A FOR-FUN DEBATE HAS NO PLAQUE AT ALL — and
+                                    nothing in its place either. It is not a
+                                    debate with a zero prize; there is nothing at
+                                    stake but a standing arrow, so "$0", "no
+                                    prize" or a tag saying so would all make the
+                                    absence the loudest thing on a card that is
+                                    otherwise identical to every other one. The
+                                    space simply belongs to the question. */}
+                                {!item.is_for_fun && (
                                 <div className="totalcashprizecontainer">
                                     <img
                                         src="/homepagegraphics/LargeColdMoney.svg"
@@ -249,7 +320,7 @@ function Grid2x({ filters = DEFAULT_FILTERS }) {
                                     />
                                     <div className="totalcashprizetext">
                                         <p className="smalltexttotalcashprize">
-                                            {isCash ? "total cash prize" : "the prize"}
+                                            {isCash ? "total prize" : "the prize"}
                                         </p>
                                         <p className="amt">
                                             {isCash
@@ -258,23 +329,52 @@ function Grid2x({ filters = DEFAULT_FILTERS }) {
                                         </p>
                                     </div>
                                 </div>
+                                )}
                             </div>
                             <div className="DebateLowerLevel">
-                                {item.sponsor_photo_url && (
-                                    <img
-                                        src={item.sponsor_photo_url}
-                                        alt=""
-                                        title={item.sponsor_name || ""}
-                                        className="debatesponsorpic"
-                                    />
-                                )}
+                                {/* WHO PUT THIS UP — always, face and handle
+                                    together. The avatar used to render only when
+                                    a photo existed and the name never rendered at
+                                    all, so most debate cards carried no author
+                                    while every WouldBe card beside them did. The
+                                    fallback disc is the same brushed plate the
+                                    poster initials use, so a sponsor without a
+                                    photo still occupies the slot rather than
+                                    collapsing the row. */}
+                                <div className="debateSponsor" title={sponsorLabel}>
+                                    {item.sponsor_photo_url ? (
+                                        <img
+                                            src={item.sponsor_photo_url}
+                                            alt=""
+                                            className="debatesponsorpic"
+                                        />
+                                    ) : (
+                                        <span
+                                            className="debatesponsorpic debatesponsorinitial"
+                                            aria-hidden="true"
+                                        >
+                                            {sponsorLabel.charAt(0).toUpperCase()}
+                                        </span>
+                                    )}
+                                    <p className="debatesponsorname">{sponsorLabel}</p>
+                                </div>
                                 <div className="team">
                                     <img
                                         src="/homepagegraphics/Team.svg"
                                         alt=""
                                         className="teamimg"
                                     />
-                                    <p>{item.total_contestants ?? 0} competitors</p>
+                                    {/* WHAT THE NUMBER COUNTS depends on the
+                                        debate. A for-fun debate has no bracket,
+                                        so nobody in it is competing with anybody
+                                        — they answered a question. Calling six
+                                        answers "6 competitors" describes a
+                                        contest that is not happening. */}
+                                    <p>
+                                        {item.is_for_fun
+                                            ? `${item.total_responses ?? 0} response${(item.total_responses ?? 0) === 1 ? '' : 's'}`
+                                            : `${item.total_contestants ?? 0} competitor${(item.total_contestants ?? 0) === 1 ? '' : 's'}`}
+                                    </p>
                                 </div>
                                 {days !== null && (
                                     <div className="debatetimeline">
@@ -283,7 +383,7 @@ function Grid2x({ filters = DEFAULT_FILTERS }) {
                                             alt=""
                                             className="debatetimelineimg"
                                         />
-                                        <p>{days} days</p>
+                                        <p>{timeLabel(days)}</p>
                                     </div>
                                 )}
                             </div>
@@ -385,13 +485,23 @@ function Grid2x({ filters = DEFAULT_FILTERS }) {
                                         alt=""
                                         className="wouldbestaticon"
                                     />
-                                    <p>{days} days</p>
+                                    <p>{timeLabel(days)}</p>
                                 </div>
                             )}
                         </div>
                     </Link>
                 )
             })}
+
+            {/* Sits under the second row of cards. It is placed explicitly
+                rather than dropped in at a fixed index because the column count
+                is fluid (4 down to 1): grid-row:3 pins it to the third row
+                whatever that count is, and the cards auto-flow around it. Last
+                child in the DOM is fine — explicitly-placed items are laid out
+                before the auto-placed ones. */}
+            {mixed.length > 0 && (
+                <span className="gridPrivacyNote">would be never sells any user data</span>
+            )}
         </div>
     )
 }

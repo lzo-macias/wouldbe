@@ -48,7 +48,7 @@
 }
 
 .DraftsCard {
-    /* --muted is a TEXT token (#8b8b93, "de-emphasized text") — using it as a
+    /* --muted is a TEXT token (#6b6b74, "de-emphasized text") — using it as a
        surface is why nothing on this card had contrast, and why a pending draft
        read as disabled. --panel is the token meant for a filled surface. */
     background-color: var(--panel);

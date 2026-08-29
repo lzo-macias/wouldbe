@@ -8,6 +8,12 @@
 // ============================================================================
 
 export const DEFAULT_FILTERS = {
+    // THE FEED OPENS ON WHAT IS STILL HAPPENING. A concluded debate and a
+    // campaign whose funding window has closed are both a RECORD — you cannot
+    // enter one or back the other — and a home page whose first screen is full
+    // of things nobody can act on is a worse first screen. They are one filter
+    // away, not gone.
+    status: "active",       // active | concluded | all
     type: "all",            // all | wouldbes | debates
     contentious: false,     // no scoring algorithm yet — the control is disabled
     state: "",              // '' = anywhere
@@ -28,6 +34,10 @@ export const US_STATES = [
 // How many knobs are off their default. Shown on the button so a filtered feed
 // never looks like an empty one.
 export const activeCount = (f) =>
+    // Counted against the DEFAULT, not against "unset": 'active' is the default,
+    // so it is not a knob the reader has turned, and showing "1 filter" on an
+    // untouched feed would make the normal view look narrowed.
+    (f.status !== "active" ? 1 : 0) +
     (f.type !== "all" ? 1 : 0) +
     (f.contentious ? 1 : 0) +
     (f.state ? 1 : 0) +

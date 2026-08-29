@@ -1,18 +1,257 @@
-.reviewsbigcontainer {
+/* ============================================================================
+   Reviews — summary, composer, feed.
+
+   COLOUR: gold is the RATING here (stars, distribution bars) and also the
+   ACTION (the plate on Write a review). That is the swap the gold system asks
+   for — gold has to carry meaning, and a star is the one graphic in this
+   section that is nothing but meaning. The two are told apart by SHAPE, not
+   hue: a button is a filled rectangle with ink on it, a rating is a glyph.
+
+   The neutrals come from the app's own scale (--ink/--ink-2/--muted/--line/
+   --paper), not from a second ramp declared here. One edit to index.css moves
+   this component with everything else.
+   ========================================================================== */
+
+.wb-reviews {
+    /* The stars read this — see StarRating.css. Declared on the section rather
+       than globally so the primitives can be reused elsewhere at another value
+       without this one changing with them. */
+    --rv-star: var(--wb-gold-mark);
+    --rv-star-off: var(--line);
+
+    display: grid;
+    gap: 24px;
+    max-width: 900px;
+}
+
+/* ---- summary -------------------------------------------------------------- */
+/* One row on a wide screen: the number, the distribution, the action. Stacked
+   below 700px, because three columns in a phone's width gives the bars about
+   90px and a distribution you cannot read is just decoration. */
+.wb-rev-summary {
+    display: grid;
+    gap: 22px;
+    align-items: center;
+    grid-template-columns: minmax(0, 1fr);
+    border: 1px solid var(--wb-gold-hair);
+    background: var(--wb-gold-wash);
+    border-radius: 14px;
+    padding: 22px 24px;
+}
+@media (min-width: 700px) {
+    .wb-rev-summary { grid-template-columns: auto minmax(0, 1fr) auto; gap: 30px; }
+}
+
+.wb-rev-score { display: grid; justify-items: start; gap: 6px; }
+@media (min-width: 700px) { .wb-rev-score { justify-items: center; } }
+.wb-rev-score__n {
+    font-size: 40px;
+    font-weight: 800;
+    letter-spacing: -.04em;
+    line-height: 1;
+    /* tabular, so 4.3 and 3.9 are the same width and the block does not shift
+       when a review lands. */
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+}
+.wb-rev-score__c { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+
+.wb-rev-dist { display: grid; gap: 5px; min-width: 0; }
+/* Fixed first and last columns so the bars all start and end on the same two
+   lines — ragged ends turn a distribution into five unrelated bars. */
+.wb-rev-row {
+    display: grid;
+    grid-template-columns: 12px minmax(0, 1fr) 22px;
+    gap: 10px;
+    align-items: center;
+}
+.wb-rev-row__s { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.wb-rev-row__n {
+    font-size: 11.5px;
+    color: var(--muted);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+/* The track is a tint of the gold ground rather than --line: on the wash, a
+   neutral grey hairline reads as a different material. */
+.wb-rev-bar {
+    height: 7px;
+    border-radius: 999px;
+    background: rgba(90, 58, 13, .10);
+    overflow: hidden;
+    display: block;
+}
+.wb-rev-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--wb-brushed);
+    background-size: 220% 100%;
+    transition: width .5s var(--wb-ease);
+}
+[data-surface="dark"] .wb-rev-bar { background: rgba(255, 255, 255, .08); }
+
+.wb-rev-act { display: grid; gap: 8px; justify-items: start; }
+@media (min-width: 700px) { .wb-rev-act { justify-items: center; } }
+.wb-rev-note { margin: 0; font-size: 11.5px; color: var(--muted); max-width: 22ch; }
+@media (min-width: 700px) { .wb-rev-note { text-align: center; } }
+
+/* ---- one review ----------------------------------------------------------- */
+.wb-rev-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+
+.wb-review {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    background: var(--paper);
+    display: grid;
+    gap: 9px;
+}
+/* In flight. Dimmed rather than removed: the card you just wrote should stay
+   where you can see it while the request is out. */
+.wb-review.is-pending { opacity: .6; }
+
+.wb-review__head { display: flex; align-items: center; gap: 11px; }
+.wb-review__av {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex: none;
+    background: var(--wb-brushed);
+}
+.wb-review__av--fallback {
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+}
+.wb-review__who { display: grid; gap: 1px; margin-right: auto; min-width: 0; }
+.wb-review__name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
     display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
 }
+.wb-review__name .wb-badge { font-size: 9px; padding: 3px 8px; letter-spacing: .08em; }
+.wb-review__meta { font-size: 12px; color: var(--muted); }
+.wb-review__b { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--ink-2); }
 
-.rightReview {
+.wb-review__act { display: flex; gap: 14px; }
+
+/* ---- composer ------------------------------------------------------------- */
+.rvComposer {
+    display: grid;
+    gap: 18px;
+    border: 1px solid var(--wb-gold-hair);
+    border-radius: 14px;
+    background: var(--paper);
+    padding: 22px 24px;
+    /* It appears on click, so it has to be findable when it does — the ring is
+       the only thing on the page wearing the gold at this size. */
+    box-shadow: 0 1px 2px rgba(17, 17, 20, .04), 0 12px 32px rgba(17, 17, 20, .06);
+}
+.rvComposerHead h3 { margin: 0 0 4px; font-size: 16px; font-weight: 800; letter-spacing: -.015em; }
+.rvComposerHead p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--muted); max-width: 60ch; }
+
+.rvField { display: grid; gap: 8px; }
+.rvFieldHead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.rvFieldLabel { font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
+.rvFieldWord { font-size: 12.5px; font-weight: 600; color: var(--wb-gold-ink); }
+.rvCounter { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* Not an error — nothing has gone wrong yet, the review is simply not long
+   enough to post. Amber-adjacent gold ink, not red. */
+.rvCounterShort { color: var(--wb-gold-ink); }
+
+.rvTextarea {
     width: 100%;
-    /* border: 1px solid black; */
-    margin: 100px;
-    border-radius: 12px;
+    box-sizing: border-box;
+    min-height: 150px;
+    padding: 14px 16px;
+    font: inherit;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    resize: vertical;
+}
+.rvTextarea:focus {
+    outline: none;
+    border-color: var(--wb-gold-ink);
+    box-shadow: 0 0 0 3px var(--wb-gold-wash);
+}
+.rvTextareaSmall { min-height: 84px; }
+
+.rvComposerFoot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.rvPostedAs { margin-right: auto; font-size: 12px; color: var(--muted); max-width: 44ch; }
+.rvPostedAs strong { color: var(--ink-2); }
+
+/* ---- report --------------------------------------------------------------- */
+.rvReport {
+    display: grid;
+    gap: 8px;
+    justify-items: start;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+}
+.rvSelect {
+    font: inherit;
+    font-size: 13.5px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--paper);
+    color: var(--ink);
+}
+.rvPostSmall { --_pad: 9px 16px; font-size: 13px; }
+
+/* ---- small text buttons --------------------------------------------------- */
+.rvLinkButton {
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--wb-gold-ink);
+}
+.rvLinkButton:hover { text-decoration: underline; }
+.rvLinkButton:focus-visible { outline: 2px solid var(--wb-gold-ink); outline-offset: 2px; border-radius: 4px; }
+.rvLinkDanger { color: #a3272b; }
+[data-surface="dark"] .rvLinkDanger { color: #f0a1a1; }
+
+/* ---- messages ------------------------------------------------------------- */
+.rvError { margin: 0; font-size: 13px; color: #a3272b; }
+[data-surface="dark"] .rvError { color: #f0a1a1; }
+.rvNoteOk { margin: 0; font-size: 13px; color: var(--wb-gold-ink); }
+
+.rvToast {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    justify-self: start;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--wb-gold-wash-ink);
+    background: var(--wb-gold-wash);
+    border: 1px solid var(--wb-gold-hair);
+    border-radius: 999px;
+    padding: 8px 14px;
 }
 
-.activeStar {
-    opacity: 100%
-}
-
-.notActiveStar {
-    opacity: 10%
+@media (prefers-reduced-motion: reduce) {
+    .wb-rev-bar i { transition: none; }
 }

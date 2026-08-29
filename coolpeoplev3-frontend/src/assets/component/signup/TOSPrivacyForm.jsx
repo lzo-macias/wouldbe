@@ -131,7 +131,7 @@ function PrivacyCopy() {
             <p>CoolPeople never touches campaign contributions; pledges are promises that never transact. The only money we handle is tips, the debate poster&rsquo;s flat fee, and a small per-transaction markup on debate transactions. We <strong>do not sell individual political data</strong>.</p>
 
             <h3>2. What we collect</h3>
-            <p>Account &amp; profile (name, username, email, phone, date of birth, password as a hash), content you post, attestations and consents (with IP/user-agent for legal records), limited payment metadata, and device/usage data.</p>
+            <p>Account &amp; profile (name, username, email, date of birth, password as a hash), content you post, attestations and consents (with IP/user-agent for legal records), limited payment metadata, and device/usage data. We do not collect phone numbers.</p>
 
             <h3>3. Your address is used once, then discarded</h3>
             <p>If you provide an address, we use it momentarily to resolve your civic jurisdictions and then keep only the derived districts — <strong>we do not store your street address</strong>.</p>

@@ -1,0 +1,190 @@
+/* ============================================================================
+   The arrow paywall. Lives inside .dbt-page, so it reads the debate route's
+   --dbt-* tokens like everything else on that screen.
+
+   Deliberately NOT loud. It is a door somebody just walked into, on somebody
+   else's contest — the design's job is to explain the price, not to sell.
+   ========================================================================== */
+
+.ap-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(10, 9, 6, .72);
+    backdrop-filter: blur(3px);
+}
+
+.ap-card {
+    position: relative;
+    width: min(460px, 100%);
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    display: grid;
+    gap: 14px;
+    padding: 26px 26px 22px;
+    background: var(--dbt-surface);
+    border: 1px solid var(--dbt-gold-3);
+    border-radius: var(--dbt-r);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .55);
+}
+
+.ap-x {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: none;
+    border: 0;
+    color: var(--dbt-fg-3);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+.ap-x:hover { color: var(--dbt-fg); }
+
+.ap-kicker {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--dbt-gold);
+}
+.ap-title {
+    margin: 0;
+    font-family: var(--dbt-display);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    line-height: 1.2;
+    color: var(--dbt-fg);
+}
+.ap-dek { margin: 0; font-size: 14px; line-height: 1.55; color: var(--dbt-fg-2); }
+
+/* ---- why it costs what it costs ------------------------------------------ */
+.ap-breakdown {
+    list-style: none;
+    margin: 0;
+    padding: 14px 16px;
+    display: grid;
+    gap: 8px;
+    background: var(--dbt-sunken);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r-sm);
+}
+.ap-breakdown li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    font-size: 13px;
+    color: var(--dbt-fg-2);
+}
+.ap-breakdown b { font-variant-numeric: tabular-nums; color: var(--dbt-fg); font-weight: 700; }
+.ap-breakdown__total {
+    padding-top: 8px;
+    border-top: 1px solid var(--dbt-line-2);
+}
+.ap-breakdown__total b { color: var(--dbt-gold); font-size: 15px; font-weight: 800; }
+.ap-breakdown__you b { color: var(--dbt-fg-3); }
+
+/* The earned path. Same weight as the price — a currency that can only be
+   bought is not standing, it is a subscription. */
+.ap-earn {
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: var(--dbt-r-sm);
+    background: var(--dbt-gold-wash);
+    border: 1px solid var(--dbt-gold-3);
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--dbt-fg-2);
+}
+.ap-earn b { color: var(--dbt-fg); font-weight: 700; }
+
+/* The single quantity input that used to live here is gone — .ap-calc below
+   replaced it with the two-way calculator. */
+
+/* Buying fewer than the shortfall is allowed — it is their money — but it does
+   not open this door, and saying so beats letting them find out at the wall. */
+.ap-short { margin: 0; font-size: 12.5px; color: var(--dbt-gold-2); }
+
+.ap-error {
+    margin: 0;
+    padding: 10px 13px;
+    border-radius: var(--dbt-r-sm);
+    background: rgba(224, 104, 95, .1);
+    border: 1px solid rgba(224, 104, 95, .3);
+    color: var(--dbt-danger);
+    font-size: 13px;
+    line-height: 1.5;
+}
+.ap-note { margin: 0; font-size: 13px; line-height: 1.55; color: var(--dbt-fg-3); }
+.ap-cta { width: 100%; }
+.ap-later {
+    background: none;
+    border: 0;
+    color: var(--dbt-fg-3);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 2px;
+}
+.ap-later:hover { color: var(--dbt-fg); }
+
+/* ---- the three routes ---------------------------------------------------- */
+/* The arrow calculator that used to be styled here is gone with the feature —
+   arrows are not for sale any more, so there is nothing to calculate. */
+.ap-option {
+    display: grid;
+    gap: 8px;
+    padding: 14px 16px;
+    border-radius: var(--dbt-r-sm);
+    background: var(--dbt-sunken);
+    border: 1px solid var(--dbt-line-2);
+}
+.ap-option p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--dbt-fg-2); }
+.ap-option p b { color: var(--dbt-fg); font-weight: 700; }
+.ap-option .wb-btn { width: 100%; }
+
+.ap-option__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+.ap-option__head b {
+    font-family: var(--dbt-display);
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -.01em;
+    color: var(--dbt-fg);
+}
+
+/* The earned route is gold-washed rather than plain, because it is the one the
+   product actually wants people to take. */
+.ap-option--earned {
+    background: var(--dbt-gold-wash);
+    border-color: var(--dbt-gold-3);
+}
+/* And the subscription carries the accent border, because it is the better of
+   the two paid options for anybody who does this twice. */
+.ap-option--best { border-color: var(--dbt-gold-3); }
+
+.ap-free {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--dbt-gold);
+}
+.ap-price {
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--dbt-fg);
+}
+.ap-price small { font-size: 11px; font-weight: 600; color: var(--dbt-fg-3); }
+

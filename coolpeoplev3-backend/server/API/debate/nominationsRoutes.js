@@ -9,6 +9,7 @@ const {
 const {
     inviteToNominate,
     listInvitesSent,
+    getInviteByToken,
 } = require("../../DB/debate/nominationInvites");
 const { requireAuth, rateLimit } = require("../../middleware");
 
@@ -29,8 +30,11 @@ router.post("/debates/:id/nominations", requireAuth, async (req, res, next) => {
     }
 });
 
-// POST /api/debates/:id/nominations/invite — nominate by EMAIL OR USERNAME,
-// with an optional phone number.
+// POST /api/debates/:id/nominations/invite — nominate by EMAIL OR USERNAME.
+//
+// No phone number is accepted, deliberately. The response carries a `share`
+// block (link + prepared text) and the BROWSER opens the nominator's own
+// Messages app with it — so a number never reaches this request or its logs.
 //
 // Distinct from the route above rather than folded into it: that one takes a
 // nominee_user_id and returns a nominations row, this one takes a handle nobody
@@ -56,7 +60,6 @@ router.post(
                 // `handle` is the field name; email/username are accepted as
                 // aliases so a caller can be explicit about which one they hold.
                 handle: req.body.handle ?? req.body.email ?? req.body.username,
-                phone: req.body.phone ?? req.body.phone_number,
             });
             return res.status(201).json(result);
         } catch (err) {
@@ -65,8 +68,28 @@ router.post(
     }
 );
 
+// GET /api/nomination-invites/:token — what a nomination link resolves to.
+//
+// DELIBERATELY PUBLIC. The token is the credential, and the person following the
+// link is by definition not signed in yet — that is the whole point of the link.
+// requireAuth here would make it unusable by the only people it is for.
+//
+// It answers with a masked email and nothing else identifying. A 404 covers
+// unknown, forged and deleted tokens alike, so the endpoint cannot be used to
+// test whether a token is real.
+router.get("/nomination-invites/:token", async (req, res, next) => {
+    try {
+        const invite = await getInviteByToken({ token: req.params.token });
+        if (!invite) return res.status(404).json({ error: "that invite link is not valid" });
+        return res.json(invite);
+    } catch (err) {
+        if (err.status) return res.status(err.status).json({ error: err.message });
+        next(err);
+    }
+});
+
 // GET /api/debates/:id/nominations/invites — the CALLER'S OWN invites for this
-// debate. Never anyone else's: these rows hold a third party's email and phone.
+// debate. Never anyone else's: these rows hold a third party's email address.
 router.get("/debates/:id/nominations/invites", requireAuth, async (req, res, next) => {
     try {
         return res.json(

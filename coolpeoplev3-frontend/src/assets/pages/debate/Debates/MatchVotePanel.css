@@ -1,0 +1,203 @@
+/* MatchVotePanel — the ballots, between the title and the bracket.
+ *
+ * Same tokens as the rest of the debate page (--dbt-*). Gold is the ACTION here
+ * as everywhere else: an unscored match is gold-edged, a scored one steps back.
+ *
+ * It is a horizontal rail rather than a stack, because it grows by one every
+ * time you open a conversation and a column that pushes the bracket further
+ * down the page each time you read something is a column that gets collapsed.
+ */
+
+.mvp {
+    padding: 16px 18px;
+    background: var(--dbt-surface);
+    border: 1px solid var(--dbt-line-2);
+    border-radius: var(--dbt-r);
+}
+
+.mvp-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+.mvp-lede {
+    margin-top: 3px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--dbt-fg-2);
+    text-wrap: pretty;
+}
+.mvp-count {
+    flex-shrink: 0;
+    font-family: var(--dbt-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dbt-fg-3);
+}
+
+.mvp-cards {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.mvp-card {
+    flex-shrink: 0;
+    /* Wide enough to be the call to action it now is, capped so three of them
+       still scroll rather than one filling the rail. */
+    min-width: 300px;
+    max-width: 380px;
+    display: grid;
+    gap: 8px;
+    padding: 13px 15px;
+    text-align: left;
+    background: var(--dbt-raised);
+    border: 1px solid var(--dbt-gold-3);
+    border-radius: var(--dbt-r-sm);
+    cursor: pointer;
+    transition: border-color var(--dbt-ease), background var(--dbt-ease);
+}
+.mvp-card:hover { border-color: var(--dbt-live); }
+/* Signed out the card is a gold prompt, not a live ballot. */
+.mvp-card:has(.is-signin):hover { border-color: var(--dbt-gold); }
+/* Already scored: still here, no longer asking. */
+.mvp-card.is-done { border-color: var(--dbt-line-2); opacity: 0.6; }
+/* The match you are reading right now, so the panel and the conversation below
+   are visibly the same subject. */
+.mvp-card.is-reading { background: var(--dbt-gold-wash); }
+
+.mvp-card-round {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dbt-gold);
+}
+.mvp-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--dbt-gold);
+}
+
+.mvp-card-who { display: inline-flex; align-items: center; gap: 6px; }
+.mvp-face {
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--dbt-sunken);
+    border: 1px solid var(--dbt-line-3);
+}
+.mvp-face--blank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--dbt-display);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--dbt-gold);
+    background: var(--dbt-gold-wash);
+}
+.mvp-vs {
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    color: var(--dbt-fg-4);
+}
+.mvp-names {
+    margin-left: 2px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--dbt-fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mvp-names em {
+    font-style: normal;
+    font-weight: 400;
+    color: var(--dbt-fg-4);
+}
+
+.mvp-card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--dbt-line);
+}
+.mvp-card-line { font-size: 12.5px; color: var(--dbt-fg-3); }
+
+/* THE GREEN "VOTE NOW" TAG. Green is LIVE across this whole page — the pulsing
+   dot on an open vote, the open round in the rail — so a match still taking
+   votes wears the same green here. It was gold, which is this page's ACTION
+   colour and is also what the prize, the winner and every submit button use;
+   a ballot that is open is a state, and it should read like the other states. */
+.mvp-card-cta {
+    flex-shrink: 0;
+    padding: 6px 15px;
+    font-family: var(--dbt-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border-radius: 999px;
+    color: var(--dbt-fg-3);
+    background: transparent;
+    border: 1px solid var(--dbt-line-3);
+}
+.mvp-card-cta.is-open {
+    color: #0d1a12;
+    background: var(--dbt-live);
+    border-color: var(--dbt-live);
+}
+.mvp-card:hover .mvp-card-cta.is-open {
+    box-shadow: 0 0 0 3px rgba(100, 192, 140, 0.22);
+}
+
+/* SIGN IN keeps the gold button this page uses everywhere it sends you to an
+   account — sentence case, filled, the same shape as "Open the ballot" was.
+   Green is reserved for a vote you can actually cast; wearing it while signed
+   out would promise something the press cannot deliver. */
+.mvp-card-cta.is-signin {
+    padding: 6px 16px;
+    font-family: var(--dbt-body);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    color: #1a1509;
+    background: var(--dbt-gold);
+    border-color: var(--dbt-gold);
+}
+.mvp-card:hover .mvp-card-cta.is-signin {
+    background: var(--dbt-gold-hi);
+    border-color: var(--dbt-gold-hi);
+}
+/* A ballot already cast asks nothing: the tag goes quiet and offers a way back
+   rather than shouting for a decision that has been made. */
+.mvp-card.is-done .mvp-card-cta { opacity: 0.8; }
+
+@media (max-width: 640px) {
+    .mvp-head { flex-direction: column; gap: 6px; }
+}
+
+/* The closing time, under the line that asks for the vote. Quiet until it is
+   soon — a countdown to something three days away is noise. */
+.mvp-closes {
+    display: block;
+    margin-top: 2px;
+    font-family: var(--dbt-mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-style: normal;
+    color: var(--dbt-fg-4);
+}

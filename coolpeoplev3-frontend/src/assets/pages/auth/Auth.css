@@ -1,0 +1,156 @@
+/* ============================================================================
+   Auth pages. Reads the gold system's tokens from index.css.
+
+   CENTRED ON BOTH AXES. A login form is the only thing on its page and there is
+   nothing above or below it to anchor to, so top-anchoring it on a 1200px
+   viewport leaves it floating in the top third with a screenful of nothing
+   underneath.
+   ========================================================================== */
+
+.wb-auth {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 40px 20px;
+    background: var(--paper);
+    color: var(--ink);
+}
+.wb-auth__inner {
+    width: min(400px, 100%);
+    display: grid;
+    gap: 20px;
+}
+
+/* ---- brand --------------------------------------------------------------- */
+.wb-auth__brand { display: flex; align-items: center; gap: 14px; }
+.wb-auth__logo {
+    font-size: 26px;
+    font-weight: 800;
+    font-style: italic;
+    letter-spacing: -.03em;
+    color: var(--ink);
+    text-decoration: none;
+}
+.wb-auth__rule { flex: 1; height: 1px; background: var(--wb-gold-hair); }
+
+.wb-auth__h {
+    margin: 0 0 4px;
+    font-size: 27px;
+    font-weight: 800;
+    letter-spacing: -.028em;
+    line-height: 1.1;
+}
+.wb-auth__sub { margin: 0; font-size: 14.5px; color: var(--ink-2); }
+.wb-auth__sub a, .wb-auth__foot a {
+    color: var(--wb-gold-ink);
+    font-weight: 600;
+    text-decoration: none;
+}
+.wb-auth__sub a:hover, .wb-auth__foot a:hover { text-decoration: underline; }
+
+/* ---- the error ----------------------------------------------------------- */
+.wb-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: var(--wb-radius-s, 10px);
+    background: #FDF0EC;
+    border: 1px solid #F0D5CC;
+    color: #A8422C;
+    font-size: 13.5px;
+    line-height: 1.5;
+}
+.wb-alert svg { width: 18px; height: 18px; flex: none; margin-top: 1px; }
+.wb-alert b { display: block; font-weight: 700; }
+
+/* ---- fields -------------------------------------------------------------- */
+.wb-form { display: grid; gap: 16px; }
+.wb-f { display: grid; gap: 6px; }
+.wb-f__top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.wb-f__l { font-size: 13px; font-weight: 700; letter-spacing: -.005em; }
+.wb-f__aux { font-size: 12.5px; font-weight: 600; color: var(--wb-gold-ink); text-decoration: none; }
+.wb-f__aux:hover { text-decoration: underline; }
+
+.wb-f__wrap { position: relative; display: flex; }
+.wb-in {
+    font: inherit;
+    font-size: 15px;
+    width: 100%;
+    padding: 12px 14px;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    transition: border-color .14s var(--wb-ease), box-shadow .14s var(--wb-ease);
+}
+/* room for the eye */
+.wb-in--pw { padding-right: 46px; }
+.wb-in::placeholder { color: var(--muted); }
+.wb-in:focus {
+    outline: 0;
+    border-color: var(--wb-gold-mark);
+    box-shadow: 0 0 0 3px var(--wb-gold-wash);
+}
+.wb-in[aria-invalid="true"] { border-color: #A8422C; }
+
+/* CHROME'S AUTOFILL, which is where the pale blue came from. It is not a
+   background you can override — Chrome paints it in a UA layer that beats any
+   specificity — so the only reliable defeat is an inset box-shadow large enough
+   to cover the field, plus -webkit-text-fill-color for the text on top of it.
+   The long transition delay is the second half of the trick: it keeps Chrome's
+   own animated fill from ever reaching full opacity. */
+.wb-in:-webkit-autofill,
+.wb-in:-webkit-autofill:hover,
+.wb-in:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--ink);
+    -webkit-box-shadow: 0 0 0 40px var(--paper) inset;
+    box-shadow: 0 0 0 40px var(--paper) inset;
+    transition: background-color 9999s ease-in-out 0s;
+    caret-color: var(--ink);
+}
+
+.wb-eye {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+}
+.wb-eye:hover { color: var(--ink); background: var(--panel); }
+.wb-eye:focus-visible { outline: 2px solid var(--wb-gold-ink); outline-offset: 1px; }
+.wb-eye svg { width: 18px; height: 18px; }
+
+.wb-note { margin: 0; font-size: 12.5px; color: var(--muted); }
+.wb-note--warn { color: #A8422C; font-weight: 600; }
+
+.wb-auth__cta { width: 100%; margin-top: 2px; }
+
+.wb-spin {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 2px solid rgba(26, 18, 3, .25);
+    border-top-color: var(--wb-on-gold);
+    animation: wb-spin .7s linear infinite;
+}
+@keyframes wb-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+    .wb-spin { animation: none; }
+}
+
+.wb-auth__foot {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--muted);
+    text-align: center;
+}

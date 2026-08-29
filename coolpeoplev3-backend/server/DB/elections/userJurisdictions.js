@@ -49,6 +49,37 @@ async function geocodeAddress(address) {
 }
 
 /*
+ * reverseGeocode({ lat, lng }) — the PIN path's counterpart to geocodeAddress.
+ *
+ * Same appends, same normalizer, so both paths produce identical layer shapes.
+ * The one deliberate difference is downstream: a pin is the user's own explicit
+ * assertion of where they live, so it is NOT rejected on low accuracy the way a
+ * typed address is. Rejecting it would send them back to the pin screen that
+ * sent them here — the exact loop this path exists to break.
+ */
+async function reverseGeocode({ lat, lng }) {
+    const key = process.env.GEOCODIO_API_KEY;
+    if (!key) throw new Error('GEOCODIO_API_KEY missing in .env');
+    const url = new URL('https://api.geocod.io/v1.7/reverse');
+    url.searchParams.set('q', `${lat},${lng}`);
+    url.searchParams.set('fields', 'cd,stateleg,census');
+    url.searchParams.set('limit', '1');
+    url.searchParams.set('api_key', key);
+
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`geocodio reverse ${res.status} ${res.statusText}`);
+    const data = await res.json();
+    const r = data.results?.[0];
+    if (!r) return { ok: false, accuracy: 0 };
+    // The normalizer reads r.location for coords; a reverse result echoes the
+    // matched address's location, not the pin. Override with the PIN's own
+    // coordinates so the council point-in-polygon tests where the user actually
+    // pointed rather than the centroid of the nearest matched address.
+    const norm = normalizeGeocode(r);
+    return { ok: true, ...norm, lat, lng };
+}
+
+/*
  * Map a geocodio result → { accuracy, accuracy_type, lat, lng, state, place, layers }.
  * geocodio supplies ocd_id directly on congressional + state-leg districts; for
  * state/county/place we build the OCD-id from the components. CONFIRM the exact
@@ -191,7 +222,75 @@ async function setUserJurisdictionsFromGeocode({ userId, address }) {
     }
 
     // sub-municipal council layer (the four-way branch).
-    const council = await resolveCouncil({ userId, place: geo.place, lat: geo.lat, lng: geo.lng, accuracy: geo.accuracy });
+    const council = await resolveCouncil({ userId, place: geo.place, lat: geo.lat, lng: geo.lng, accuracy: geo.accuracy, source: 'geocodio' });
+
+    return {
+        status: council.status === 'pending' ? 'pending_local' : 'resolved',
+        layers: geo.layers.map((l) => l.type),
+        council,
+        // address intentionally absent — never stored
+    };
+}
+
+/*
+ * setUserJurisdictionsFromCoords({ userId, lat, lng })
+ *
+ * The manual pin-drop path, used when a typed address geocoded below
+ * GEOCODE_ACCURACY_MIN and returned 'needs_manual_pin'. Reverse-geocodes the
+ * point, then writes the SAME layers through the SAME helpers as the address
+ * path — the only differences are:
+ *
+ *   source = 'manual'  — the mapping came from the user, not from parsing an
+ *                        address string. The check constraint on
+ *                        user_jurisdictions.source already allows it, and this
+ *                        is the first writer to use it.
+ *   no accuracy gate   — see reverseGeocode. A pin cannot be "not accurate
+ *                        enough"; it is the user's assertion.
+ *
+ * The address policy is unchanged: nothing identifying is stored. The pin's
+ * coordinates live only in this request (they drive the council PIP) and
+ * users.address/latitude/longitude are nulled exactly as the address path does.
+ */
+async function setUserJurisdictionsFromCoords({ userId, lat, lng }) {
+    const latN = Number(lat);
+    const lngN = Number(lng);
+    // Reject out-of-range BEFORE spending a geocodio call. Note 0,0 is a valid
+    // coordinate (Gulf of Guinea) but is the classic "unset variable" pin, and
+    // it resolves to no US jurisdiction anyway — it falls out below as
+    // 'no_match' rather than being special-cased here.
+    if (!Number.isFinite(latN) || !Number.isFinite(lngN)) {
+        const e = new Error('lat and lng must be numbers'); e.status = 400; throw e;
+    }
+    if (latN < -90 || latN > 90 || lngN < -180 || lngN > 180) {
+        const e = new Error('lat/lng out of range'); e.status = 400; throw e;
+    }
+
+    const geo = await reverseGeocode({ lat: latN, lng: lngN });
+    if (!geo.ok) return { status: 'no_match', reason: 'no_jurisdiction_at_point' };
+
+    // Same write as the address path, including nulling address + coords.
+    await client.query(
+        `UPDATE users SET geocoded_at = now(), geocode_accuracy = $2,
+                          state = COALESCE($3, state),
+                          address = NULL, latitude = NULL, longitude = NULL
+         WHERE id = $1`,
+        [userId, geo.accuracy ?? null, geo.state ?? null]
+    );
+
+    for (const layer of geo.layers) {
+        const j = await ensureJurisdiction({
+            ocd_division_id: layer.ocd_division_id, type: layer.type,
+            name: layer.name, state_code: geo.state,
+        });
+        await linkUserJurisdiction({
+            userId, jurisdictionId: j.id, source: 'manual', accuracy: geo.accuracy ?? null,
+        });
+    }
+
+    const council = await resolveCouncil({
+        userId, place: geo.place, lat: latN, lng: lngN,
+        accuracy: geo.accuracy ?? null, source: 'manual',
+    });
 
     return {
         status: council.status === 'pending' ? 'pending_local' : 'resolved',
@@ -206,14 +305,14 @@ async function setUserJurisdictionsFromGeocode({ userId, address }) {
  * Always links the user to the place layer first (so at-large councils + place-wide
  * offices match via the intersection without any PIP).
  */
-async function resolveCouncil({ userId, place, lat, lng, accuracy }) {
+async function resolveCouncil({ userId, place, lat, lng, accuracy, source = 'geocodio' }) {
     if (!place) return { status: 'none', reason: 'no_incorporated_place' };
 
     const placeRow = await ensureJurisdiction({
         ocd_division_id: place.ocd_division_id, type: 'municipal',
         name: place.name, state_code: place.state,
     });
-    await linkUserJurisdiction({ userId, jurisdictionId: placeRow.id, accuracy });
+    await linkUserJurisdiction({ userId, jurisdictionId: placeRow.id, accuracy, source });
 
     const structure = placeRow.council_structure; // 'districted' | 'at_large' | 'none' | null
     const loaded = placeRow.boundaries_loaded;
@@ -223,6 +322,9 @@ async function resolveCouncil({ userId, place, lat, lng, accuracy }) {
 
     if (structure === 'districted') {
         if (loaded) {
+            // NOTE: no `source` here on purpose — assignCouncilByPIP records
+            // 'imported', because the district itself comes from an imported
+            // boundary file however the point was obtained.
             const assigned = await assignCouncilByPIP({ placeRow, lat, lng, userId, accuracy });
             await clearPending(userId);
             return assigned
@@ -492,6 +594,7 @@ async function findJurisdictionsNearPoint({ lat, lng, radius = 50 }) {
 
 module.exports = {
     setUserJurisdictionsFromGeocode,
+    setUserJurisdictionsFromCoords,
     backfillLocalJurisdictions,
     markPlaceCouncilStructure,
     getPendingLocalForPlace,

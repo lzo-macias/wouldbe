@@ -86,7 +86,22 @@ const getDebateNominationCounts = async ({ debate_id }) => {
                 -- href — do NOT re-derive that check per reader, but do keep
                 -- rel="noopener noreferrer" on the anchor.
                 u.link,
-                w.id AS wouldbe_id
+                w.id AS wouldbe_id,
+                -- EVERY active campaign, not just the newest: a nominee can hold
+                -- more than one and the board is asked to show "any active
+                -- wouldbes". wouldbe_id above is kept for callers that still
+                -- read a single id.
+                COALESCE(wl.wouldbes, '[]'::jsonb) AS wouldbes,
+                -- The 1-5s this person has been given across every criterion, in
+                -- this debate. This is a SUM OF SCORES, not a count of ballots:
+                -- it is what "aligning with criteria" means — five criteria
+                -- scored 4 each is 20, and someone scored on more matches has
+                -- more of them. Both ballot kinds count: the bracket ballots
+                -- (debate_match_vote_scores) and the final-round one
+                -- (debate_vote_scores). Invalidated ballots are excluded by the
+                -- subqueries, which is why this is not one join.
+                COALESCE(pts.vote_points, 0)::int AS vote_points,
+                COALESCE(pts.scored_ballots, 0)::int AS scored_ballots
             FROM nominations AS n
             JOIN users AS u ON u.id = n.nominee_user_id
             -- The nominee's own campaign, if they have one, so a nomination card
@@ -109,8 +124,53 @@ const getDebateNominationCounts = async ({ debate_id }) => {
                 ORDER BY w2.created_at DESC
                 LIMIT 1
             ) AS w ON TRUE
+            -- The same rule, aggregated: ONE row out (a json array), so this
+            -- cannot duplicate nomination rows either. Titles come down with it,
+            -- which is what saves the board a request per campaign.
+            LEFT JOIN LATERAL (
+                -- jsonb, not json: this column lands in a GROUP BY (the query
+                -- aggregates nominators per nominee) and the json type has no
+                -- equality operator, so grouping on it is a hard parse error.
+                SELECT jsonb_agg(
+                           jsonb_build_object('id', w3.id, 'title', w3.title)
+                           ORDER BY w3.created_at DESC
+                       ) AS wouldbes
+                FROM wouldbe AS w3
+                WHERE w3.user_id = n.nominee_user_id
+                  AND w3.retired IS NOT TRUE
+                  AND w3.launch_status = 'active'
+            ) AS wl ON TRUE
+            -- Their score total in THIS debate, via their contestant row. A
+            -- nominee who never entered has none, and COALESCE reads that as 0
+            -- rather than dropping the row.
+            LEFT JOIN LATERAL (
+                SELECT
+                    (
+                        SELECT COALESCE(SUM(ms.score), 0)
+                        FROM debate_match_vote_scores ms
+                        JOIN debate_match_votes mv
+                          ON mv.vote_id = ms.vote_id AND mv.invalidated_at IS NULL
+                        WHERE ms.contestant_id = c.id
+                    ) + (
+                        SELECT COALESCE(SUM(vs.score), 0)
+                        FROM debate_vote_scores vs
+                        JOIN debate_votes dv
+                          ON dv.vote_id = vs.vote_id AND dv.invalidated_at IS NULL
+                        WHERE vs.contestant_id = c.id
+                    ) AS vote_points,
+                    (
+                        SELECT COUNT(DISTINCT mv.vote_id)
+                        FROM debate_match_votes mv
+                        WHERE mv.contestant_id = c.id AND mv.invalidated_at IS NULL
+                    ) AS scored_ballots
+                FROM contestants c
+                WHERE c.debate_id = n.debate_id
+                  AND c.user_id = n.nominee_user_id
+                LIMIT 1
+            ) AS pts ON TRUE
             WHERE n.debate_id = $1
-            GROUP BY n.nominee_user_id, u.id, w.id
+            GROUP BY n.nominee_user_id, u.id, w.id, wl.wouldbes,
+                     pts.vote_points, pts.scored_ballots
             ORDER BY nomination_count DESC, u.username ASC;
         `
         const result = await client.query(SQL, [debate_id])

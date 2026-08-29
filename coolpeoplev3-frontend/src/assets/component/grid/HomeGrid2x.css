@@ -1,3 +1,6 @@
+/* Gold comes from the ramp in index.css (var(--gold), --gold-deep,
+   --gold-soft). It used to be raw hex here — which is why unifying the
+   tokens changed nothing on this page: nothing was reading them. */
 /* Global reset */
 *, *::before, *::after {
     box-sizing: border-box;
@@ -57,21 +60,18 @@ body {
 
 /* Grid Specific Styling */
 
+/* auto-fill + minmax is the whole responsive story for the feed: the column
+   count falls out of the available width (4 at the 1180px cap, then 3 / 2 / 1)
+   instead of being pinned at 4 and overflowing. min(240px, 100%) is what keeps
+   the track from exceeding the container on a phone narrower than the floor. */
 .gridcontainer1 {
     display: grid;
-    grid-template-columns: repeat(4,1fr);
-    grid-auto-rows: 280px;
-    gap: 2px 5vw;
-    max-width: 99vw;
-    /* margin-left: 20px;
-    margin-right: 20px; */
-    margin: 5vw;
-    margin-top: 25px;
-    /* margin-right: -20px; */
-    margin-right: 200px;
-    margin-left: 150px;
-      max-width: 1180px;
+    grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+    gap: 32px 24px;
+    width: 100%;
+    max-width: 1180px;
     margin: 0 auto;
+    padding: 40px clamp(16px, 4vw, 32px) 80px;
 }
 
 .biggridcomponent {
@@ -84,12 +84,27 @@ body {
 
 }
 
+/* Trust line under the second row of the feed. grid-column:1/-1 spans whatever
+   the current column count is; grid-row:3 holds it there while the cards
+   auto-flow into rows 1-2 and then 4 onward. */
+.gridPrivacyNote {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    padding: 4px 0;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: #777777;
+}
+
+/* The card is the track's width; the face below sets the height via its aspect
+   ratio. The old fixed 200px min/max fought both. */
 .smallgridcomponent {
-    grid-row: span 1;
-    /* border: .5px solid black; */
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
     border-radius: 12px;
-    max-height: 200px;
-    min-height: 200px;
 }
 
 .biggridcomponent img {
@@ -222,29 +237,73 @@ body {
 
 /**************************************** small grid component *********************/
 
+/* Same footprint rule as the campaign face, so a mixed row lines up. */
 .smallgridcomponentDebate {
     display: flex;
-    grid-row: span 1;
-    /* border: .5px solid black; */
-    border-radius: 12px;
-    min-height: 200px;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    max-width: 220px;
+    width: 100%;
+    aspect-ratio: 225 / 200;
+    padding: 14px 16px;
+    border-radius: 14px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    overflow: hidden;
 }
 
+/* THE BRUSHED PLATE, not a flat fill. A debate tile sitting next to a
+   photograph has to read as an OBJECT or it looks like a coloured rectangle
+   where an image failed to load — which is what a flat #D4B84D was doing. The
+   specular band slides on hover, the way light moves on real metal.
+   `isolation` + a z-index:-1 pseudo keeps the streaks behind the text. */
 .smallgridcomponentDebate {
-    background-color: #D4B84D;
-    /* opacity: 20%; */
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: var(--wb-brushed);
+    background-size: 190% 190%;
+    background-position: 0% 0%;
+    color: var(--wb-on-gold);
+    transition: background-position .55s var(--wb-ease),
+                transform .2s var(--wb-ease);
+}
+/* The format chip is <FormatBadge>, styled in FormatBadge.css — .wb-fmt, not
+   .debateFormat. It is in flow at the top of the face now rather than absolutely
+   positioned, so the tile reads chip → question → prize down one left margin.
+   The dark corner scrim that used to live here went with the old green pill: it
+   only existed to rescue that pill's contrast, and the badge carries its own. */
 
+/* The face is a flex column, so the badge would otherwise be squashable on the
+   main axis when a three-line question fills the tile. */
+.smallgridcomponentDebate .wb-fmt { flex: none; }
+
+/* Anisotropic streaks — what makes it read brushed rather than airbrushed. */
+.smallgridcomponentDebate::after {
+    content: "";
+    position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: repeating-linear-gradient(152deg,
+        rgba(255,255,255,.055) 0 1px, transparent 1px 3px);
+}
+.smallgridcomponentDebate:hover {
+    background-position: 100% 60%;
+    transform: translateY(-2px);
 }
 
 .DebateTitle {
-    color: white;
+    color: var(--wb-on-gold);
     font-weight: 800;
-    text-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
-
+    font-size: 15px;
+    line-height: 1.28;
+    letter-spacing: -.01em;
+    /* align-items: flex-start on the face would otherwise shrink the title to
+       its longest word; it has to take the full width to wrap and clamp. */
+    width: 100%;
+    margin: 12px 0 0;
+    padding: 0;
+    overflow-wrap: anywhere;
+    /* A long title must not push the prize line off the fixed-ratio face. */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .smallgridcomponent > img:first-child  {
@@ -256,29 +315,21 @@ body {
     border-radius: 12px;
 }
 
+/* Left, on the same margin as the chip above it and the prize below — the
+   card reads top-down as one column, not three centred things. */
 .DebateTitle {
-    text-align: center;
+    text-align: left;
 }
 
-.DebateLowerLevel {
-    display: flex;
-    flex-direction: row;
-    /* min-height:1000px; */
-    align-items: center;
-    /* Space-between across the gold card's own width, so the sponsor avatar
-       anchors the left edge and the clock the right. */
-    justify-content: space-between;
-    gap: 6px;
-    width: 220px;
-    max-width: 220px;
-    padding: 0 5px;
-    margin-top: 5px;
-}
+/* Shares the grid declared with .WouldBeLowerLevel above — the two card types
+   sit in one grid and their meta rows have to line up with each other, not just
+   within themselves. */
 
 
 .overarchingdebatecomponent {
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .DebateLowerLevel p {
@@ -394,10 +445,12 @@ body {
 }
 
 
+/* aspect-ratio, not a fixed height: the face keeps the original 225x200
+   proportion at whatever width the track hands it. */
 .smallimagecontainer{
     position: relative;
-    width: 225px;
-    height: 200px;
+    width: 100%;
+    aspect-ratio: 225 / 200;
     overflow: hidden;
     border-radius: 16px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -405,15 +458,11 @@ body {
 }
 
 .smallimageimage {
-      width: 100%;               /* fill the container */
-  height: 100%;  
-    object-fit: cover; 
-    position:relative;
+    width: 100%;               /* fill the container */
+    height: 100%;
+    object-fit: cover;
+    position: relative;
     border-radius: 12px;
-    grid-row: span 1;
-    border-radius: 12px;
-    max-height: 200px;
-    min-height: 200px;
 }
 
 .smallimagebanner{
@@ -449,37 +498,53 @@ body {
     flex-direction: column;
 }
 
+/* The prize is a LINE ON the plate, not a plaque inset into it. The dark panel
+   that used to be here was a second surface competing with the one it sat on,
+   and the coin drew more attention than the number it decorated. */
 .totalcashprizecontainer {
-    background-color: #8B6914;
     display: flex;
     flex-direction: row;
-    margin: 10px;
-    border-radius: 12px;
-    width: 180px;
-    height: 90px;
+    align-items: baseline;
+    gap: 7px;
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    /* auto top margin = the prize sits on the floor of the face whatever the
+       title's height, so every card in a row shares one prize baseline. */
+    margin: auto 0 0;
+    background: none;
+    border-radius: 0;
+    white-space: nowrap;
 }
+/* The coin was the loudest thing on a tile whose job is to carry a question. */
+.totalcashprizecontainer img { display: none; }
 
 .amt{
-    font-size: 12px;
-    color: #FFD844;
-    font-style: italic;
-    font-weight: bold;
+    font-size: 21px;
+    color: var(--wb-on-gold);
+    font-style: normal;
+    font-weight: 800;
+    letter-spacing: -.025em;
+    font-variant-numeric: tabular-nums;
 }
 
+/* Mono and quiet — a label, not a second headline. Italic bold made it compete
+   with the number it introduces. */
 .smalltexttotalcashprize {
-    color: #FAEBA8;
-    font-size: 12px;
-    font-weight: bold;
-    font-style: italic;
-
+    color: var(--wb-gold-900);
+    font-family: var(--dbt-mono, ui-monospace, SFMono-Regular, 'JetBrains Mono', monospace);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    flex-shrink: 0;
 }
 
-.totalcashprizecontainer {
-    margin-top: 30px;
-}
+
 
 .moneyicon {
-    width: 80px;
+    width: clamp(48px, 38%, 80px);
+    flex-shrink: 0;
 }
 
 @media (max-width: 2093px) {
@@ -546,10 +611,17 @@ body {
    Its own class so the plaque's row layout stays in the container rule. */
 .totalcashprizetext {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 2px;
-    padding-right: 10px;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    padding-right: 0;
+}
+
+/* prize_description is free prose when the prize is not cash — it has to break
+   rather than run off the plaque. */
+.amt, .smalltexttotalcashprize {
+    overflow-wrap: anywhere;
 }
 
 /* Campaign card with NO image: the title takes the image's place on black,
@@ -559,8 +631,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 225px;
-    height: 200px;
+    width: 100%;
+    aspect-ratio: 225 / 200;
     padding: 16px;
     overflow: hidden;
     border-radius: 16px;
@@ -577,6 +649,17 @@ body {
 
 /* Sponsor avatar on the debate footer — logo for a corporate sponsor, the
    person's own photo for a casual one (COALESCEd server-side). */
+/* WHO PUT THE DEBATE UP. Face and handle are one unit and take the left of the
+   meta row, mirroring the WouldBe cards in the same grid — that shared shape is
+   what makes two different card types read as one system rather than two.
+   `min-width: 0` on the group and the ellipsis on the name are what stop a long
+   sponsor handle from pushing the competitor count and the clock off the row. */
+.debateSponsor {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
 .debatesponsorpic {
     width: 20px;
     height: 20px;
@@ -584,6 +667,29 @@ body {
     display: block;
     border-radius: 50%;
     flex-shrink: 0;
+}
+/* No photo: the same brushed disc the poster initials use, so the slot is
+   filled at the same weight instead of collapsing the row. */
+.debatesponsorinitial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--wb-brushed);
+    color: var(--wb-on-gold);
+    font-size: 10px;
+    font-weight: 800;
+    box-shadow: 0 1px 0 rgba(255, 244, 205, .4) inset;
+}
+/* Same size and colour as .wouldbehandle — the two rows sit in one grid and a
+   sponsor's handle should not be a different grey from a poster's. */
+.debatesponsorname {
+    font-size: 10px;
+    font-weight: 600;
+    color: #5D6478;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 
 /* ---- hover reveal ----------------------------------------------------------
@@ -633,27 +739,52 @@ body {
 
 /* Campaign footer — mirrors .DebateLowerLevel: avatar + office on the left,
    funding and deadline pushed to the right. */
-.WouldBeLowerLevel {
-    display: flex;
-    flex-direction: row;
+/* ONE META ROW, TWO CARD TYPES, AND THE CLOCK ALWAYS IN THE SAME PLACE.
+   ----------------------------------------------------------------------------
+   Both rows were `space-between` with `flex-wrap`, which put the clock wherever
+   the middle stat happened to end — "9% of goal" and "8 competitors" are
+   different widths, so the clock landed at a different x on every card, and on a
+   narrow track it wrapped onto a second line and moved down as well.
+
+   A three-column grid fixes it by construction:
+
+       [ identity — 1fr, truncates ] [ stat — auto ] [ clock — 72px ]
+
+   The 1fr absorbs every pixel of slack, so the last column starts exactly 72px
+   from the right edge on EVERY card of BOTH types. The middle stat's width now
+   moves the stat, never the clock. The name is the only variable-length thing
+   left, so it is the one that clips — which is what it was always meant to do.
+   No wrap: a meta row that reflows changes the card's height and breaks the
+   grid's rhythm. */
+.WouldBeLowerLevel, .DebateLowerLevel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto 72px;
     align-items: center;
-    justify-content: space-between;
     gap: 6px;
-    width: 225px;
-    max-width: 225px;
+    width: 100%;
+    min-width: 0;
     padding: 0 5px;
     margin-top: 5px;
 }
+/* The clock sits at the right edge of its fixed column, so the icon+text pair
+   is flush on every card rather than centred in whatever space was left. */
+/* THE THIRD COLUMN, not the last child. Written as `> :last-child` the comma
+   bound only to the second selector, and on a card whose clock is absent
+   (`days === null`) the last child is the STAT — which would then be shoved to
+   the right edge of column 2, i.e. the exact drift this grid exists to stop. */
+.WouldBeLowerLevel > :nth-child(3),
+.DebateLowerLevel > :nth-child(3) { justify-self: end; }
+
 
 .wouldbeidentity {
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: 4px;
-    /* min-width:0 is what actually lets the handle below shrink and clip —
-       flex items refuse to go under their content width without it. */
+    /* min-width:0 is what actually lets the handle below shrink and clip — a
+       grid item refuses to go under its content width without it, exactly like
+       a flex item. */
     min-width: 0;
-    flex-shrink: 1;
 }
 
 .wouldbeposterpic {
@@ -680,7 +811,9 @@ body {
     font-size: 10px;
     font-weight: 600;
     color: #5D6478;
-    max-width: 84px;
+    /* The cap is gone: the 1fr column IS the cap now, and a hard max-width
+       clipped short handles on a wide card for no reason. */
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -706,13 +839,24 @@ body {
     object-fit: contain;
 }
 
-/* Avatar stand-in when the poster has no photo — same circle, their initial. */
+/* Avatar stand-in when the poster has no photo — same circle, their initial.
+   THE PLATE, like every other gold surface, and --wb-on-gold rather than white:
+   white on a light gold disc was ~2.4:1, which at 10px is a letter you cannot
+   read. The guide's own meta avatar (.wb-meta__av) is the brushed fill, so a
+   photoless poster now matches one that has a photo in weight rather than
+   looking like a flat swatch beside it. */
 .wouldbeposterinitial {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #D4B84D;
-    color: #FFFFFF;
+    background: var(--wb-brushed);
+    color: var(--wb-on-gold);
     font-size: 10px;
     font-weight: 800;
+    box-shadow: 0 1px 0 rgba(255, 244, 205, .4) inset;
 }
+
+/* A for-fun debate renders NO prize plaque and nothing in its place — the
+   .forFunTag that briefly lived here is gone with it. The card is otherwise
+   identical to every other debate card, which is the point: for-fun is a debate
+   without money on it, not a different kind of object. */

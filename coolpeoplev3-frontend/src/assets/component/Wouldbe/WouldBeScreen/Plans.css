@@ -1,174 +1,259 @@
-.planBigContainer {
-    padding: 200px;
-    padding: 100px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+/* ============================================================================
+   Plans — the policy timeline.
+
+   THE TOKENS ARE MAPPED, NOT REDECLARED. The standalone version of this
+   component carried its own hex ramp so it could be dropped into a project with
+   no design system. This project HAS one (index.css), so every --pt-* below
+   points at it: one edit to the ramp moves this component with everything else,
+   and a fourth copy of #7A5211 cannot drift out of step with the other three.
+
+   Wrap any dark panel in [data-surface="dark"] and the gold flips — that is the
+   system's own mechanism, not a second theme declared here.
+   ============================================================================ */
+
+.pt-timeline {
+  /* gold: straight from the system, and --wb-gold-ink/-hair/-wash already flip
+     on a dark surface, so they need no override below. */
+  --pt-gold-ink:  var(--wb-gold-ink);
+  --pt-gold-hair: var(--wb-gold-hair);
+  --pt-gold-wash: var(--wb-gold-wash);
+  --pt-on-gold:   var(--wb-on-gold);
+  --pt-brushed:   var(--wb-brushed);
+  /* The node's ring. NOT --wb-gold (2.4:1 on white): a graphic that carries
+     meaning needs 3:1, and --wb-gold-500 is 3.9:1. This is the one gold role the
+     system has no flipping token for, so it is declared and overridden below. */
+  --pt-gold-mark: var(--wb-gold-500);
+
+  /* neutrals, from the app's own scale */
+  --pt-fg:   var(--ink);
+  --pt-fg-2: var(--ink-2);
+  --pt-fg-3: var(--muted);
+  --pt-rule: var(--line);
+  --pt-card: var(--paper);
+
+  --pt-radius: 10px;
+
+  list-style: none;
+  display: grid;
+  color: var(--pt-fg);
+
+  /* THE TIMELINE OWNS ITS OWN GUTTER. The tab panel that renders it is an
+     unstyled <div> with no padding, so at padding:0 the first node sat half
+     outside the panel — a circle clipped by the container edge reads as a
+     rendering fault, not as a design. */
+  padding: 26px 24px 8px;
+
+  /* AND ITS OWN MEASURE. Full-bleed, a position ran to ~1500px per line: the
+     eye loses the start of the next line on the way back, which is the one
+     thing a section people are asked to READ cannot afford. */
+  max-width: 1080px;
+  margin: 0 auto;
 }
 
-.editablefieldscontainer {
-    display: flex;
-    flex-direction: row;
-    width: 950px;
+[data-surface="dark"] .pt-timeline {
+  --pt-gold-mark: var(--wb-gold-200);
+  --pt-fg:   #F5F0E4;
+  --pt-fg-2: #B3AA95;
+  --pt-fg-3: #7E7663;
+  --pt-rule: #262019;
+  --pt-card: #17140E;
 }
 
-.Plantitle {
-    flex: 0 0 200px;
-    display: flex;
-    flex-direction: column;
-    font-weight: 600;
+/* ---- the rail ------------------------------------------------------------ */
+.pt-item {
+  position: relative;
+  display: grid;
+  gap: 20px;
+  /* 30px was measured against a one-line card. Against a nine-line one the
+     entries ran together — the space between two positions has to be bigger
+     than the space inside one. */
+  padding: 0 0 38px;
+  grid-template-columns: 22px minmax(0, 1fr);
+}
+/* The margin column only earns its width once there is room for it; below that
+   the label stacks above the card rather than squeezing both. */
+@media (min-width: 780px) {
+  /* The margin column holds a category, a title and a date — 190px was wider
+     than any of them and left a visible hole beside a tall card. */
+  .pt-item { grid-template-columns: 22px 168px minmax(0, 1fr); gap: 24px; }
 }
 
-.PolicyTag {
-    weight: 600;
-    color: var(--gold-deep)
+/* The rail is NEUTRAL. A pale-gold line is ~1.3:1 on white — invisible, and a
+   graphic that carries meaning needs 3:1. The gold goes on the nodes instead. */
+.pt-item::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 22px;
+  bottom: -4px;
+  width: 1px;
+  background: var(--pt-rule);
+}
+.pt-item:last-child::before { display: none; }
+
+.pt-node {
+  width: 21px; height: 21px;
+  border-radius: 50%;
+  flex: none;
+  z-index: 1;
+  margin-top: 1px;
+  background: var(--pt-card);
+  border: 2px solid var(--pt-gold-mark);
+  display: grid;
+  place-items: center;
+}
+/* Written = a milestone reached: the plate, with a wash ring so it reads as
+   lit rather than merely filled. */
+.pt-node--done {
+  background: var(--pt-brushed);
+  border-color: transparent;
+  box-shadow: 0 0 0 3px var(--pt-gold-wash);
+}
+.pt-node--pending { border-color: var(--pt-rule); }
+.pt-check { width: 11px; height: 11px; color: var(--pt-on-gold); }
+
+/* ---- the margin ---------------------------------------------------------- */
+.pt-label { display: grid; gap: 3px; align-content: start; padding-top: 1px; }
+.pt-eyebrow {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--pt-gold-ink);
+}
+.pt-title { margin: 0; font-size: 15.5px; font-weight: 700; letter-spacing: -.01em; }
+.pt-meta { font-size: 12.5px; color: var(--pt-fg-3); }
+
+/* ---- the position -------------------------------------------------------- */
+.pt-body { display: grid; gap: 10px; min-width: 0; }
+
+.pt-prose {
+  position: relative;
+  border: 1px solid var(--pt-rule);
+  border-radius: var(--pt-radius);
+  padding: 18px 20px;
+  background: var(--pt-card);
+  font-size: 14.5px;
+  line-height: 1.62;
+  color: var(--pt-fg-2);
+  /* ~72 characters is the measure prose is read at. The card can be as wide as
+     the grid gives it; the TEXT stops there. */
+  max-width: 72ch;
+}
+.pt-prose p { margin: 0 0 .8em; }
+.pt-prose p:last-of-type { margin-bottom: 0; }
+
+/* Keep this height and CLAMP_PX in Plans.jsx in step: the measurement decides
+   whether the toggle appears, so a mismatch offers "Show more" on text that is
+   not clipped. */
+.pt-prose--clamped { max-height: 232px; overflow: hidden; }
+/* The fade is what makes it read as truncation. A hard cut mid-glyph reads as a
+   rendering bug — it has to end IN the card's own colour, which is why this is
+   a gradient to --pt-card rather than to white. */
+.pt-prose--clamped::after {
+  content: "";
+  position: absolute;
+  left: 1px; right: 1px; bottom: 1px;
+  height: 88px;
+  pointer-events: none;
+  border-radius: 0 0 var(--pt-radius) var(--pt-radius);
+  background: linear-gradient(180deg, transparent, var(--pt-card) 82%);
 }
 
-/* Shared by the read-only <p> and the edit <textarea> so the row doesn't jump
-   between the two states. width + border-box are what keep them identical: a <p>
-   fills its container, but a form control sizes itself from its own intrinsic
-   width unless told otherwise — that's why the edit box collapsed to a square. */
-.noneditabledescription {
-    box-sizing: border-box;
-    width: 100%;
-    height: 200px;
-    margin: 0;
-    border: 1px solid #777777;
-    border-radius: 8px;
-    padding: 20px;
-    overflow-y: auto;
-    /* textarea doesn't inherit these from the page the way a <p> does */
-    font: inherit;
-    color: inherit;
-    background: #fff;
-    line-height: 1.5;
-    background-color: #f4f4f5 ;
+.pt-more {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--pt-gold-ink);
+  background: var(--pt-card);
+  border: 1px solid var(--pt-gold-hair);
+  border-radius: 999px;
+  padding: 5px 14px;
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
 }
+/* Open, there is no fade to sit on — the control leaves the card rather than
+   floating over the last line of text. */
+.pt-more--static { position: static; transform: none; justify-self: center; }
+.pt-more:hover { background: var(--pt-gold-wash); }
+.pt-more:focus-visible { outline: 2px solid var(--pt-gold-ink); outline-offset: 2px; }
 
-.editabledescription {
-    box-sizing: border-box;
-    width: 100%;
-    height: 200px;
-    margin: 0;
-    border: 1px solid var(--gold);
-    border-radius: 8px;
-    padding: 20px;
-    overflow-y: auto;
-    /* textarea doesn't inherit these from the page the way a <p> does */
-    font: inherit;
-    color: inherit;
-    background: #fff;
-    line-height: 1.5;
-    background-color: #ffffff ;
+/* ---- editing (owner only) ------------------------------------------------- */
+.pt-form { display: grid; gap: 10px; max-width: 72ch; }
+.pt-textarea {
+  width: 100%;
+  min-height: 190px;
+  padding: 16px 18px;
+  font: inherit;
+  font-size: 14.5px;
+  line-height: 1.62;
+  color: var(--pt-fg);
+  background: var(--pt-card);
+  border: 1px solid var(--pt-gold-hair);
+  border-radius: var(--pt-radius);
+  resize: vertical;
 }
+.pt-textarea:focus {
+  outline: none;
+  border-color: var(--pt-gold-ink);
+  box-shadow: 0 0 0 3px var(--pt-gold-wash);
+}
+.pt-form-foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.pt-error { margin-right: auto; font-size: 12.5px; color: #a3272b; }
+[data-surface="dark"] .pt-error { color: #f0a1a1; }
 
-/* Everything above is shared, so the two states are already identical in size,
-   border, radius, padding, font and line-height. These three only cancel the
-   defaults a <textarea> carries that a <p> does not — without them it is NOT the
-   same box:
-     display: block  — textareas are inline-block, which adds a baseline descender
-                       gap under the box and shifts the Save row down a few px
-     resize: none    — a draggable corner means the user can change the dimensions,
-                       so they'd stop matching the read view
-     outline: none   — the UA focus ring is drawn outside the border and nudges
-                       nothing, but it's the one visual difference on click */
-textarea.noneditabledescription {
-    display: block;
-    resize: none;
-    outline: none;
+/* Aligned to the CARD's right edge, not the column's. The prose stops at 72ch
+   and the column is wider, so a plain flex-end put Edit adrift in the gap
+   between the card and nothing. */
+.pt-actions { display: flex; justify-content: flex-end; max-width: 72ch; }
+.pt-btn {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--pt-gold-ink);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 7px 13px;
 }
+.pt-btn:hover { background: var(--pt-gold-wash); }
+.pt-btn:focus-visible { outline: 2px solid var(--pt-gold-ink); outline-offset: 2px; }
+/* Save is the committing action, so it is the only thing here wearing the
+   plate — Cancel and Edit stay quiet text buttons. */
+.pt-btn--save {
+  color: var(--pt-on-gold);
+  background: var(--pt-brushed);
+  background-size: 200% 200%;
+  border-color: transparent;
+  box-shadow: 0 1px 0 rgba(255, 244, 205, .45) inset;
+  text-shadow: 0 1px 0 rgba(255, 244, 205, .35);
+  transition: background-position .5s var(--wb-ease);
+}
+.pt-btn--save:hover { background-position: 100% 50%; }
+.pt-btn:disabled { opacity: .55; cursor: not-allowed; }
 
-/* Focus indication WITHOUT changing the box: box-shadow paints outside the border
-   and takes no layout space, so the dimensions stay identical to the <p>. Removing
-   focus indication entirely would leave keyboard users with no idea where they are. */
-textarea.noneditabledescription:focus-visible {
-    box-shadow: 0 0 0 3px rgba(52, 199, 89, .25);
+/* ---- empty --------------------------------------------------------------- */
+.pt-empty {
+  max-width: 72ch;
+  border: 1px dashed var(--pt-gold-hair);
+  border-radius: var(--pt-radius);
+  background: var(--pt-gold-wash);
+  padding: 26px 22px;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  color: var(--pt-fg-2);
+  font-size: 14px;
+  line-height: 1.55;
 }
+.pt-empty__t { font-weight: 700; color: var(--pt-fg); font-size: 14.5px; }
+.pt-empty--center { justify-items: center; text-align: center; }
 
-.planDescriptionForm {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-}
-
-.planDescriptionActions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-left: auto;
-    padding-top: 8px;
-    width: fit-content;
-}
-
-.cancel {
-    padding: 10px 20px;
-    background-color: #f4f4f5;
-    margin: 10px;
-    border-radius: 12px;
-}
-
-.save {
-    background-color: var(--gold);
-    padding: 10px 20px;
-    border-radius: 12px;
-    color: white;
-    font-weight: 600;   /* --text-lg is a SIZE (20px); font-weight: 20px is invalid and dropped */
-}
-
-.planDescriptionError {
-    color: #D64545;
-    font-size: 13px;
-    margin-right: auto;
-}
-/* flex: 1 gives this a DEFINITE width from the row instead of a content-based
-   one. Without it the column sizes itself to its child's intrinsic width — which
-   for a <p> is the full long paragraph (so it filled the row) but for a <textarea>
-   is the `cols` default of ~20 characters. That's why the box collapsed on Edit,
-   and why `width: 100%` on the textarea couldn't rescue it: 100% of a parent that
-   was itself sized by the textarea is circular.
-   min-width: 0 stops the same intrinsic width inflating the track back. */
-.planDescription {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: 0;
-    text-align: justify;
-}
-
-/* `>` so this only hits the read-mode Edit button, which is a DIRECT child.
-   As a descendant selector it also matched Cancel/Save (grandchildren via
-   form > .planDescriptionActions) and, at specificity (0,1,1) vs (0,1,0),
-   beat .cancel/.save and overrode their padding with 20px. */
-.planDescription > button {
-    margin-left: auto;
-    padding: 20px;
-}
-
-.planRail { position: relative; padding-left: 34px }
-.planRail:before {
-    position: absolute;
-    background: repeating-linear-gradient(to bottom, var(--gold-soft) 1px 5px, transparent 1px 10px );
-    content: "";
-    left: -100px;
-    top: 24px;
-    bottom: 46px;
-    width: 2px;
-    height: 240px;
-}
-
-/* Solid horizontal tick, level with the plan title, running from the dashed rail
-   inward. NO `bottom` — setting both top and bottom is what stretched this into a
-   second vertical line sitting exactly on top of .planRail:before and hiding it. */
-.horizantal {
-    position: absolute;
-    left: -110px;        /* start on the rail */
-    top: -2px;           
-    width: 24px;        /* 100px back to the rail + .planRail's 34px padding */
-    height: 24px;         /* thickness — horizontal lines get height, not width */
-    background: transparent;
-    border-radius: 99999px;
-    border: 2px solid var(--gold)
-    /* tran */
-    /* margin-bottom: 5px; */
+@media (prefers-reduced-motion: reduce) {
+  .pt-more, .pt-btn { transition: none; }
 }

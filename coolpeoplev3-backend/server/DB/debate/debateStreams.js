@@ -135,6 +135,61 @@ const getDebateStream = async ({ debate_id }) => {
     }
 };
 
+// getPublicDebateStream — the replay-facing view of a debate's stream, for
+// ANYONE. getDebateStream returns `debate_streams.*`, which carries the
+// twitch_connection_id (our OAuth link) and the host's user id — fine behind
+// requireAuth, wrong to hand a logged-out visitor. A concluded debate is mostly
+// read by people who were not there and are not signed in, so the fields the
+// page actually needs to play a replay are selected explicitly instead.
+//
+// The published R2 recording rides along in the same read. Only a recording that
+// is 'published' and not soft-deleted is exposed: 'pending' means the moderation
+// pipeline has not cleared it yet, and purgeExpiredRecordings sets deleted_at
+// once the decision window closes. The Twitch VOD is separate — it lives on
+// Twitch, under Twitch's own moderation, so vod_url/vod_video_id are surfaced
+// as soon as they are attached.
+//
+// Returns null (not a 404) when a debate has no stream row: "this debate was
+// never streamed" is a valid answer the page renders, not an error.
+const getPublicDebateStream = async ({ debate_id }, db = client) => {
+    if (!debate_id) throw httpError(400, "debate_id is required");
+    try {
+        const { rows } = await db.query(
+            `SELECT s.id,
+                    s.method,
+                    s.status,
+                    s.twitch_channel,
+                    s.channel_opt_out_at,
+                    s.scheduled_at,
+                    s.started_at,
+                    s.ended_at,
+                    s.vod_video_id,
+                    s.vod_url,
+                    r.playback_url     AS recording_playback_url,
+                    r.duration_seconds AS recording_duration_seconds,
+                    r.published_at     AS recording_published_at
+               FROM debate_streams s
+               LEFT JOIN LATERAL (
+                    SELECT playback_url, duration_seconds, published_at
+                      FROM stream_recordings
+                     WHERE debate_stream_id = s.id
+                       AND moderation_status = 'published'
+                       AND deleted_at IS NULL
+                       AND playback_url IS NOT NULL
+                     ORDER BY published_at DESC NULLS LAST
+                     LIMIT 1
+               ) r ON TRUE
+              WHERE s.debate_id = $1
+              ORDER BY s.created_at DESC
+              LIMIT 1`,
+            [debate_id]
+        );
+        return rows[0] || null;
+    } catch (err) {
+        throw mapPgError(err);
+    }
+};
+
 // connectStreamChannel — the sponsor's "connect your Twitch channel" step, which
 // runs AFTER the application is submitted.
 //
@@ -570,6 +625,7 @@ module.exports = {
     CONSENT_ROLES,
     scheduleDebateStream,
     getDebateStream,
+    getPublicDebateStream,
     connectStreamChannel,
     skipStreamChannel,
     getStreamLineup,

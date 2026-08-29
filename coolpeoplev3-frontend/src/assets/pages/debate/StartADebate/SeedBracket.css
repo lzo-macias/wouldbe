@@ -1,0 +1,168 @@
+/* ============================================================================
+   Seeding day. Sits on the dark surface StartADebate declares, so every gold
+   here is the light end of the ramp and every neutral is the dark one — nothing
+   in this file names a colour, the surface picks them.
+
+   The shape is the system's campaign layout: a working column and a rail. The
+   rail holds the two things a sponsor needs while editing and cannot scroll
+   away from — what schedule this produces, and the lock.
+   ========================================================================== */
+
+.sb-wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: clamp(20px, 3vw, 34px) 24px 96px;
+    display: grid;
+    gap: 34px;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+}
+@media (min-width: 1000px) {
+    .sb-wrap { grid-template-columns: minmax(0, 1fr) 330px; gap: 40px; }
+}
+.sb-main { display: grid; gap: 34px; min-width: 0; }
+
+.sb-status { padding: 60px 24px; text-align: center; color: var(--ink-2); }
+
+/* ---- head ---------------------------------------------------------------- */
+.sb-kicker {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--wb-gold-ink);
+}
+.sb-title {
+    margin: 6px 0 10px;
+    font-size: clamp(26px, 3.6vw, 36px); font-weight: 800;
+    letter-spacing: -.03em; line-height: 1.08; color: var(--ink);
+}
+.sb-dek { margin: 0; max-width: 66ch; font-size: 15px; line-height: 1.6; color: var(--ink-2); }
+
+/* ---- sections ------------------------------------------------------------ */
+.sb-sec { display: grid; gap: 14px; }
+.sb-sec__h {
+    display: flex; align-items: center; gap: 10px; margin: 0;
+    font-size: 15px; font-weight: 700; letter-spacing: -.01em; color: var(--wb-gold-ink);
+}
+.sb-sec__h span {
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+/* The rule fills whatever the heading and its count leave. */
+.sb-sec__h::after { content: ""; flex: 1; height: 1px; background: var(--wb-gold-hair); }
+
+.sb-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sb-note { font-size: 12.5px; line-height: 1.5; color: var(--muted); margin: 0; }
+
+/* ---- the field ----------------------------------------------------------- */
+.sb-field { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.sb-player {
+    width: 100%; font: inherit; text-align: left; cursor: pointer;
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; border-radius: 12px;
+    background: var(--paper); border: 1px solid var(--line); color: var(--ink);
+    transition: border-color .14s var(--wb-ease), background .14s var(--wb-ease);
+}
+.sb-player:hover:not([disabled]) { border-color: var(--wb-gold-hair); background: var(--wb-gold-wash); }
+/* Picked up for a swap. The ring is deliberately loud: this is a two-step
+   gesture, and the whole risk in it is forgetting you are mid-swap. */
+.sb-player[aria-pressed="true"] {
+    border-color: var(--wb-gold-mark);
+    background: var(--wb-gold-wash);
+    box-shadow: 0 0 0 3px var(--wb-gold-wash);
+}
+.sb-player[disabled] { cursor: default; opacity: .85; }
+.sb-player:focus-visible { outline: 2px solid var(--wb-gold-ink); outline-offset: 2px; }
+
+.sb-seed {
+    width: 26px; height: 26px; flex: none; display: grid; place-items: center;
+    border-radius: 50%; font-size: 12px; font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--wb-gold-ink); background: var(--wb-gold-wash);
+    border: 1px solid var(--wb-gold-hair);
+}
+.sb-player img, .sb-blank {
+    width: 32px; height: 32px; flex: none; border-radius: 50%; object-fit: cover;
+    background: var(--panel);
+}
+.sb-blank {
+    display: grid; place-items: center;
+    font-size: 13px; font-weight: 800; color: var(--wb-gold-ink);
+    border: 1px solid var(--wb-gold-hair);
+}
+.sb-who { display: grid; gap: 1px; min-width: 0; }
+.sb-who b { font-size: 14.5px; font-weight: 700; letter-spacing: -.01em; }
+.sb-who small { font-size: 12px; color: var(--muted); }
+
+/* ---- the pairing --------------------------------------------------------- */
+.sb-pairs { display: grid; gap: 8px; }
+@media (min-width: 700px) { .sb-pairs { grid-template-columns: 1fr 1fr; } }
+.sb-pair {
+    display: grid; gap: 4px;
+    padding: 12px 15px; border-radius: 12px;
+    background: var(--paper); border: 1px solid var(--line);
+}
+/* A bye is not a match. It reads as an aside rather than as a card of equal
+   weight, because nobody argues in it. */
+.sb-pair--bye { background: transparent; border-style: dashed; }
+.sb-pair__l {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--muted);
+}
+.sb-pair__vs { margin: 0; font-size: 14.5px; line-height: 1.4; }
+.sb-pair__vs b { font-weight: 700; }
+.sb-pair__vs i { font-style: normal; color: var(--wb-gold-ink); margin: 0 6px; font-weight: 700; }
+.sb-pair__bye { margin: 0; font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+
+/* ---- the prompts --------------------------------------------------------- */
+.sb-slots { display: grid; gap: 12px; }
+@media (min-width: 760px) { .sb-slots { grid-template-columns: 1fr 1fr; } }
+.sb-slot { display: grid; gap: 6px; min-width: 0; }
+.sb-slot__l {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--wb-gold-ink);
+}
+.sb-slot .wb-textarea { min-height: 76px; }
+/* A locked prompt is a fact, not a field. Rendering it as a disabled textarea
+   would say "you could edit this if something were different". */
+.sb-slot__frozen {
+    margin: 0; padding: 12px 14px; border-radius: 10px;
+    background: var(--panel); border: 1px solid var(--line);
+    font-size: 14px; line-height: 1.5; color: var(--ink-2);
+}
+.sb-save { justify-self: start; }
+
+/* ---- the rail ------------------------------------------------------------ */
+.sb-rail { display: grid; gap: 14px; }
+@media (min-width: 1000px) {
+    .sb-rail {
+        position: sticky; top: 20px; align-self: start;
+        /* the guard: a sticky element taller than the viewport seats at the
+           wrong offset and looks frozen mid-scroll */
+        max-height: calc(100vh - 40px); overflow-y: auto; overscroll-behavior: contain;
+        scrollbar-width: thin;
+    }
+    .sb-rail::-webkit-scrollbar { width: 6px; }
+    .sb-rail::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
+}
+.sb-card {
+    display: grid; gap: 12px; padding: 18px;
+    background: var(--paper); border: 1px solid var(--line); border-radius: 16px;
+}
+.sb-card__h {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--wb-gold-ink);
+}
+.sb-card .wb-btn { width: 100%; }
+
+.sb-rounds { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.sb-rounds li { display: grid; gap: 1px; font-size: 12.5px; color: var(--muted); }
+.sb-rounds b { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+
+/* Every reason the lock is unavailable, listed. A sponsor fixing four things
+   one refusal at a time is what this page exists to avoid. */
+.sb-blockers {
+    list-style: none; margin: 0; padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(230, 134, 108, .1); border: 1px solid rgba(230, 134, 108, .3);
+    display: grid; gap: 5px;
+    font-size: 12.5px; line-height: 1.45; color: var(--wb-warn);
+}

@@ -194,7 +194,7 @@ const EXPORTABLE_TABLES = [
 // Account columns safe to disclose. `password` is intentionally omitted.
 const ACCOUNT_COLUMNS = `
     id, first_name, last_name, username, date_of_birth, state, city,
-    zip_code, address, phone_number, email, political_lean,
+    zip_code, address, email, political_lean,
     profile_photo_url, bio, is_active, last_login_at, created_at, updated_at
 `
 

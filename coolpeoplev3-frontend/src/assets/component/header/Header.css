@@ -4,8 +4,6 @@
   --muted: #8a8a93;
   --line: #e7e7ea;
   --panel: #f6f6f4;
-  --gold: #c9a437;
-  --gold-deep: #b48f22;
 
   position: sticky;
   top: 0;
@@ -62,34 +60,74 @@
     padding-right: 35px;
 }
 
+/* The one thing kept from the restyle: the FILL. It was a flat #D4B84D under a
+   20px coloured glow; this is --wb-brushed, the same plate .wb-btn--primary
+   uses, so the header's gold and the page's gold are the same object rather
+   than two things that happen to both be yellowish. The specular slides on
+   hover, like every other plate in the system. Layout is untouched. */
 .qualify {
   display: flex;
   align-items: center;
   gap: 9px;
-  background: #c9a437;
-  color: #241b00;
+  background: var(--wb-brushed);
+  background-size: 200% 200%;
+  background-position: 0% 0%;
+  color: var(--wb-on-gold);
   font-weight: 700;
   font-size: 14px;
   border: none;
   border-radius: 999px;
   padding: 11px 20px;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(201, 164, 55, 0.28);
-  transition: 0.18s;
+  box-shadow: 0 1px 0 rgba(255, 244, 205, .45) inset,
+              0 1px 2px rgba(66, 40, 10, .22);
+  text-shadow: 0 1px 0 rgba(255, 244, 205, .35);
+  transition: background-position .5s var(--wb-ease),
+              transform .18s var(--wb-ease),
+              box-shadow .18s var(--wb-ease);
   white-space: nowrap;
   font-family: inherit;
-background-color: #D4B84D;
 }
-/* 
-.qualify:hover {
-    background: #b48f22;
-    transform: translateY(-1px);
-} */
 
-.qualify, h3 {
-    color: black;
+.qualify:hover {
+    background-position: 100% 50%;
+    transform: translateY(-1px);
+    box-shadow: 0 1px 0 rgba(255, 244, 205, .5) inset,
+                0 4px 14px rgba(122, 82, 17, .28);
 }
+.qualify:active { transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+    .qualify { transition: none !important; }
+    .qualify:hover { transform: none; }
+}
+
+/* The original file ended with `.qualify, h3 { color: black; }`. The h3 half of
+   that selector was a header stylesheet setting the colour of every <h3> in the
+   application, and the .qualify half now fights the plate's own ink, so it is
+   the one line not restored. */
 
 .signout {
     color: #777777;
 }
+
+/* ── /wouldbe only ─────────────────────────────────────────────────────
+   Scoped to #WouldBeHeader, the id WouldBeHeader.jsx carries and Header.jsx
+   does not, so the debate pages' bar is untouched.
+
+   The search box moves next to the logo instead of being pushed to the far end
+   by .LogoandSearch's space-between, and it loses its caption — so it needs a
+   width of its own, since an empty flex box with only a 15px icon in it would
+   collapse to the icon. The border stays. */
+#WouldBeHeader .LogoandSearch {
+    justify-content: flex-start;
+    align-items: center;
+    gap: 18px;
+}
+#WouldBeHeader .SearchContainer {
+    width: 320px;
+    max-width: 100%;
+    height: 42px;
+    flex: none;
+}
+#WouldBeHeader .SearchIcon { margin-left: 14px; }

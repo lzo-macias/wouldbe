@@ -1,0 +1,95 @@
+/* .wbNav {
+  --ink: #0d0d0f;
+  --ink-2: #3a3a40;
+  --muted: #8a8a93;
+  --line: #e7e7ea;
+  --panel: #f6f6f4;
+  --gold: #c9a437;
+  --gold-deep: #b48f22;
+
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: saturate(1.4) blur(10px);
+  background: rgba(255, 255, 255, 0.82);
+  border-bottom: 1px solid var(--line);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: var(--ink);
+} */
+
+.WouldBeHeader {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin: 2.5vw
+}
+.LogoandSearch {
+    width: 850px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+
+}
+
+.SearchContainer {
+    display: flex;
+    flex-direction: row;
+    border: .1px solid #E6EAEF;
+    align-items: center;
+    border-radius: 12px;
+}
+
+.SearchIcon {
+    margin-left: 10px;
+}
+.SearchContainer p {
+    color: #777777;
+    margin-right: 50px;
+}
+
+.actionbtns {
+    display: flex;
+    flex-direction: row;
+    gap: 60px;
+    margin-right: 20px;
+}
+
+.login {
+    border: .1px solid #777777;
+    border-radius: 12px;
+    padding: 10px;
+    padding-left: 35px;
+    padding-right: 35px;
+}
+
+.qualify {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: #c9a437;
+  color: #241b00;
+  font-weight: 700;
+  font-size: 14px;
+  border: none;
+  border-radius: 999px;
+  padding: 11px 20px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(201, 164, 55, 0.28);
+  transition: 0.18s;
+  white-space: nowrap;
+  font-family: inherit;
+background-color: #D4B84D;
+}
+/* 
+.qualify:hover {
+    background: #b48f22;
+    transform: translateY(-1px);
+} */
+
+.qualify, h3 {
+    color: black;
+}
+
+.signout {
+    color: #777777;
+}

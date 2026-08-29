@@ -1,0 +1,218 @@
+/* ============================================================================
+   The public profile.
+
+   Reads the gold system's tokens from index.css. Where the mock named
+   --wb-fg / --wb-rule / --wb-card, this uses the app's own --ink / --line /
+   --paper — the same swap the rest of the system already made, so a profile
+   dropped inside a [data-surface="dark"] subtree flips with everything else
+   rather than staying stubbornly light.
+   ========================================================================== */
+
+.wb-userpage { background: var(--paper); color: var(--ink); min-height: 100vh; }
+.wb-user-wrap {
+    max-width: 1080px; margin: 0 auto; padding: 36px 24px 90px;
+    display: grid; gap: 40px;
+    /* A grid with no stated columns gets an implicit `auto`, and an auto column
+       will NOT shrink below its content's min-content width — so one wide reply
+       pushes the whole page past the viewport. Any single-column grid wrapping
+       arbitrary text needs minmax(0,1fr) said out loud. */
+    grid-template-columns: minmax(0, 1fr);
+}
+.up-status { padding: 70px 0; text-align: center; color: var(--muted); }
+
+/* ---- identity ------------------------------------------------------------ */
+.wb-id { display: grid; gap: 20px; align-items: start; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 680px) { .wb-id { grid-template-columns: auto minmax(0, 1fr); gap: 28px; } }
+
+.wb-id__avatar {
+    width: 116px; height: 116px; border-radius: 50%; display: block; flex: none;
+    padding: 3px; background: var(--wb-brushed); background-size: 150% 150%;
+}
+.wb-id__avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.up-blank {
+    width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center;
+    background: var(--panel); color: var(--wb-gold-ink);
+    font-size: 40px; font-weight: 800;
+}
+
+.wb-id__body { display: grid; gap: 12px; min-width: 0; }
+.wb-id__names { display: grid; gap: 3px; justify-items: start; }
+.wb-id__name {
+    margin: 0; font-size: clamp(24px, 3.4vw, 31px); font-weight: 800;
+    letter-spacing: -.028em; line-height: 1.1;
+}
+.wb-id__handle { font-size: 15px; color: var(--muted); font-weight: 500; }
+
+.wb-id__facts { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+.wb-id__bio { margin: 0; font-size: 15.5px; line-height: 1.62; color: var(--ink-2); max-width: 62ch; }
+
+/* The owner-only marker. NEVER rendered for the public — the server does not
+   send the field it depends on, which is the actual privacy mechanism; this is
+   only how the owner sees what the world is missing. */
+.wb-private {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 700; letter-spacing: .04em;
+    color: var(--muted); border: 1px dashed var(--line);
+    border-radius: 999px; padding: 3px 9px; white-space: nowrap;
+}
+.wb-private svg, .wb-chip svg { width: 11px; height: 11px; }
+
+/* ---- socials ------------------------------------------------------------- */
+.wb-socials { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+.wb-social {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 32px; min-width: 32px; padding: 0 9px; border-radius: 999px;
+    border: 1px solid var(--line); color: var(--ink-2); text-decoration: none;
+    font-size: 13px; font-weight: 700;
+    transition: border-color .15s var(--wb-ease), background .15s var(--wb-ease);
+}
+.wb-social:hover {
+    border-color: var(--wb-gold-hair); background: var(--wb-gold-wash);
+    color: var(--wb-gold-ink); text-decoration: none;
+}
+.wb-social--labelled { padding: 0 12px; font-weight: 600; }
+
+/* ---- tabs ---------------------------------------------------------------- */
+/* REAL tabs here, unlike the campaign page's anchor-nav: these are different
+   datasets rather than one document cut into pieces, so nothing is hidden from
+   search that a crawler would otherwise have found. */
+.wb-tabs {
+    display: flex; gap: 4px; border-bottom: 1px solid var(--line);
+    overflow-x: auto; scrollbar-width: none; margin-bottom: 4px;
+}
+.wb-tabs::-webkit-scrollbar { display: none; }
+.wb-tabs button {
+    flex: none; font: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer;
+    background: transparent; border: 0; border-bottom: 2px solid transparent;
+    color: var(--muted); padding: 11px 15px; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 8px;
+}
+.wb-tabs button:hover { color: var(--ink); }
+.wb-tabs button[aria-selected="true"] {
+    color: var(--wb-gold-ink); border-bottom-color: var(--wb-gold-mark);
+}
+.wb-tabs button:focus-visible { outline: 2px solid var(--wb-gold-ink); outline-offset: -3px; }
+.wb-tabs__n {
+    font-size: 11.5px; font-weight: 700; background: var(--wb-gold-wash);
+    color: var(--wb-gold-wash-ink); border-radius: 999px; padding: 1px 7px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- the feed ------------------------------------------------------------ */
+.wb-feed { display: grid; }
+.wb-fitem {
+    display: grid; gap: 9px; padding: 20px 4px; min-width: 0;
+    border-bottom: 1px solid var(--line); position: relative;
+}
+.wb-fitem:last-child { border-bottom: 0; }
+.wb-fitem:hover { background: var(--wb-gold-wash); }
+.wb-fitem:hover .wb-fitem__title { text-decoration: underline; }
+
+.wb-fitem__ctx { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; min-width: 0; }
+.wb-fitem__ctx > * { min-width: 0; }
+.wb-fitem__thumb {
+    width: 22px; height: 22px; border-radius: 6px; flex: none;
+    background: var(--wb-brushed); background-size: 160% 160%;
+}
+.wb-fitem__title {
+    font-size: 14px; font-weight: 700; letter-spacing: -.01em; color: var(--ink);
+    text-decoration: none; overflow-wrap: anywhere;
+}
+/* The whole row is the hit area. The pseudo stretches this one link over the
+   card, which is why the foot's own links need position:relative to sit above it. */
+.wb-fitem__title::after { content: ""; position: absolute; inset: 0; }
+.wb-fitem__title:focus-visible { outline: none; }
+.wb-fitem__title:focus-visible::after {
+    outline: 2px solid var(--wb-gold-ink); outline-offset: -3px; border-radius: 8px;
+}
+.wb-fitem__sep { color: var(--muted); opacity: .5; }
+.wb-fitem__round { font-size: 12.5px; color: var(--muted); }
+
+.wb-fitem__line {
+    font-size: 13.5px; color: var(--muted);
+    display: flex; gap: 6px; flex-wrap: wrap; align-items: baseline;
+}
+.wb-fitem__line b { color: var(--ink); font-weight: 700; }
+
+/* The prompt — quoted, because it is somebody else's words. */
+.wb-fitem__prompt {
+    margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink-2);
+    border-left: 2px solid var(--wb-gold-hair); padding: 1px 0 1px 12px;
+    font-style: italic;
+}
+.wb-fitem__body { font-size: 15px; line-height: 1.6; color: var(--ink); }
+.wb-fitem__body p { margin: 0 0 .75em; }
+.wb-fitem__body p:last-child { margin-bottom: 0; }
+
+.wb-fitem__foot {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    font-size: 13px; color: var(--muted);
+    /* above the row-wide ::after, or these links are unclickable */
+    position: relative; z-index: 1;
+}
+.wb-vote {
+    display: inline-flex; align-items: center; gap: 6px; font-weight: 700;
+    color: var(--ink-2); font-variant-numeric: tabular-nums;
+}
+.wb-vote svg { width: 14px; height: 14px; color: var(--wb-gold-mark); }
+.wb-fitem__foot a { color: inherit; text-decoration: none; }
+.wb-fitem__foot a:hover { color: var(--wb-gold-ink); text-decoration: underline; }
+
+.wb-result {
+    font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+    border-radius: 999px; padding: 3px 9px; white-space: nowrap;
+}
+.wb-result--won  { background: var(--wb-brushed); color: var(--wb-on-gold); }
+.wb-result--lost { border: 1px solid var(--line); color: var(--muted); }
+.wb-result--open {
+    background: var(--wb-gold-wash); color: var(--wb-gold-wash-ink);
+    border: 1px solid var(--wb-gold-hair);
+}
+
+/* ---- campaigns ----------------------------------------------------------- */
+.wb-minilist { display: grid; gap: 8px; }
+.wb-mini {
+    display: grid; gap: 12px; grid-template-columns: 56px minmax(0,1fr);
+    align-items: center; text-decoration: none; color: inherit;
+    border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px;
+    background: var(--paper);
+    transition: border-color .15s var(--wb-ease), background .15s var(--wb-ease);
+}
+.wb-mini:hover { border-color: var(--wb-gold-hair); background: var(--wb-gold-wash); }
+.wb-mini__img {
+    width: 56px; height: 56px; border-radius: 12px; flex: none;
+    background: var(--wb-brushed); background-size: 150% 150%;
+}
+.wb-mini__body { display: grid; gap: 7px; min-width: 0; }
+/* A flex row nested in a grid cell needs its OWN min-width:0 — the one on the
+   grid child does not propagate, so a long title pushes the row past the
+   viewport at narrow widths. */
+.wb-mini__top { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; min-width: 0; }
+.wb-mini__t {
+    font-size: 15px; font-weight: 700; letter-spacing: -.012em; margin: 0; flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wb-mini__meta {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    font-size: 12.5px; color: var(--muted);
+}
+.wb-mini__meta b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.wb-mini__meta i { font-style: normal; opacity: .45; }
+.wb-mini__bar { height: 5px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.wb-mini__bar span {
+    display: block; height: 100%; border-radius: 999px; min-width: 4px;
+    background: var(--wb-brushed); background-size: 220% 100%;
+}
+.wb-role {
+    font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+    border-radius: 999px; padding: 3px 8px; white-space: nowrap;
+    background: var(--wb-gold-wash); color: var(--wb-gold-wash-ink);
+    border: 1px solid var(--wb-gold-hair);
+}
+.wb-role--muted { background: transparent; color: var(--muted); border-color: var(--line); }
+
+@media (max-width: 460px) {
+    .wb-mini { grid-template-columns: 44px minmax(0,1fr); gap: 10px; padding: 12px 13px; }
+    .wb-mini__img { width: 44px; height: 44px; border-radius: 10px; }
+    .wb-mini__t { white-space: normal; flex-basis: 100%; }
+}

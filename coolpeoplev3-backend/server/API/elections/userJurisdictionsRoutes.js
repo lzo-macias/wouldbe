@@ -3,6 +3,7 @@ const express = require("express");
 const {
     getUserJurisdictions,
     setUserJurisdictionsFromGeocode,
+    setUserJurisdictionsFromCoords,
     markPlaceCouncilStructure,
     backfillLocalJurisdictions,
 } = require("../../DB/elections/userJurisdictions");
@@ -34,6 +35,34 @@ router.post("/users/me/jurisdictions/resolve", authed, async (req, res, next) =>
         const result = await setUserJurisdictionsFromGeocode({
             userId: req.user.id,
             address: req.body?.address,
+        });
+        return res.json(result);
+    } catch (err) {
+        next(err);
+    }
+});
+
+// POST /users/me/jurisdictions/resolve-coords — the MANUAL PIN fallback.
+// Body: { lat, lng }.
+//
+// WHY IT EXISTS: /resolve returns 'needs_manual_pin' when a typed address
+// geocodes below the accuracy floor, and the client then opens a map. Until now
+// that map posted to this path and got a 404 — the only recovery route from a
+// bad geocode dead-ended, leaving the user unable to resolve at all.
+//
+// The pin is NOT accuracy-gated: it is the user's own assertion of where they
+// live, and bouncing it back would return them to the screen that sent them
+// here. Layers are recorded with source='manual'.
+//
+// Same address policy as /resolve: the coordinates are used in-memory (they
+// drive the council point-in-polygon) and never stored — the handler nulls
+// users.address/latitude/longitude just as the address path does.
+router.post("/users/me/jurisdictions/resolve-coords", authed, async (req, res, next) => {
+    try {
+        const result = await setUserJurisdictionsFromCoords({
+            userId: req.user.id,
+            lat: req.body?.lat,
+            lng: req.body?.lng,
         });
         return res.json(result);
     } catch (err) {

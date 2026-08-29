@@ -1,79 +1,168 @@
+/* ============================================================================
+   Start-a-debate header — the same bar the debate detail page runs.
+   ----------------------------------------------------------------------------
+   /debate/:id already solved this: <Header /> is a component styled for white
+   pages, and on ink its black logo and #E6EAEF hairline box disappear. That fix
+   lives in DebateCards.css scoped to .dbt-page, which this page is not — so the
+   same treatment is applied here, reading the gold system's dark tokens rather
+   than the .dbt-* set, which belongs to the debate route's own stylesheet.
+
+   THE LOGO IS THE HEADLINE FIX. The mark is solid black artwork, so on a
+   near-black ground it was rendering perfectly and could not be seen at all.
+   Inverting it is the whole repair — there is no light variant of the file.
+   ========================================================================== */
+
 .StartADebateHeader {
     display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    /* padding, not margin — a top margin here collapses out of the page
-       wrapper and leaves a white bar above the gradient */
-    padding: 2.5vw;
-    background: transparent;
-}
-.LogoandSearch {
-    width: 850px;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-
-}
-
-.SearchContainer {
-    display: flex;
-    flex-direction: row;
-    border: .1px solid #E6EAEF;
     align-items: center;
-    border-radius: 12px;
+    justify-content: space-between;
+    gap: 16px;
+    /* padding, not margin — a top margin here collapses out of the page
+       wrapper and leaves a bar above the gradient */
+    padding: 16px clamp(16px, 4vw, 34px);
+    background: rgba(19, 17, 9, .55);
+    border-bottom: 1px solid var(--line);
 }
 
-.SearchIcon {
-    margin-left: 10px;
-}
-.SearchContainer p {
-    color: #777777;
-    margin-right: 50px;
-}
-
-.actionbtns {
+.StartADebateHeader .LogoandSearch {
     display: flex;
-    flex-direction: row;
-    gap: 60px;
-    margin-right: 20px;
+    align-items: center;
+    /* Was a hard `width: 850px` with space-between, which pushed the search box
+       to a fixed point unrelated to the window and left the pair looking
+       detached from each other. */
+    flex: 1;
+    min-width: 0;
+    gap: clamp(16px, 4vw, 40px);
 }
 
-.login {
-    border: .1px solid #777777;
-    border-radius: 12px;
-    padding: 10px;
-    padding-left: 35px;
-    padding-right: 35px;
+.StartADebateHeader .WouldbeLogo img {
+    display: block;
+    height: 26px;
+    width: auto;
+    filter: invert(1);
+    opacity: .94;
 }
 
-.qualify {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  background: #c9a437;
-  color: #241b00;
-  font-weight: 700;
-  font-size: 14px;
-  border: none;
-  border-radius: 999px;
-  padding: 11px 20px;
-  cursor: pointer;
-  box-shadow: 0 8px 20px rgba(201, 164, 55, 0.28);
-  transition: 0.18s;
-  white-space: nowrap;
-  font-family: inherit;
-background-color: #D4B84D;
+.StartADebateHeader .SearchContainer {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    max-width: 420px;
+    height: 38px;
+    background: var(--paper);
+    border: 1px solid var(--line-2);
+    border-radius: 10px;
+    transition: border-color .16s var(--wb-ease);
 }
-/* 
-.qualify:hover {
-    background: #b48f22;
+.StartADebateHeader .SearchContainer:hover { border-color: var(--wb-gold-hair); }
+
+/* The glyph is black artwork too, and needs the same inversion as the mark. */
+.StartADebateHeader .SearchIcon {
+    margin-left: 12px;
+    width: 15px;
+    height: 15px;
+    filter: invert(1);
+    opacity: .42;
+}
+.StartADebateHeader .SearchContainer p {
+    margin: 0 12px;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Was `gap: 60px`, which put a third of the bar between "signup" and "login"
+   and read as two unrelated groups rather than one set of actions. */
+.StartADebateHeader .actionbtns {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-right: 0;
+}
+.StartADebateHeader .actionbtns button {
+    height: 34px;
+    padding: 0 16px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-2);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color .16s var(--wb-ease), background .16s var(--wb-ease),
+                border-color .16s var(--wb-ease);
+}
+.StartADebateHeader .actionbtns button:hover { color: var(--ink); background: var(--panel); }
+.StartADebateHeader .actionbtns button:focus-visible { outline: 2px solid var(--wb-gold-ink); outline-offset: 2px; }
+
+/* Log in is the outlined half of the pair. It is NOT the gold pill it is on the
+   debate page: there, login is the only action in the bar. Here the plate is
+   already spoken for by "See what you qualify for", and two gold fills in one
+   bar means neither is the primary one. */
+.StartADebateHeader .actionbtns .login {
+    padding: 0 20px;
+    border-color: var(--line-2);
+    color: var(--ink);
+}
+.StartADebateHeader .actionbtns .login:hover { border-color: var(--wb-gold-hair); background: var(--wb-gold-wash); }
+
+/* THE PLATE. Two competing declarations were setting this: `background:
+   #c9a437` and `background-color: #D4B84D` inside the same rule, so the second
+   silently won and the first was decoration. Both are gone; the fill comes from
+   the system, and on a dark surface the plate stays the plate — it is a fill,
+   not an ink, so it does not flip. */
+.StartADebateHeader .actionbtns .qualify {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    height: 34px;
+    padding: 0 18px;
+    font-weight: 700;
+    font-size: 13px;
+    white-space: nowrap;
+    border: none;
+    border-radius: 999px;
+    background: var(--wb-brushed);
+    background-size: 200% 200%;
+    background-position: 0% 0%;
+    color: var(--wb-on-gold);
+    box-shadow: 0 1px 0 rgba(255, 244, 205, .45) inset,
+                0 1px 2px rgba(66, 40, 10, .22);
+    text-shadow: 0 1px 0 rgba(255, 244, 205, .35);
+    transition: background-position .5s var(--wb-ease),
+                transform .18s var(--wb-ease),
+                box-shadow .18s var(--wb-ease);
+}
+.StartADebateHeader .actionbtns .qualify:hover {
+    background: var(--wb-brushed);
+    background-size: 200% 200%;
+    background-position: 100% 50%;
+    color: var(--wb-on-gold);
     transform: translateY(-1px);
-} */
+    box-shadow: 0 1px 0 rgba(255, 244, 205, .5) inset,
+                0 4px 14px rgba(122, 82, 17, .28);
+}
+.StartADebateHeader .actionbtns .qualify:active { transform: translateY(0); }
 
-.qualify, h3 {
-    color: black;
+/* Was `.qualify, h3 { color: black }` — it overrode the button's own ink and,
+   worse, blacked out every h3 on what is now a dark page. */
+.StartADebateHeader h3 { color: var(--ink); }
+.StartADebateHeader .actionbtns .signout { color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+    .StartADebateHeader .actionbtns button,
+    .StartADebateHeader .actionbtns .qualify { transition: none !important; }
+    .StartADebateHeader .actionbtns .qualify:hover { transform: none; }
 }
 
-.signout {
-    color: #777777;
+@media (max-width: 720px) {
+    .StartADebateHeader { flex-wrap: wrap; }
+    /* the search box is the first thing worth dropping — the logo and the
+       actions are both irreducible */
+    .StartADebateHeader .SearchContainer { display: none; }
 }

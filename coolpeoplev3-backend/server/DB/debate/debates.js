@@ -79,11 +79,52 @@
   // prize: 'cash' — only debates putting money up ('cash' or 'both')
   //        'none' — only non-cash prizes
   //        null   — everything (default)
-  const listCurrentDebates = async ({ limit = 100, sort = "contestants", prize = null } = {}) => {
+  // status:
+  //   null / 'all'  — everything listable (the historical behaviour, kept so
+  //                   existing callers are unchanged)
+  //   'active'      — still going: entry is open, or it is running. This is what
+  //                   the home feed asks for, because a debate whose result is
+  //                   already decided is a record, not an invitation.
+  //   'concluded'   — finished. Cancelled debates are NOT included: the WHERE
+  //                   below never lists them at all, for anyone.
+  const DEBATE_STATUS_SETS = {
+      active: ["open_entry", "live"],
+      concluded: ["closed"],
+  }
+
+  const listCurrentDebates = async ({ limit = 100, sort = "contestants", prize = null, status = null } = {}) => {
       try {
+          // ANYTHING HAPPENING, FIRST. Then money, then interest, then recency.
+          //
+          // `featured` used to lead on sponsor_contribution_cents alone, which
+          // had two consequences worth stating:
+          //
+          //   A FOR-FUN DEBATE COULD NEVER BE SEEN. It has no prize by
+          //   definition, so it sorted below every paid debate that will ever
+          //   exist — and the home feed takes eight. Not "ranked low": unable
+          //   to appear, permanently, no matter how many people answered it.
+          //
+          //   AN EMPTY $5 DEBATE OUTRANKED A BUSY FREE ONE. Money is a good
+          //   proxy for "worth looking at" only among debates people actually
+          //   turned up to; a five-dollar contest nobody entered is not more
+          //   interesting than a free one six people argued in.
+          //
+          // So the first key is whether ANYONE is in it — entrants or answers —
+          // which costs nothing to compute here and puts every live debate,
+          // paid or not, ahead of every dead one. Money still orders everything
+          // inside that group, so the paid feed reads exactly as it did.
+          //
+          // The expressions are repeated rather than referenced by alias:
+          // Postgres allows a bare output name in ORDER BY but not an alias
+          // inside an expression, and these are inside one.
+          const HAS_ACTIVITY = `(
+              COUNT(c.id) FILTER (WHERE c.withdrew_at IS NULL) > 0
+              OR (SELECT COUNT(*) FROM match_responses mr
+                   WHERE mr.debate_id = d.id AND mr.removed_at IS NULL) > 0
+          )`
           const ORDERINGS = {
               contestants: "total_contestants DESC, d.created_at DESC",
-              featured: "d.sponsor_contribution_cents DESC, nomination_count DESC, d.created_at DESC",
+              featured: `${HAS_ACTIVITY} DESC, d.sponsor_contribution_cents DESC, nomination_count DESC, d.created_at DESC`,
           }
           // Whitelisted, never interpolated from raw input — this lands in the SQL
           // string, so an unchecked value would be an injection point.
@@ -92,10 +133,26 @@
           const SQL = `
               SELECT d.*,
                      s.display_name AS sponsor_name,
+                     -- WHO PUT THIS UP, by handle. The card's meta row is
+                     -- deliberately the same shape as a WouldBe card's, and that
+                     -- one shows a username — so a debate has to be able to show
+                     -- one too, or the two card types read as different systems
+                     -- sharing a grid. Null for a corporate sponsor with no
+                     -- backing user, which is why the card falls back to the
+                     -- display name rather than assuming this is present.
+                     su.username AS sponsor_username,
                      -- A corporate sponsor has a logo; a casual one is just a
                      -- person, so fall back to their own avatar.
                      COALESCE(s.logo_url, su.profile_photo_url) AS sponsor_photo_url,
                      COUNT(c.id) FILTER (WHERE c.withdrew_at IS NULL)::int AS total_contestants,
+                     -- HOW MANY PEOPLE HAVE ANSWERED. A for-fun debate has no
+                     -- bracket and therefore no competitors in any meaningful
+                     -- sense — everyone who shows up simply answers — so its
+                     -- card counts responses instead. A subquery rather than a
+                     -- second LEFT JOIN: joining two one-to-many tables in one
+                     -- query multiplies the rows and both counts come out wrong.
+                     (SELECT COUNT(*)::int FROM match_responses mr
+                       WHERE mr.debate_id = d.id AND mr.removed_at IS NULL) AS total_responses,
                      (SELECT COUNT(DISTINCT n.nominator_user_id)::int
                         FROM nominations n WHERE n.debate_id = d.id) AS nomination_count
               FROM debates d
@@ -103,6 +160,9 @@
               LEFT JOIN users su ON su.id = s.user_id
               LEFT JOIN contestants c ON c.debate_id = d.id
               WHERE d.retired = false AND d.status NOT IN ('draft', 'cancelled')
+                -- The status window, as an array so one placeholder covers any
+                -- number of states and none of them is interpolated.
+                AND ($3::text[] IS NULL OR d.status = ANY($3))
                 -- prize_type is the source of truth ('cash' | 'non_cash' |
                 -- 'both'); 'both' counts as cash because money IS on the table.
                 AND ($2::text IS NULL
@@ -117,6 +177,7 @@
           const result = await client.query(SQL, [
               Math.min(Number(limit) || 100, 500),
               prize === "cash" || prize === "none" ? prize : null,
+              DEBATE_STATUS_SETS[status] || null,
           ])
           return result.rows
       } catch (err) { console.error(err); throw err }
@@ -327,8 +388,29 @@ const publishDebate = async ({ debate_id }, db = client) =>
     _setDebateStatus(debate_id, "open_entry", db)
 
 // startDebate — the debate is now running / streaming.
-const startDebate = async ({ debate_id }, db = client) =>
-    _setDebateStatus(debate_id, "live", db)
+//
+// THE FIELD IS FINAL AT THIS MOMENT. Entry closes when the debate goes live, so
+// this is the instant the contestant list stops changing and the sponsor can be
+// asked to build the bracket. The notification is fired here rather than from a
+// cron watching start_at, so "entry closed" and "seed it" cannot disagree.
+//
+// It is awaited but never allowed to fail the transition: an email provider
+// having a bad minute must not leave a debate stuck in open_entry past its own
+// start time. notifySponsorToSeed stamps seeding_notified_at, so a retry from
+// anywhere sends one email, not a second.
+const startDebate = async ({ debate_id }, db = client) => {
+    const debate = await _setDebateStatus(debate_id, "live", db)
+    try {
+        // Required lazily: debateSeeding requires matchResponses, which requires
+        // this module. A top-level require here would close that cycle and one
+        // of the three would load as an empty object.
+        const { notifySponsorToSeed } = require("./debateSeeding")
+        await notifySponsorToSeed({ debate_id })
+    } catch (err) {
+        console.error("[startDebate] could not ask the sponsor to seed", err)
+    }
+    return debate
+}
 
 // closeDebate — the debate has concluded.
 const closeDebate = async ({ debate_id }, db = client) =>

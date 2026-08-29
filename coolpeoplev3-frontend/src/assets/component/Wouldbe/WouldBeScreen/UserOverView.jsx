@@ -1,5 +1,4 @@
-import React, {useRef, useState, useEffect} from 'react'
-import { Link } from 'react-router-dom'
+import {useRef, useState, useEffect} from 'react'
 import "./UserOverView.css"
 
 // function PlanSwap ({plans}){
@@ -119,65 +118,12 @@ const Stars = ({ rating }) => {
 // `reviews` is the summary object from GET /api/users/:id/reviews; profileUserId
 // is whose profile this is (the WouldBe owner), needed for the review links.
 
-// DebatePill — one debate in the Active/Won lists, linking to that debate's page.
-//
-// The two lists come from different endpoints with different key names:
-// /debate-history rows carry `debate_id`, while the sponsored-debates rows are
-// normalised to `debate_id` in AnyWouldBe. `id` is the fallback for anything
-// that arrives un-normalised — and with no id at all the pill still renders,
-// just not as a link, because an <a> to /debate/undefined is worse than none.
-//
-// The <Link> carries the padding and the flex row (not the <li>), so the whole
-// pill is the click target rather than just the words inside it.
-function DebatePill({ debate }) {
-  const debateId = debate.debate_id ?? debate.id;
-  const inner = (
-    <>
-      <img className="ballotIcon" src="/wouldbegraphics/ballot.svg" alt="" aria-hidden="true" />
-      {debate.title}
-    </>
-  );
-
-  return (
-    <li className="debateslistitem">
-      {debateId ? <Link to={`/debate/${debateId}`}>{inner}</Link> : <span>{inner}</span>}
-    </li>
-  );
-}
-
-function DebateSwap({ ongoingDebates, wonDebates }) {
-  const [showDebates, setShowDebates] = useState("ongoing");
-
-  const hasNone = ongoingDebates.length === 0 && wonDebates.length === 0;
-
-  return hasNone ? (
-    <p>Hasn't Participated In Any Debates to Date</p>
-  ) : (
-    <div className="debateSwap">
-      {showDebates === "ongoing" ? (
-        <>
-          <h3 className="wonDebates">Active Debates</h3>
-          <ul className="debatesList">
-            {ongoingDebates.map((debate) => (
-              <DebatePill key={debate.debate_id ?? debate.id} debate={debate} />
-            ))}
-          </ul>
-          {wonDebates.length > 0 && (<button onClick={() => setShowDebates("Won")}>›</button>)}
-        </>
-      ) : (
-        <>
-          <h3 className="wonDebates">Won Debates</h3>
-          <ul className="debatesList">
-            {wonDebates.map((debate) => (
-              <DebatePill key={debate.debate_id ?? debate.id} debate={debate} />
-            ))}
-          </ul>
-          <button onClick={() => setShowDebates("ongoing")}>›</button>
-        </>
-      )}
-    </div>
-  );
-}
+// The Active/Won debate pills that used to sit at the foot of the funding card
+// were REMOVED here, not just unmounted: the campaign page's own "Debate record"
+// section renders the same debates as full tiles carrying the status, the prize
+// and the entrant count. Two lists of the same debates on one screen is one list
+// too many, and the pills were the weaker of the two. See PlanReviews for the
+// version that survived.
 
 function Images ({components}){
     const [index, setIndex] = useState(0)
@@ -235,7 +181,7 @@ function Titles ({components}) {
 
 
 
-function UserOverView({user, plans, endorsements, ongoingDebates, wonDebates, checklist, reviews, profileUserId}){
+function UserOverView({user, plans, reviews}){
     const timerIdV1 = useRef(null)
     const [imageOrTitles, setImageOrTitles] = useState("titles")
     const [hovered, setHovered] = useState(false)
@@ -330,12 +276,13 @@ function UserOverView({user, plans, endorsements, ongoingDebates, wonDebates, ch
         )}
         */}
 
-        {/* Bottom-right of the card. margin-top: auto is what pushes it down —
-            with the two blocks above gone there's nothing left for
-            justify-content: space-between to push against. */}
-        <div className='debatesBottomRight'>
-            <DebateSwap ongoingDebates = {ongoingDebates} wonDebates = {wonDebates}/>
-        </div>
+        {/* THE DEBATES ARE NOT HERE ANY MORE. They were a row of pills at the
+            foot of the funding card; the page's own "Debate record" section now
+            renders the same debates as full tiles, with the status, the prize
+            and the count. Two lists of the same thing on one screen is one list
+            too many, and the pills were the weaker of the two. DebateSwap and
+            DebatePill are kept below — they are what a compact debate list looks
+            like if this card ever needs one again. */}
     </div>
   )
 }

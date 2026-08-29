@@ -119,7 +119,15 @@ const init = async () => {
         // §7 — debate entry, prompts, voting, ranked choice, criteria acks
         const { router: debateEntriesRouter } = require("../API/debate/debateEntriesRoutes");
         const { router: promptsRouter } = require("../API/debate/promptsRoutes");
+        // typed debates — one prompt per bracket match, plus the category assist
+        const { router: matchPromptsRouter } = require("../API/debate/matchPromptsRoutes");
+        // typed debates — round clock, answers, threaded comments, engagement
+        const { router: matchResponsesRouter } = require("../API/debate/matchResponsesRoutes");
+        // typed debates read as a message app — conversation list + auto ballots
+        const { router: matchConversationsRouter } = require("../API/debate/matchConversationsRoutes");
         const { router: debateVotesRouter } = require("../API/debate/debateVotesRoutes");
+        // bracket-match crowd voting — the vote screen a host puts up mid-debate
+        const { router: debateMatchesRouter } = require("../API/debate/debateMatchesRoutes");
         const { router: rankedVotesRouter } = require("../API/debate/rankedVotesRoutes");
         const { router: criteriaAcksRouter } = require("../API/debate/criteriaAcksRoutes");
         // §6/§9 debate lifecycle + results
@@ -173,6 +181,10 @@ const init = async () => {
         // Debate-Update livestream layer (Twitch/R2 — adapter-stubbed)
         const { router: twitchRouter } = require("../API/debate/twitchRoutes");
         const { router: debateStreamsRouter } = require("../API/debate/debateStreamsRoutes");
+        // Seeding day — the sponsor's bracket + prompt assignment, and the lock.
+        const { router: debateSeedingRouter } = require("../API/debate/debateSeedingRoutes");
+        // Standing arrows: the trophy case, the open-response gate, the backdoor.
+        const { router: trophiesRouter } = require("../API/debate/trophiesRoutes");
         app.use("/api/auth", authRouter);
         app.use("/api/users", userRouter);
         app.use("/api", consentRouter);
@@ -217,7 +229,11 @@ const init = async () => {
         app.use("/api", debateJudgesRouter);
         app.use("/api", debateEntriesRouter);
         app.use("/api", promptsRouter);
+        app.use("/api", matchPromptsRouter);
+        app.use("/api", matchResponsesRouter);
+        app.use("/api", matchConversationsRouter);
         app.use("/api", debateVotesRouter);
+        app.use("/api", debateMatchesRouter);
         app.use("/api", rankedVotesRouter);
         app.use("/api", criteriaAcksRouter);
         app.use("/api", debateApplicationsRouter);
@@ -260,6 +276,8 @@ const init = async () => {
         app.use("/api", debatePayoutsRouter);
         app.use("/api", twitchRouter);
         app.use("/api", debateStreamsRouter);
+        app.use("/api", debateSeedingRouter);
+        app.use("/api", trophiesRouter);
 
         // Central JSON error handler (routes call next(err)).
         app.use((err, _req, res, _next) => {

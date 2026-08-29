@@ -61,6 +61,31 @@ function HomeFilter({ value, onChange }) {
 
             {open && (
                 <div className='homeFilterPanel' role='dialog' aria-label='Filter results'>
+                    {/* FIRST, because it is the one that is already on. A
+                        filter the reader did not set has to be the first thing
+                        they can see and undo. */}
+                    <div className='hfGroup'>
+                        <span className='hfLabel'>Status</span>
+                        <div className='hfSeg'>
+                            {[['active', 'Active'], ['concluded', 'Concluded'], ['all', 'All']].map(
+                                ([v, l]) => (
+                                    <button
+                                        key={v}
+                                        type='button'
+                                        className={draft.status === v ? 'is-on' : ''}
+                                        onClick={() => set({ status: v })}
+                                    >
+                                        {l}
+                                    </button>
+                                )
+                            )}
+                        </div>
+                        <p className='hfHint'>
+                            Active hides debates that have finished and campaigns
+                            past their funding deadline.
+                        </p>
+                    </div>
+
                     <div className='hfGroup'>
                         <span className='hfLabel'>Show</span>
                         <div className='hfSeg'>

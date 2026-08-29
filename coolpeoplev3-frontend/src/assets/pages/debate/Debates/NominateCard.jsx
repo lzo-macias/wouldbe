@@ -29,20 +29,28 @@ const formatStartDate = (value, timeZone) => {
     if (!value) return null
     const when = new Date(value)
     if (Number.isNaN(when.getTime())) return null
+    // dateStyle/timeStyle CANNOT be combined with timeZoneName — Intl throws
+    // TypeError "Invalid option : option" for that pair. This card never showed
+    // it because the catch below swallowed the throw and returned the fallback,
+    // which is why the zone label ("EDT") has been silently missing from every
+    // start date. Spelling the components out is the only way to keep it.
+    const opts = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZoneName: 'short',
+    }
     try {
         return new Intl.DateTimeFormat('en-US', {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-            timeZoneName: 'short',
+            ...opts,
             ...(timeZone ? { timeZone } : {}),
         }).format(when)
     } catch {
-        // An unrecognised zone name would otherwise throw a RangeError mid-render
-        // and take the whole page down over a display detail.
-        return new Intl.DateTimeFormat('en-US', {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-        }).format(when)
+        // Only the ZONE can still be bad (an unrecognised IANA name raises
+        // RangeError), so drop it and keep the pattern rather than the reverse.
+        return new Intl.DateTimeFormat('en-US', opts).format(when)
     }
 }
 

@@ -1,0 +1,134 @@
+/* MatchPromptGrid — the per-match prompt sheet on the apply form.
+ *
+ * Uses the tokens ApplyForDebateCasual.css declares on .applyPage (--gold,
+ * --field, --hairline …). They inherit, and this grid only ever renders inside
+ * that page, so nothing is redeclared here — a second copy of --gold is how two
+ * halves of one form end up slightly different shades of the same colour.
+ *
+ * The sheet is a LIST, not a grid of cards: fifteen textareas in columns is a
+ * wall, and the sponsor reads it top to bottom in the order the bracket is
+ * played. The final is the only slot given its own weight, because it is the
+ * only one everybody will read.
+ */
+
+.mpg { display: flex; flex-direction: column; gap: 14px; }
+
+.mpg-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.mpg-count {
+    font-size: 15px;
+    color: var(--gold-ink);
+}
+.mpg-count strong { font-variant-numeric: tabular-nums; }
+
+.mpg-note {
+    max-width: 52ch;
+    margin-top: 2px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    text-wrap: pretty;
+}
+
+.mpg-source {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ink-faint);
+}
+
+.mpg-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.mpg-actions button {
+    height: 38px;
+    padding: 0 16px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--gold-ink);
+    background: var(--gold-soft);
+    border: 1px solid var(--gold-line);
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+.mpg-actions button:hover:not(:disabled) { background: var(--gold); border-color: var(--gold); }
+.mpg-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+.mpg-actions .mpg-secondary {
+    color: var(--ink-soft);
+    background: transparent;
+}
+
+.mpg-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    counter-reset: mpg;
+}
+
+.mpg-slot {
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-left: 3px solid var(--hairline);
+    border-radius: var(--radius);
+}
+/* Written vs empty has to be visible at a glance down a 15-row sheet — the
+   count in the header says how many are left, this says WHICH. */
+.mpg-slot.is-filled { border-left-color: var(--gold); }
+.mpg-slot.is-final {
+    background: var(--gold-pale);
+    border-color: var(--gold-line);
+}
+
+.mpg-slot-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.mpg-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--gold-deep);
+}
+.mpg-slot.is-final .mpg-label { color: var(--gold-ink); }
+
+.mpg-chars {
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+}
+
+.mpg-slot textarea {
+    width: 100%;
+    min-height: 62px;
+    padding: 9px 11px;
+    font: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--gold-ink);
+    background: var(--field);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    resize: vertical;
+}
+.mpg-slot textarea:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(201, 164, 55, 0.18);
+}
+
+@media (max-width: 640px) {
+    .mpg-head { flex-direction: column; }
+    .mpg-actions { width: 100%; }
+    .mpg-actions button { flex: 1; }
+}

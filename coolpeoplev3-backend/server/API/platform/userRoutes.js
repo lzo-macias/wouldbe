@@ -1,4 +1,7 @@
+const { getUserProfile } = require("../../DB/platform/userProfile");
 const express = require("express")
+
+const { getUserFull } = require("../../DB/platform/userFull.js");
 
 const {
     createUsers,
@@ -157,6 +160,71 @@ router.get("/:userId/debates", async (req, res, next) => {
 })
 
 
+
+// GET /api/users/:userId/full — the profile page in one request: the public
+// user row, their interests, reviews + summary, live debates, full debate
+// history and their campaigns.
+//
+// WHY: the page needed SIX round trips, each with its own loading state and its
+// own chance to arrive out of order. Same reasoning and same shape as
+// /debates/:id/full.
+//
+// Declared BEFORE /:userId so "full" isn't captured as a user id.
+//
+// Auth is OPTIONAL and only widens the response — it sets is_self, unlocks the
+// owner's unlisted campaigns, and returns interests (which the standalone route
+// gates behind requireAuth; logged-out callers get null there, not the list). A
+// bad or expired token is treated as logged-out rather than 401, since the
+// public view is still a perfectly valid answer.
+// GET /api/users/:userId/profile — the public profile page in one read:
+// identity (privacy applied), the standing chips, the argued-in feed and their
+// campaigns.
+//
+// Auth is OPTIONAL and only ever widens: a token makes this the OWNER's copy,
+// which is the one that shows hidden fields back to the person hiding them and
+// includes their unlaunched campaigns. A bad token is treated as logged-out
+// rather than 401 — the public view is a perfectly good answer.
+router.get("/:userId/profile", async (req, res, next) => {
+    try {
+        let viewerUserId = null;
+        if (req.headers.authorization) {
+            try {
+                const viewer = await findUserByToken(req.headers.authorization);
+                viewerUserId = viewer ? viewer.id : null;
+            } catch {
+                viewerUserId = null;
+            }
+        }
+        return res.json(
+            await getUserProfile({ user_id: req.params.userId, viewer_user_id: viewerUserId })
+        );
+    } catch (err) {
+        if (err.status) return res.status(err.status).json({ error: err.message });
+        next(err);
+    }
+});
+
+router.get("/:userId/full", async (req, res, next) => {
+    try {
+        let viewerUserId = null;
+        if (req.headers.authorization) {
+            try {
+                const viewer = await findUserByToken(req.headers.authorization);
+                viewerUserId = viewer ? viewer.id : null;
+            } catch {
+                viewerUserId = null;
+            }
+        }
+        return res.json(
+            await getUserFull({
+                user_id: req.params.userId,
+                viewer_user_id: viewerUserId,
+            })
+        );
+    } catch (err) {
+        next(err);
+    }
+});
 
 // Public profile by id — PII-safe (fetchPublicUserById strips DOB/email/phone).
 router.get("/:userId", async (req, res, next) => {

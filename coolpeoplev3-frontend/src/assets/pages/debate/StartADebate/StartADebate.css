@@ -4,18 +4,26 @@
     background: #E8D896;
 } */
 
+/* THE DARK SURFACE. This page used to be a flat #E8D896 gold field, which is
+   the one thing the gold system says gold must not be: a whole page of the
+   accent leaves nothing for the accent to mark, and it forced every card on top
+   of it to be near-white to stay legible — so the gold read as a background
+   colour rather than as the brand.
+
+   Inverted, the ink carries the page and gold goes back to being the thing you
+   look at. data-surface="dark" on the element (see StartADebate.jsx) flips
+   --wb-gold-ink to the light end of the ramp for everything inside. */
 .debategradientV2 {
     /* display:flow-root establishes a block formatting context so the header's
        margin-top stays INSIDE this div instead of collapsing out and pushing
-       the whole gradient down (that was the white bar at the top). */
+       the whole page down (that was the white bar at the top). */
     display: flow-root;
     min-height: 100vh;
     width: 100%;
-    background: linear-gradient(
-        to bottom,
-        #E8D896 0%,
-        #E8D896 25%,
-        #E8D896 50%,
-        #E8D896 100%
-    );
+    color: #F5F0E4;
+    background:
+        /* A single warm pool behind the top of the page, so the ground is not a
+           flat black rectangle — it is the same trick the debate page uses. */
+        radial-gradient(1100px 520px at 50% -10%, rgba(232, 197, 106, .09), transparent 70%),
+        linear-gradient(to bottom, #17140E 0%, #0F0D0A 60%, #0F0D0A 100%);
 }

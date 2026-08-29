@@ -73,6 +73,9 @@ router.get("/debates", async (req, res, next) => {
                 limit: req.query.limit,
                 sort: req.query.sort,
                 prize: req.query.prize,
+                // ?status=active|concluded. Omitted = everything listable, so
+                // every existing caller keeps the answer it had.
+                status: req.query.status,
             })
         );
     } catch (err) {

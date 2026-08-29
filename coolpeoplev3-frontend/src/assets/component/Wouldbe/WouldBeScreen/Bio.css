@@ -36,10 +36,46 @@
     border: 1px solid black;
     margin: 100px;
     border-radius: 12px;
-    background-color: #f4f4f5
 }
+
+/* The profile link, under the photo and name. .starsnameandlinks already
+   centers this column, so it inherits that — no alignment of its own needed.
+   max-width + ellipsis because a long URL would otherwise widen .left past its
+   500px and shove the bio panel sideways. */
+.biolink {
+    margin-top: 4px;
+    max-width: 240px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gold-deep);
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.biolink:hover { text-decoration: underline; }
 
 .right p {
     padding: 20px;
     text-align: justify;
 }
+
+@media (max-width: 900px){
+    .bioContainer {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .left {
+        padding-bottom: 0px;
+    }
+    .right {
+        /* padding: 200px; */
+        /* margin: 200px; */
+        width: 90%;
+        margin: 50px;
+    }
+}
+
