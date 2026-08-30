@@ -56,10 +56,41 @@ app.use(cors());
 // the stream. Handlers read req.rawBody (a Buffer); normal JSON parsing is unchanged.
 app.use(express.json({ verify: (req, _res, buf) => { req.rawBody = buf; } }));
 
+// waitForDatabase — the first query, retried.
+//
+// TWO REASONS THIS IS NOT A SINGLE ATTEMPT:
+//
+//   Railway's private network is not up the instant the container is. A service
+//   that resolves postgres.railway.internal on its first tick can lose a race it
+//   would win half a second later, and the failure looks identical to a genuinely
+//   wrong password — which is how an afternoon disappears.
+//
+//   A restarting database is a normal event. Losing the app to a thirty-second
+//   Postgres restart is a worse outage than the restart.
+//
+// Backs off 1s, 2s, 4s… and gives up after ~30s rather than retrying forever: a
+// wrong DATABASE_URL should be a fast, loud failure, not a container that looks
+// busy indefinitely.
+const waitForDatabase = async ({ attempts = 6 } = {}) => {
+    for (let i = 0; i < attempts; i++) {
+        try {
+            await pool.query("SELECT 1");
+            if (i > 0) console.log(`database reachable after ${i + 1} attempts`);
+            return;
+        } catch (err) {
+            const last = i === attempts - 1;
+            if (last) throw err;
+            const wait = 2 ** i * 1000;
+            console.log(`database not reachable yet (${err.code || err.message}) — retrying in ${wait}ms`);
+            await new Promise((r) => setTimeout(r, wait));
+        }
+    }
+};
+
 const init = async () => {
     try {
         // Fail fast at startup if the DB is unreachable (Pool connects lazily).
-        await pool.query("SELECT 1");
+        await waitForDatabase();
         // Lazy require (after module.exports is set) avoids a circular dep:
         // route files pull DB modules that require this file for `client`.
         const { startScheduledJobs } = require("../jobs/scheduledJobs.js");
@@ -289,7 +320,21 @@ const init = async () => {
             console.log(`server alive on ${PORT}`);
         });
     } catch (err) {
-        console.log(err);
+        // EXIT NON-ZERO. This used to log and fall through, which left the
+        // process alive with nothing listening — so the platform saw a healthy
+        // container, showed it green, and every request came back 502 with no
+        // indication of why. A crash is information; a silent half-start is not.
+        console.error("\n\u2716 FATAL: the server could not start.\n");
+        console.error(err);
+        if (err && err.code) {
+            console.error(`\n(error code ${err.code})`);
+        }
+        console.error(
+            "\nIf this is a connection error, check DATABASE_URL. On Railway the private\n" +
+            "hostname (*.railway.internal) only resolves from inside the project — use the\n" +
+            "public URL if this service sits elsewhere.\n"
+        );
+        process.exit(1);
     }
 };
 
