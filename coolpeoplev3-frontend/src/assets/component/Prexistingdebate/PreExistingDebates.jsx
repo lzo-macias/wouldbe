@@ -123,9 +123,16 @@ function PreExistingDebates({ approved, drafts, rejected, travelToCasualOrCorpor
         <div className="preExisting">
             <div className="preExistingHead">
                 <h1>Your debates</h1>
-                <button type="button" className="addDebate" onClick={travelToCasualOrCorporate}>
-                    + Start a debate
-                </button>
+                {/* THE BUTTON IS OPTIONAL NOW. On the profile this shelf is a
+                    record of what you have submitted, and the way to start one
+                    is the rail's own "Start a post" — a second door here would
+                    be a second door to the same place. `onStart` keeps it
+                    available for any caller that is the only route in. */}
+                {travelToCasualOrCorporate && (
+                    <button type="button" className="addDebate" onClick={travelToCasualOrCorporate}>
+                        + Start a debate
+                    </button>
+                )}
             </div>
 
             <RenderCards type={approved} heading="Approved" />

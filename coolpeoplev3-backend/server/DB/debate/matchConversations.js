@@ -329,14 +329,30 @@ const listTypedBallots = async ({ debate_id, viewer_user_id = null }, db = clien
     );
 
     const ballots = [];
+    // HOW MANY WINDOWS HAVE RUN OUT. Closed matches are still dropped from the
+    // list — a ballot you cannot cast is not a ballot, and listing it would make
+    // the panel's count a lie — but the COUNT has to come back, because
+    // "nothing open" and "nothing open yet" are different sentences and the
+    // panel cannot tell them apart from an empty array. On a debate whose rounds
+    // have all been judged, the empty list was reading as "voting hasn't started
+    // yet" when in fact it was over.
+    let closed = 0;
+    let closes_last = null;
     for (const row of rows) {
         const key = slotKey(row.bracket_side, row.bracket_round, row.bracket_position);
         const b = await ensureTypedMatchVote({ debate_id, key, viewer_user_id }, db);
-        // Decided and closed matches are dropped: a ballot you cannot cast is
-        // not a ballot, and listing it would make the panel's count a lie.
-        if (b.match && (b.votable || b.my_vote)) ballots.push({ ...b, key });
+        if (b.match && (b.votable || b.my_vote)) {
+            ballots.push({ ...b, key });
+        } else if (b.reason === "vote_closed") {
+            closed += 1;
+            // The latest window to shut, so the panel can say when the room
+            // stopped being able to decide anything.
+            if (!closes_last || new Date(b.closes_at) > new Date(closes_last)) {
+                closes_last = b.closes_at;
+            }
+        }
     }
-    return { debate_id, ballots };
+    return { debate_id, ballots, closed, closes_last };
 };
 
 module.exports = { listConversations, ensureTypedMatchVote, listTypedBallots, voteWindowEnd };

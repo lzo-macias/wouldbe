@@ -216,3 +216,12 @@
     .wb-mini__img { width: 44px; height: 44px; border-radius: 10px; }
     .wb-mini__t { white-space: normal; flex-basis: 100%; }
 }
+
+/* ---- your own debates, on the Debates tab ----
+   The shelf of what you have submitted, above the feed of what you have done.
+   Owner-only: drafts are unpublished and a rejection is a private outcome.
+
+   PreExistingDebates was built as a full page, so the only thing needed here is
+   to stop it claiming one — its own styles do the rest. */
+.wb-mydebates { margin-bottom: 26px; }
+.wb-mydebates .preExisting { min-height: 0; padding: 0; background: none; }

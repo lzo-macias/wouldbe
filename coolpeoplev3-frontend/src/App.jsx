@@ -16,10 +16,27 @@ import './App.css'
 // ============================================================================
 import Home from './assets/pages/home/Home'
 
+// The V2 landing surface, lazy because "/" is still served by Home — nobody
+// pays for this chunk until they ask for /homev2.
+const HomeV2 = lazy(() => import('./assets/pages/home/HomeV2'))
+// The debate screen the feed's "Debate" button lands on.
+const DebateRoute = lazy(() => import('./assets/pages/home/DebateRoute'))
+
 const StartADebate     = lazy(() => import('./assets/pages/debate/StartADebate/StartADebate'))
 const ConnectTwitch    = lazy(() => import('./assets/pages/debate/StartADebate/ConnectTwitch'))
 const SeedBracket      = lazy(() => import('./assets/pages/debate/StartADebate/SeedBracket'))
+// Signing the prize promise. Its own page because it is a contract — see the
+// note at the top of the component.
+const PrizeAgreement   = lazy(() => import('./assets/pages/debate/StartADebate/PrizeAgreement'))
 const MyPrompts        = lazy(() => import('./assets/pages/debate/Debates/MyPrompts'))
+// The crowdfunding campaign page. Lazy for the same reason as everything else
+// here, and with one extra: it is a MARKETING route reached from outside the
+// app, so it carries its own header, footer and legal copy — none of which any
+// in-app session should have to download.
+const Fund             = lazy(() => import('./assets/pages/fund/Fund'))
+// The backer ledger behind the raise. Separate from Admin.jsx on purpose: that
+// screen browses reference data, this one moves money.
+const FundBoard        = lazy(() => import('./assets/pages/admin/FundBoard'))
 const AnyUserProfile   = lazy(() => import('./assets/pages/anyUserProfile/AnyUserProfile'))
 const Debate           = lazy(() => import('./assets/pages/debate/Debate'))
 const Admin            = lazy(() => import('./assets/pages/admin/Admin'))
@@ -52,6 +69,16 @@ function App() {
       <Suspense fallback={<div className="routeFallback">Loading…</div>}>
       <Routes>
         <Route path = "/" element = {<Home/>}/>
+        {/* The redesign, side by side with the live home page rather than on
+            top of it — "/" keeps working while this is being built. */}
+        <Route path = "/homev2" element = {<HomeV2/>}/>
+        {/* The raise. '/back' is the shareable alias — it is what goes in a bio
+            link and on a flyer, and a second Route costs nothing. */}
+        <Route path = "/fund" element = {<Fund/>}/>
+        <Route path = "/back" element = {<Fund/>}/>
+        {/* Admin-gated: emails, amounts and a refund button. RequireAdmin is the
+            UI guard; every /api/fund admin route re-checks server-side. */}
+        <Route path = "/admin/fund" element = {<RequireAdmin><FundBoard/></RequireAdmin>}/>
         <Route path = "/myWouldBe" element = {<MyRunningWouldBe/>}/>
         <Route path = "wouldbe/:id" element = {<AnyWouldBe/>} />
         <Route path = "/startadebate" element = {<StartADebate/>}/>
@@ -79,7 +106,14 @@ function App() {
             unfinished stub and its duplicate route was unreachable anyway —
             the first matching route wins. */}
         <Route path = '/wouldbe/:jurisdiction_id/:officeId' element = {<StartAnOffice/>}/>
-        <Route path = 'debate/:debateId' element = {<AnyDebate/>}/>
+        {/* '/debate/:id' is the NEW debate screen — one question per bracket,
+            the timeline, the criteria and the standings. AnyDebate, the original
+            dark page, is still mounted one segment along rather than deleted:
+            the feed's inline expansion renders its DebateDetail, and it is the
+            only screen that talks to the live /full endpoint. */}
+        <Route path = 'debate/:debateId' element = {<DebateRoute/>}/>
+        <Route path = 'debate/:debateId/classic' element = {<AnyDebate/>}/>
+        <Route path = 'debate/:debateId/agreement' element = {<PrizeAgreement/>}/>
         {/* `key` is the bracket slot coordinate, "left:0:1" — the same
             (side, round, position) the matches and prompts are keyed on. */}
         <Route path = 'debate/:debateId/match/:key' element = {<MatchThread/>}/>

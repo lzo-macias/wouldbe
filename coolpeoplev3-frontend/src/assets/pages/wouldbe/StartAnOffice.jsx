@@ -10,7 +10,15 @@ import WouldBeNavHeader from '../../component/header/WouldBeNavHeader'
 import ChooseYourIssues from '../../component/Wouldbe/ChooseYourIssues/ChooseYourIssues'
 import PayWall from '../../component/Wouldbe/PayWall/PayWall'
 
-function StartAnOffice() {
+/**
+ * `officeId` / `jurisdictionId` come in as PROPS when this runs inline — the
+ * would be flow opens inside the feed now, where there is no route to read
+ * params from. useParams stays as the fallback so the /wouldbe/:jur/:office
+ * route is unchanged. Same split as DebateDetail.
+ *
+ * `embedded` drops the page chrome: inline, the feed already has a header.
+ */
+function StartAnOffice({ officeId: officeIdProp, jurisdictionId, embedded = false }) {
   const [screen, setScreen] = useState("1")
   const [individualJurisdiction, setIndividualJurisdiction] = useState(null)
   const [individualOffice, setindividualOffice] = useState(null)
@@ -24,7 +32,9 @@ function StartAnOffice() {
   const [wouldbe, setWouldbe] = useState(null)
   const [createError, setCreateError] = useState(null)
 
-  const  { jurisdiction_id, officeId } = useParams()
+  const params = useParams()
+  const officeId = officeIdProp ?? params.officeId
+  const jurisdiction_id = jurisdictionId ?? params.jurisdiction_id
 
   // Load the office (with its jurisdiction, deadlines, and recommended goal)
   // once per :officeId. Each call uses the PREVIOUS response's data directly —
@@ -173,7 +183,9 @@ function StartAnOffice() {
     <div>
 
       {/* <WouldBeNavHeader/> */}
-      <WouldBeHeader/>
+      {/* Inline, the feed's own header is already on screen — two headers on
+          one page reads as broken rather than nested. */}
+      {!embedded && <WouldBeHeader/>}
       {individualOffice ? screens[screen] : <p>Loading…</p>}
     </div>
   )

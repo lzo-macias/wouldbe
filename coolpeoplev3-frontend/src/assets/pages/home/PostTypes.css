@@ -1,0 +1,462 @@
+/* ============================================================================
+   PostTypes.css — Question, Artifact, Would be.
+
+   Scoped under .wbfeed and built from HomeV2's tokens. It adds no new colours
+   and no new radii: four post types that each invent their own palette stop
+   reading as one product, which is the same reason they share a card skeleton.
+
+   THE INVARIANT, again: --rule-strong is the CARD's outer edge. Nothing here
+   uses it. Internal grouping is fill (--sunk) plus the lighter --rule-2.
+   ============================================================================ */
+
+/* ---- chips shared by every kind ----
+   One chip shape, four meanings. A debate's chip is a LIFECYCLE (Open entry /
+   Live / Concluded); the other three carry the kind itself, because those have
+   no lifecycle a reader needs on a card. */
+.wbfeed .kind {
+    display: inline-flex; align-items: center; gap: 6px; height: 23px; padding: 0 9px;
+    border-radius: 999px; font-size: 11px; font-weight: 700;
+    letter-spacing: .05em; text-transform: uppercase; flex: none;
+}
+.wbfeed .kind--live { background: var(--gold-950); color: var(--gold-200); padding-left: 8px; }
+.wbfeed .kind--live .pip {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--gold-200);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold-200) 26%, transparent);
+}
+.wbfeed .kind--entry { background: var(--gold-wash); color: var(--gold-ink); border: 1px solid var(--gold-hair); }
+.wbfeed .kind--done,
+.wbfeed .kind--question,
+.wbfeed .kind--artifact,
+.wbfeed .kind--wouldbe {
+    background: var(--sunk); color: var(--fg-2); border: 1px solid var(--rule-2);
+}
+
+/* The value slot: one number, right of the head. It replaces the debate-only
+   .prize, so a would be's "62% funded" lands in exactly the same place a
+   prize does and the four cards keep one skyline. */
+.wbfeed .val {
+    margin-left: auto; flex: none; display: flex; flex-direction: column; align-items: flex-end;
+    padding-left: 14px;
+}
+.wbfeed .val__n {
+    font-size: 19px; font-weight: 800; letter-spacing: -.03em; color: var(--gold-ink);
+    font-variant-numeric: tabular-nums; line-height: 1.05;
+}
+.wbfeed .val__l {
+    font-size: 9.5px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase;
+    color: var(--fg-3);
+}
+
+/* Who took it. "Concluded" with no winner marked is a label with no payload. */
+.wbfeed .won {
+    display: inline-flex; align-items: center; gap: 4px; flex: none;
+    font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--gold-ink);
+}
+.wbfeed .side--won { background: color-mix(in srgb, var(--gold-wash) 60%, transparent); }
+
+/* ---- the composer, shared by question and artifact ---- */
+.wbfeed .comp { display: flex; gap: 10px; padding-top: 4px; }
+.wbfeed .comp__f { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.wbfeed .comp__in {
+    width: 100%; min-height: 78px; resize: vertical; padding: 11px 13px;
+    font: inherit; font-family: var(--serif); font-size: 15px; line-height: 1.55;
+    color: var(--fg); background: var(--card);
+    border: 1px solid var(--rule-2); border-radius: var(--r-s);
+}
+.wbfeed .comp__in::placeholder { color: var(--fg-3); font-family: var(--sans); font-size: 13px; }
+.wbfeed .comp__in:focus {
+    outline: none; border-color: var(--gold-mark);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold-mark) 14%, transparent);
+}
+.wbfeed .comp__b { display: flex; align-items: center; gap: 12px; }
+.wbfeed .comp__note { font-size: 11.5px; color: var(--fg-3); }
+
+/* ==========================================================================
+   QUESTION
+   ========================================================================== */
+
+/* The preview is the two answers that are winning. Not a count and not a
+   summary: what a reader is deciding is whether the answers are worth opening,
+   and only the answers can tell them that. */
+.wbfeed .qpv { display: flex; flex-direction: column; border-top: 1px solid var(--rule-2); }
+.wbfeed .qpv__i {
+    display: flex; gap: 10px; padding: 14px 20px;
+    border-bottom: 1px solid var(--rule-2);
+}
+.wbfeed .qpv__i:last-child { border-bottom: 0; }
+.wbfeed .qpv__t { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1; }
+.wbfeed .qpv__h { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.wbfeed .qpv__n { font-size: 12.5px; font-weight: 700; letter-spacing: -.01em; }
+.wbfeed .qpv__o {
+    font-size: 11.5px; color: var(--fg-3);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Clamped, because the preview's job is to make the case for opening — not to
+   be the reading. Three lines is enough to hear a voice. */
+.wbfeed .qpv__b {
+    margin: 0; font-family: var(--serif); font-size: 15px; line-height: 1.6; color: var(--fg);
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.wbfeed .qpv__f { display: flex; align-items: center; gap: 12px; }
+
+.wbfeed .qa__sort { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.wbfeed .sortchip {
+    height: 28px; padding: 0 12px; border-radius: 999px;
+    border: 1px solid var(--rule-2); background: var(--card);
+    font-size: 12.5px; font-weight: 700; color: var(--fg-2);
+}
+.wbfeed .sortchip[aria-pressed="true"] {
+    background: var(--gold-wash); border-color: var(--gold-hair); color: var(--gold-ink);
+}
+.wbfeed .qa__count { margin-left: auto; font-size: 11.5px; color: var(--fg-3); }
+
+/* THE ANSWER LIST IS FLAT. Same row as the collapsed preview, hairline between
+   — see the note on Answer() for why the filled cards and the TOP ANSWER tint
+   are gone. The list separators are --rule-2 because they are inside a card,
+   and the card's own edge is the only strong one on the page. */
+.wbfeed .qa__list { display: flex; flex-direction: column; }
+.wbfeed .qi {
+    display: flex; gap: 10px;
+    padding: 15px 0; border-bottom: 1px solid var(--rule-2);
+}
+.wbfeed .qi:last-child { border-bottom: 0; }
+.wbfeed .qi__t { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.wbfeed .qi__h { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.wbfeed .qi__n { font-size: 13px; font-weight: 700; letter-spacing: -.01em; flex: none; }
+.wbfeed .qi__o {
+    font-size: 12px; color: var(--fg-3); min-width: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wbfeed .qi__when { margin-left: auto; flex: none; font-size: 11.5px; color: var(--fg-3); }
+.wbfeed .qi__b {
+    margin: 0; font-family: var(--serif); font-size: 15.5px; line-height: 1.6; color: var(--fg);
+}
+.wbfeed .qi__f, .wbfeed .th__f { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* ONE LEVEL OF NESTING. A thread that goes deeper has stopped being an answer
+   and become an argument — which is what the debate type is for, so it should
+   be promoted rather than indented further. The rule down the left is the whole
+   indent: a fill here would put the box back that the answers just lost. */
+.wbfeed .qi__rep {
+    display: flex; flex-direction: column; gap: 10px;
+    margin-top: 4px; padding-left: 13px; border-left: 2px solid var(--rule-2);
+}
+.wbfeed .rep { display: flex; flex-direction: column; gap: 5px; }
+.wbfeed .rep__h { display: flex; align-items: center; gap: 8px; }
+.wbfeed .rep__n { font-size: 12.5px; font-weight: 700; }
+.wbfeed .rep__when { font-size: 11.5px; color: var(--fg-3); }
+.wbfeed .rep__b { margin: 0; font-size: 14px; line-height: 1.6; color: var(--fg-2); }
+
+.wbfeed .qa__more {
+    align-self: flex-start; height: 34px; padding: 0 14px; border-radius: 999px;
+    border: 1px solid var(--rule-2); background: var(--card);
+    font-size: 12.5px; font-weight: 700; color: var(--fg-2);
+}
+.wbfeed .qa__more:hover { border-color: var(--fg-3); color: var(--fg); }
+
+/* ==========================================================================
+   ARTIFACT
+   ========================================================================== */
+
+/* THE BODY, behind "See more". Serif, because on this page the serif marks the
+   record — an artifact is somebody putting their name to a claim, which is the
+   most record-like thing in the feed.
+
+   Not clamped. The old card led with the whole statement cut to five lines,
+   which ended mid-sentence wherever the line happened to fall and turned the
+   feed into three posts and one wall of prose. The title does the previewing
+   now; this is the reasoning, shown whole or not at all. */
+.wbfeed .art__b { display: flex; flex-direction: column; gap: 12px; max-width: 66ch; }
+.wbfeed .art__b p {
+    margin: 0; font-family: var(--serif);
+    font-size: 17px; line-height: 1.6; letter-spacing: -.003em; color: var(--fg);
+}
+/* A card whose head runs straight into its footer needs the gap the preview
+   used to provide. */
+.wbfeed .meta--last { margin-bottom: 4px; }
+
+.wbfeed .src__l { display: flex; flex-direction: column; }
+.wbfeed .src__i {
+    display: flex; align-items: center; gap: 11px; padding: 11px 0;
+    border-bottom: 1px solid var(--rule-2); font-size: 13px;
+}
+.wbfeed .src__i:last-child { border-bottom: 0; }
+.wbfeed .src__n {
+    flex: none; display: grid; place-items: center; width: 20px; height: 20px;
+    border-radius: 5px; background: var(--sunk);
+    font-size: 10.5px; font-weight: 800; color: var(--fg-2); font-variant-numeric: tabular-nums;
+}
+.wbfeed .src__t { flex: 1; min-width: 0; font-weight: 600; }
+.wbfeed .src__i:hover .src__t { color: var(--gold-ink); }
+.wbfeed .src__d { flex: none; color: var(--fg-3); }
+
+/* The one thing a statement can do that no other feed lets it do: become a
+   judged argument. Gold-washed because it is an invitation, not a warning. */
+.wbfeed .chal {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 14px 16px; border-radius: var(--r-s);
+    background: var(--gold-wash); border: 1px solid var(--gold-hair);
+}
+.wbfeed .chal__t { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 3px; }
+.wbfeed .chal__h { font-size: 13.5px; font-weight: 800; letter-spacing: -.015em; }
+.wbfeed .chal__p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--fg-2); max-width: 52ch; }
+
+/* A comment on an artifact is a response like any other, so it gets the same
+   flat row rather than a filled card of its own. */
+.wbfeed .th { display: flex; flex-direction: column; }
+.wbfeed .th__i {
+    display: flex; flex-direction: column; gap: 7px;
+    padding: 14px 0; border-bottom: 1px solid var(--rule-2);
+}
+.wbfeed .th__i:last-child { border-bottom: 0; }
+.wbfeed .th__h { display: flex; align-items: center; gap: 8px; }
+.wbfeed .th__n { font-size: 12.5px; font-weight: 700; }
+.wbfeed .th__when { margin-left: auto; font-size: 11px; color: var(--fg-3); }
+.wbfeed .th__b { margin: 0; font-family: var(--serif); font-size: 15px; line-height: 1.6; color: var(--fg); }
+
+/* ==========================================================================
+   WOULD BE
+   ========================================================================== */
+
+/* The card preview: the number, the bar, and the one button that matters. A
+   campaign's whole question is "will this get funded in time", so the preview
+   answers it before anything opens. */
+.wbfeed .wbpv {
+    display: flex; flex-direction: column; gap: 9px;
+    padding: 14px 20px 16px; border-top: 1px solid var(--rule-2);
+}
+.wbfeed .wbpv__n { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.wbfeed .wbpv__raised {
+    font-size: 22px; font-weight: 800; letter-spacing: -.03em; color: var(--gold-ink);
+    font-variant-numeric: tabular-nums; line-height: 1;
+}
+.wbfeed .wbpv__goal { font-size: 12.5px; color: var(--fg-2); }
+.wbfeed .bar2 { height: 8px; border-radius: 999px; background: var(--sunk); overflow: hidden; }
+.wbfeed .bar2 i {
+    display: block; height: 100%; border-radius: 999px; min-width: 3px;
+    background: var(--brushed); background-size: 200% 200%;
+}
+.wbfeed .wbpv__f { display: flex; align-items: center; gap: 6px 18px; flex-wrap: wrap; }
+.wbfeed .wbpv__s { font-size: 12px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.wbfeed .wbpv__s b { color: var(--fg); font-weight: 700; }
+.wbfeed .wbpv__cta { margin-left: auto; }
+
+/* ---- the hero ----
+   FULL-BLEED GOLD, edge to edge inside the card. It is the one place on the
+   whole feed that inverts — everything else is ink on white — and that is the
+   point: opening a campaign should feel like walking into its headquarters
+   rather than scrolling into more feed. It does NOT repeat the title; the card
+   head and the headline already say it twice. It carries the pitch, which
+   nothing else does.
+
+   The negative margins are what cancel .xp's padding. -1px on the sides so the
+   band sits under the card's own hairline instead of beside it. */
+.wbfeed .wb__hero {
+    margin: -20px -21px 4px;
+    padding: 20px 22px 18px;
+    display: flex; flex-direction: column; gap: 9px;
+    background: var(--brushed);
+    background-size: 200% 200%; background-position: 30% 50%;
+    color: var(--on-gold);
+}
+.wbfeed .wb__eyebrow {
+    font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+    color: color-mix(in srgb, var(--on-gold) 74%, transparent);
+}
+/* Sans, not serif. The pitch is a CLAIM in the candidate's own voice — the
+   serif on this page marks the record (arguments, positions, statements), and
+   putting a headline in it would file the pitch under evidence. */
+.wbfeed .wb__hero h3 {
+    margin: 0; font-weight: 800;
+    font-size: clamp(19px, 2.1vw, 24px); line-height: 1.28; letter-spacing: -.025em;
+    color: var(--on-gold); max-width: 34ch; text-wrap: balance;
+}
+.wbfeed .wb__hw { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+/* The avatar borrows the plate rather than the card, so it reads as sitting ON
+   the gold instead of punched through it. */
+.wbfeed .wb__hw .av {
+    background: color-mix(in srgb, var(--on-gold) 16%, transparent);
+    border-color: color-mix(in srgb, var(--on-gold) 22%, transparent);
+    color: var(--on-gold);
+}
+.wbfeed .wb__hn { display: flex; flex-direction: column; line-height: 1.35; min-width: 0; }
+.wbfeed .wb__hn b { font-size: 13.5px; font-weight: 800; letter-spacing: -.01em; }
+.wbfeed .wb__hn span {
+    font-size: 11.5px; color: color-mix(in srgb, var(--on-gold) 72%, transparent);
+}
+
+/* WHEN IT IS OPEN THE SIDEBAR CARRIES THE NUMBERS, so the preview strip would
+   be the same three figures twice, forty pixels apart. */
+.wbfeed .card[data-open] .wbpv { display: none; }
+
+/* The funding panel is a SIDEBAR, not a footer: it has to stay reachable while
+   somebody reads the positions, because reading the positions is what makes
+   them press it. */
+.wbfeed .wb__cols {
+    display: grid; grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 0 22px; align-items: start;
+}
+.wbfeed .wb__main { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding-bottom: 8px; }
+
+/* Cream, and bled to the card's right edge and bottom — the same trick as the
+   hero. A floating panel inside a card inside a feed is three nested boxes, and
+   the third one stops reading as anything. */
+.wbfeed .wb__side {
+    display: flex; flex-direction: column; gap: 14px;
+    margin: -4px -21px -24px 0;
+    padding: 18px; border-left: 1px solid var(--rule-2);
+    background: var(--foot);
+    position: sticky; top: 130px;
+}
+.wbfeed .fund__top { display: flex; align-items: center; gap: 13px; }
+.wbfeed .ring { position: relative; flex: none; display: grid; place-items: center; }
+/* -90deg so the arc starts at twelve o'clock; a meter that starts at three
+   reads as a pie chart. */
+.wbfeed .ring svg { transform: rotate(-90deg); width: 46px; height: 46px; }
+.wbfeed .ring__t {
+    position: absolute; font-size: 11.5px; font-weight: 800; letter-spacing: -.02em;
+    color: var(--gold-ink); font-variant-numeric: tabular-nums;
+}
+.wbfeed .fund__n { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.wbfeed .fund__r {
+    font-size: 26px; font-weight: 800; letter-spacing: -.035em;
+    font-variant-numeric: tabular-nums; line-height: 1.05;
+}
+.wbfeed .fund__g { font-size: 12px; color: var(--fg-2); }
+
+.wbfeed .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.wbfeed .tile {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 10px 4px; border-radius: 9px;
+    background: var(--card); border: 1px solid var(--rule-2);
+}
+.wbfeed .tile b {
+    font-size: 15px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+}
+.wbfeed .tile span {
+    font-size: 9px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--fg-3); text-align: center; line-height: 1.25;
+}
+.wbfeed .fund__btns { display: flex; flex-direction: column; gap: 8px; }
+
+.wbfeed .socials {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding-top: 12px; border-top: 1px solid var(--rule-2);
+}
+.wbfeed .socials__l {
+    font-size: 9.5px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--fg-3);
+}
+.wbfeed .socials__r { display: flex; align-items: center; gap: 16px; }
+.wbfeed .socials button { color: var(--fg-3); }
+.wbfeed .socials button:hover { color: var(--gold-ink); }
+
+/* ALL-OR-NOTHING IS THE TERMS, not a reassurance — it is what the button above
+   it actually does, so it is tinted like the button rather than greyed like
+   fine print. */
+.wbfeed .aon {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 12px 13px; border-radius: 9px;
+    background: var(--gold-wash); border: 1px solid var(--gold-hair);
+}
+.wbfeed .aon__l {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 9.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--gold-ink);
+}
+.wbfeed .aon p { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--fg-2); }
+
+/* ---- positions, as a timeline ----
+   node · what it is and when · what it commits to. The rail down the left is
+   what makes it a record: a position has a date it was taken, and a plain list
+   would say these were all drafted in one sitting. */
+.wbfeed .pos { display: flex; flex-direction: column; }
+.wbfeed .pos__i {
+    display: grid;
+    grid-template-columns: 22px minmax(120px, 190px) minmax(0, 1fr);
+    gap: 12px; padding: 0 0 20px;
+}
+.wbfeed .pos__node {
+    position: relative; z-index: 1;
+    display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--gold-300); color: var(--on-gold);
+    box-shadow: 0 0 0 3px var(--card);
+}
+/* The rail, drawn from each node to the next. On the last one there is nothing
+   below to connect to, so it stops. */
+.wbfeed .pos__i:not(:last-child) .pos__node::after {
+    content: ""; position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
+    width: 2px; height: calc(100% + 20px); background: var(--rule-2);
+}
+.wbfeed .pos__t { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding-top: 2px; }
+.wbfeed .pos__n { font-size: 14px; font-weight: 700; letter-spacing: -.015em; }
+.wbfeed .pos__d { font-size: 11.5px; color: var(--fg-3); }
+/* Its own box, because the commitment is a QUOTE — the thing that could be read
+   back to them later — and boxing it separates what they said from the label
+   somebody filed it under. */
+.wbfeed .pos__b {
+    margin: 0; padding: 13px 15px; border-radius: var(--r-s);
+    border: 1px solid var(--rule-2); background: var(--card);
+    font-size: 14px; line-height: 1.6; color: var(--fg-2);
+}
+
+/* ---- narrow ----
+   The rail goes UNDER the positions rather than beside them, and stops being
+   sticky: a sticky panel on a phone is a panel that eats a third of the screen
+   for the whole scroll. */
+@media (max-width: 900px) {
+    .wbfeed .wb__cols { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .wbfeed .wb__side {
+        position: static; margin: 0 -21px -24px; border-left: 0;
+        border-top: 1px solid var(--rule-2);
+    }
+    /* Side by side on the widest phone still fits three tiles; the buttons go
+       full width because a half-width Pledge on a phone is a thumb target
+       nobody aims at. */
+    .wbfeed .fund__btns { flex-direction: row; }
+    .wbfeed .fund__btns .btn { flex: 1; }
+    .wbfeed .rev__box { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 700px) {
+    /* The panel's own padding drops with the card's, so every full-bleed child
+       below can cancel one number instead of two. */
+    .wbfeed .xp { padding: 16px 16px 20px; }
+    .wbfeed .wb__hero { margin: -16px -17px 2px; padding: 16px 17px 15px; }
+    .wbfeed .wb__side { margin: 0 -17px -20px; }
+    /* The date drops under the title and the commitment under both: at this
+       width three columns leave the body four words wide. */
+    .wbfeed .pos__i { grid-template-columns: 22px minmax(0, 1fr); gap: 8px 11px; }
+    .wbfeed .pos__b { grid-column: 2; }
+    .wbfeed .pos__i:not(:last-child) .pos__node::after { height: calc(100% + 20px); }
+    .wbfeed .wbpv { padding-inline: 16px; }
+    .wbfeed .wbpv__cta { margin-left: 0; width: 100%; }
+    .wbfeed .wbpv__cta .btn { width: 100%; }
+    .wbfeed .qpv__i { padding-inline: 16px; }
+    .wbfeed .art__b p { font-size: 16px; }
+    /* The sort chips and the tabs are the two rows that outgrow a phone. Let
+       them scroll sideways rather than wrap into two ragged lines. */
+    .wbfeed .qa__sort, .wbfeed .wb__main .tabs {
+        flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    }
+    .wbfeed .qa__sort::-webkit-scrollbar, .wbfeed .wb__main .tabs::-webkit-scrollbar { display: none; }
+    .wbfeed .qa__count { display: none; }
+    .wbfeed .tiles { gap: 5px; }
+    .wbfeed .tile b { font-size: 14px; }
+    .wbfeed .chal { flex-direction: column; align-items: stretch; }
+    .wbfeed .chal .btn { width: 100%; }
+}
+
+/* ---- an image on a post ----
+   FULL-BLEED, under the head and above whatever the kind shows next. An image
+   on a post is part of what was posted, not an illustration beside it — inset
+   with the prose it reads as a thumbnail somebody attached to a message.
+
+   A capped height, because an aspect ratio somebody's camera chose is not a
+   layout decision: a portrait photo at full width is a card you have to scroll
+   past to reach the actions. */
+.wbfeed .post__img {
+    display: block; width: 100%; max-height: 420px; object-fit: cover;
+    border-top: 1px solid var(--rule-2); background: var(--sunk);
+}

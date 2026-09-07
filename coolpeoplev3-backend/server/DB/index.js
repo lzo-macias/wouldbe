@@ -209,6 +209,8 @@ const init = async () => {
         const { router: prizePoolRouter } = require("../API/payments/prizePoolRoutes");
         const { router: payoutAccountsRouter } = require("../API/payments/payoutAccountsRoutes");
         const { router: debatePayoutsRouter } = require("../API/payments/debatePayoutsRoutes");
+        // The launch raise — public pledge intake + the admin backer board.
+        const { router: fundPledgesRouter } = require("../API/payments/fundPledgesRoutes");
         // Debate-Update livestream layer (Twitch/R2 — adapter-stubbed)
         const { router: twitchRouter } = require("../API/debate/twitchRoutes");
         const { router: debateStreamsRouter } = require("../API/debate/debateStreamsRoutes");
@@ -305,6 +307,7 @@ const init = async () => {
         app.use("/api", prizePoolRouter);
         app.use("/api", payoutAccountsRouter);
         app.use("/api", debatePayoutsRouter);
+        app.use("/api", fundPledgesRouter);
         app.use("/api", twitchRouter);
         app.use("/api", debateStreamsRouter);
         app.use("/api", debateSeedingRouter);

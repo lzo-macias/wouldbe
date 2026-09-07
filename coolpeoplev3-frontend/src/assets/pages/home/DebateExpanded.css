@@ -1,0 +1,62 @@
+/* ============================================================================
+   DebateExpanded.css — the debate screen, on white, inside a feed card.
+
+   Scoped under .wbfeed like the rest of the feed, and it inherits that file's
+   tokens rather than declaring any: this is the same page, one card taller.
+
+   THE INVARIANT. --rule-strong is the card's OUTER edge. On a white ground
+   that 1px line is the only thing separating a prompt from the page, so
+   nothing in here uses it — internal grouping is FILL (--sunk) plus the
+   lighter --rule-2 hairline. That is why the stats strip, the vote cards and
+   the bracket slots are filled rather than outlined.
+   ============================================================================ */
+
+/* The bleed and the .expand trigger used to live here. They moved to
+   HomeV2.css because this file is loaded LAZILY — it arrives with the debate
+   panel, and both of those are needed the instant somebody presses the button,
+   before the chunk has landed. See the note there. */
+
+/* The panel frame, the lede, the stats strip, the vote cards and the tabs all
+   moved to HomeV2.css — they are shared with the question, artifact and would
+   be expansions, and this file is lazy. What remains is the stub panel and the
+   in-card notes.
+
+   THE BRACKET, THE MATCH LIST, THE CONVERSATION PANE AND THE VOTES TABLE ARE
+   GONE. A feed card is ONE PROMPT out of a debate, not the debate: drawing the
+   whole tournament inside it meant the card and the /debate screen were two
+   answers to the same question, and the card's answer was the worse one because
+   it had a quarter of the room. Opening a card now shows what the debate screen
+   shows for that one bracket — its responses — and the Debate button is how you
+   get the rest.
+   ============================================================================ */
+
+/* ---- the stub expansion ----
+   What a would be, a question or an article shows until each gets its own
+   design. It reuses the debate panel's frame and stats strip on purpose: the
+   mechanism is finished even where the layout is not, and a stub built out of
+   the real parts is one you can drop a real design into. */
+.wbfeed .xp--stub { gap: 16px; }
+.wbfeed .xp__read { display: flex; flex-direction: column; gap: 11px; max-width: 66ch; }
+.wbfeed .xp__read p {
+    margin: 0; font-family: var(--serif); font-size: 15.5px; line-height: 1.62; color: var(--fg);
+}
+.wbfeed .xp__note {
+    margin: 0; padding-top: 4px; border-top: 1px solid var(--rule-2);
+    padding-block-start: 12px;
+    font-size: 11.5px; color: var(--fg-3);
+}
+
+/* In a card the panel has no page around it, so it keeps the card's own inner
+   measure rather than the debate page's. */
+.wbfeed .xp--card { gap: 18px; }
+/* One bracket at a time means one ballot: the grid that laid two side by side
+   would stretch a single card across the whole column. */
+.wbfeed .votes--one { grid-template-columns: minmax(0, 420px); }
+.wbfeed .xp--card .rest { margin-top: 0; }
+.wbfeed .xp--card .rest__l { border-top: 0; }
+.wbfeed .xp--card .rest__i:first-child { border-top: 0; padding-top: 0; }
+.wbfeed .xp--card .rest__i { padding-inline: 0; }
+/* The dashboard closes the card. A hairline above it, because it is about the
+   whole debate rather than about the bracket it follows — the rule is what says
+   the subject changed. */
+.wbfeed .xp--card .xp__stand { border-top: 1px solid var(--rule-2); padding-top: 18px; }

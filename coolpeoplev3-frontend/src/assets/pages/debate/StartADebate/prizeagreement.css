@@ -1,0 +1,59 @@
+/* ============================================================================
+   prizeagreement.css — the page around the contract.
+
+   Deliberately plain: a single measured column on paper, nothing in the margins
+   and nothing to click but the thing being asked for. A contract screen with a
+   feed beside it is a contract screen somebody skims.
+   ============================================================================ */
+
+.pgPage {
+    min-height: 100vh;
+    background:
+        radial-gradient(900px 420px at 50% -12%, rgba(201, 164, 55, .07), transparent 70%),
+        #FFFFFF;
+    color: var(--ink);
+    padding: 28px 20px 96px;
+}
+
+/* 76ch, not the app's 1160. Legal prose is read line by line, and a clause set
+   at full page width is one somebody's eye loses its place in. */
+.pgWrap { max-width: 800px; margin-inline: auto; }
+
+.pgBack {
+    display: inline-block; margin-bottom: 22px;
+    font-size: 13px; font-weight: 700; color: var(--muted);
+}
+.pgBack:hover { color: var(--ink); text-decoration: none; }
+
+.pgHead { margin-bottom: 24px; }
+.pgKicker {
+    display: block; margin-bottom: 6px;
+    font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--gold-deep);
+}
+.pgTitle {
+    margin: 0 0 10px;
+    font-size: clamp(26px, 3.4vw, 34px); font-weight: 800; letter-spacing: -.03em;
+    line-height: 1.15;
+}
+.pgDek {
+    margin: 0; max-width: 66ch;
+    font-size: 15px; line-height: 1.6; color: var(--ink-2);
+}
+.pgDek b { color: var(--ink); font-weight: 700; }
+
+.pgError {
+    margin: 0 0 18px; padding: 12px 14px; border-radius: 10px;
+    background: #FDECEC; border: 1px solid #F0C8C4; color: #8B2F26;
+    font-size: 13.5px; font-weight: 600;
+}
+
+/* The card the clauses sit in. PrizeAgreementStep.css draws the inside of it;
+   this only gives that stylesheet the .applyPage it is scoped to, and a ground
+   to sit on. */
+.pgBody { display: block; }
+.pgBody .prizeAgreement { margin-top: 0; }
+
+@media (max-width: 620px) {
+    .pgPage { padding: 20px 14px 72px; }
+}

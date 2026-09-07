@@ -1,0 +1,614 @@
+/* ============================================================================
+   Fund.css — the crowdfunding campaign page.
+
+   This is a LANDING PAGE, not an app screen. It borrows the brand (the gold
+   ramp, the type scale, the radii) from index.css and owns nothing else: the
+   feed's card model, its rails and its density are wrong for a page whose only
+   job is to turn a stranger into a backer.
+
+   ── scoping ──────────────────────────────────────────────────────────────
+   Every selector is prefixed `.wbfund`. index.css already defines .card, .btn,
+   .pill and .stat app-wide; unprefixed, the styles below would repaint every
+   other page in the SPA. Two class names beat one.
+
+   ── the one structural idea ──────────────────────────────────────────────
+   The PLEDGE PANEL is sticky and never leaves the viewport above 980px. On a
+   campaign page the money box is the whole product — a visitor who scrolls to
+   the team section and then decides to back should not have to scroll back.
+   Below 980px it un-sticks and moves to the top, ahead of the argument, because
+   a fixed panel on a phone eats the screen the argument needs.
+   ============================================================================ */
+
+.wbfund {
+    /* the brand ramp, aliased not copied — a second copy of a colour is a
+       colour that drifts */
+    --f-gold-900: var(--wb-gold-900);
+    --f-gold-700: var(--wb-gold-700);
+    --f-gold-500: var(--wb-gold-500);
+    --f-gold-300: var(--wb-gold-300);
+    --f-gold-100: var(--wb-gold-100);
+    --f-gold-050: var(--wb-gold-050);
+    --f-on-gold:  var(--wb-on-gold);
+    --f-brushed:  var(--wb-brushed);
+
+    /* neutrals are LOCAL: they are a property of this layout, not the brand.
+       The ground is warm (#FCFAF5) rather than white so the white cards read as
+       surfaces without needing a shadow on every one of them. */
+    --f-ground:   #FCFAF5;
+    --f-surface:  #FFFFFF;
+    --f-sunk:     #F6F2E8;
+    --f-ink:      #16150F;
+    --f-ink-2:    #45412F;
+    /* 4.7:1 on --f-surface and 4.6:1 on --f-ground. The obvious lighter grey
+       for this role fails AA on exactly the text it carries: every caption,
+       every timestamp, every legal line. */
+    --f-ink-3:    #78715C;
+    --f-rule:     #E7E0CE;
+    --f-rule-2:   #F0EBDD;
+
+    background: var(--f-ground);
+    color: var(--f-ink);
+    min-height: 100vh;
+}
+
+.wbfund *, .wbfund *::before, .wbfund *::after { box-sizing: border-box; }
+
+.wbfund__wrap {
+    width: 100%;
+    max-width: 1180px;
+    margin-inline: auto;
+    padding-inline: var(--s5);
+}
+
+/* ============================================================================
+   TOP BAR
+   ============================================================================ */
+.wbfund__bar {
+    position: sticky; top: 0; z-index: 40;
+    background: rgba(252, 250, 245, .88);
+    backdrop-filter: saturate(1.4) blur(10px);
+    border-bottom: 1px solid var(--f-rule);
+}
+.wbfund__barIn {
+    display: flex; align-items: center; gap: var(--s4);
+    min-height: 68px;
+}
+.wbfund__brand { display: flex; align-items: center; gap: var(--s3); text-decoration: none; }
+.wbfund__brand:hover { text-decoration: none; }
+.wbfund__logo { height: 38px; width: auto; display: block; }
+.wbfund__brandText {
+    font-size: 10px; line-height: 1.25; letter-spacing: .1em;
+    text-transform: uppercase; font-weight: 600;
+    color: var(--f-gold-700); max-width: 180px;
+}
+.wbfund__barSpacer { flex: 1 1 auto; }
+.wbfund__barLink {
+    font-size: var(--text-sm); font-weight: 600; color: var(--f-ink-2);
+    text-decoration: none;
+}
+.wbfund__barLink:hover { color: var(--f-gold-700); text-decoration: none; }
+
+/* ============================================================================
+   BUTTONS — local, because index.css's .btn is a pill on white and this page
+   needs a brushed-gold plate as its focal action.
+   ============================================================================ */
+.wbfund__btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--s2);
+    padding: 12px 22px;
+    font: inherit; font-size: var(--text-sm); font-weight: 700;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--f-rule);
+    background: var(--f-surface); color: var(--f-ink);
+    cursor: pointer; text-decoration: none; white-space: nowrap;
+    transition: transform .16s var(--wb-ease), box-shadow .16s var(--wb-ease),
+                border-color .16s var(--wb-ease), background .16s var(--wb-ease);
+}
+.wbfund__btn:hover { border-color: var(--f-gold-300); transform: translateY(-1px); text-decoration: none; }
+.wbfund__btn:active { transform: translateY(0); }
+.wbfund__btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+.wbfund__btn--gold {
+    background: var(--f-brushed);
+    color: var(--f-on-gold);
+    border-color: rgba(66, 40, 10, .18);
+    box-shadow: 0 1px 2px rgba(66, 40, 10, .18);
+}
+.wbfund__btn--gold:hover { box-shadow: 0 6px 18px rgba(122, 82, 17, .28); }
+.wbfund__btn--lg { padding: 15px 28px; font-size: var(--text-md); }
+.wbfund__btn--block { width: 100%; }
+
+/* ============================================================================
+   HERO
+   ============================================================================ */
+.wbfund__hero { padding-block: var(--s10) var(--s8); }
+.wbfund__heroGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: var(--s10);
+    align-items: start;
+}
+
+.wbfund__eyebrow {
+    display: inline-flex; align-items: center; gap: var(--s2);
+    font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--f-gold-700);
+    background: var(--f-gold-050);
+    border: 1px solid var(--wb-gold-hair);
+    border-radius: var(--radius-pill);
+    padding: 6px 14px;
+    margin-bottom: var(--s5);
+}
+.wbfund__h1 {
+    font-size: clamp(38px, 5.2vw, 60px);
+    line-height: 1.04;
+    letter-spacing: -.03em;
+    font-weight: 800;
+    margin: 0 0 var(--s5);
+    max-width: 15ch;
+}
+.wbfund__h1 em { font-style: normal; color: var(--f-gold-700); }
+.wbfund__lede {
+    font-size: clamp(17px, 1.6vw, 20px);
+    line-height: 1.55;
+    color: var(--f-ink-2);
+    max-width: 56ch;
+    margin: 0 0 var(--s5);
+}
+.wbfund__heroActions { display: flex; flex-wrap: wrap; gap: var(--s3); margin-bottom: var(--s6); }
+
+.wbfund__trustRow {
+    display: flex; flex-wrap: wrap; gap: var(--s5);
+    padding-top: var(--s5);
+    border-top: 1px solid var(--f-rule);
+}
+.wbfund__trust { display: flex; flex-direction: column; gap: 2px; }
+.wbfund__trustK { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--f-ink-3); font-weight: 600; }
+.wbfund__trustV { font-size: var(--text-sm); font-weight: 700; color: var(--f-ink); }
+
+/* ============================================================================
+   PLEDGE PANEL — the money box. Sticky above 980px.
+   ============================================================================ */
+.wbfund__pledge {
+    position: sticky; top: 92px;
+    background: var(--f-surface);
+    border: 1px solid var(--f-rule);
+    border-radius: var(--radius);
+    padding: var(--s5);
+    box-shadow: 0 1px 2px rgba(22, 21, 15, .04), 0 18px 44px rgba(22, 21, 15, .07);
+}
+.wbfund__raised {
+    font-size: 38px; font-weight: 800; letter-spacing: -.03em; line-height: 1;
+    margin-bottom: 6px;
+}
+.wbfund__goalLine { font-size: var(--text-sm); color: var(--f-ink-3); margin-bottom: var(--s4); }
+.wbfund__goalLine b { color: var(--f-ink-2); font-weight: 700; }
+
+.wbfund__meter {
+    height: 8px; border-radius: 99px; background: var(--f-sunk);
+    overflow: hidden; margin-bottom: var(--s4);
+}
+.wbfund__meterFill {
+    height: 100%; border-radius: 99px;
+    background: var(--f-brushed);
+    transition: width .6s var(--wb-ease);
+}
+
+.wbfund__stats {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: var(--s2); margin-bottom: var(--s4);
+}
+.wbfund__stat {
+    background: var(--f-sunk);
+    border-radius: var(--radius-sm);
+    padding: 10px var(--s2);
+    text-align: center;
+}
+.wbfund__statV { font-size: var(--text-lg); font-weight: 800; letter-spacing: -.02em; }
+.wbfund__statK { font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--f-ink-3); font-weight: 600; }
+
+.wbfund__note {
+    font-size: var(--text-xs); line-height: 1.5; color: var(--f-ink-3);
+    margin-top: var(--s3); text-align: center;
+}
+.wbfund__share {
+    display: flex; align-items: center; justify-content: center; gap: var(--s3);
+    margin-top: var(--s4); padding-top: var(--s4);
+    border-top: 1px solid var(--f-rule-2);
+}
+.wbfund__shareBtn {
+    width: 34px; height: 34px; display: grid; place-items: center;
+    border-radius: 99px; border: 1px solid var(--f-rule);
+    background: var(--f-surface); color: var(--f-ink-3);
+    cursor: pointer; transition: color .16s, border-color .16s;
+}
+.wbfund__shareBtn:hover { color: var(--f-gold-700); border-color: var(--f-gold-300); }
+
+/* ============================================================================
+   SECTIONS
+   ============================================================================ */
+.wbfund__section { padding-block: var(--s10); border-top: 1px solid var(--f-rule); }
+.wbfund__section--sunk { background: var(--f-sunk); border-top-color: var(--wb-gold-hair); }
+
+.wbfund__kicker {
+    font-size: 11px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--f-gold-700);
+    margin-bottom: var(--s3);
+}
+.wbfund__h2 {
+    font-size: clamp(26px, 3vw, 36px);
+    line-height: 1.15; letter-spacing: -.025em; font-weight: 800;
+    margin: 0 0 var(--s4); max-width: 22ch;
+}
+.wbfund__sub { font-size: var(--text-md); line-height: 1.6; color: var(--f-ink-2); max-width: 62ch; margin: 0 0 var(--s6); }
+
+/* the thesis pull-quote */
+.wbfund__quote {
+    margin: 0 0 var(--s8);
+    padding-left: var(--s5);
+    border-left: 3px solid var(--f-gold-300);
+    font-size: clamp(20px, 2.4vw, 28px);
+    line-height: 1.35; letter-spacing: -.02em; font-weight: 700;
+    color: var(--f-ink); max-width: 30ch;
+}
+
+/* evidence cards */
+.wbfund__cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s4); }
+.wbfund__card {
+    background: var(--f-surface);
+    border: 1px solid var(--f-rule);
+    border-radius: var(--radius);
+    padding: var(--s5);
+}
+.wbfund__cardBig {
+    font-size: 40px; font-weight: 800; letter-spacing: -.03em; line-height: 1;
+    color: var(--f-gold-700); margin-bottom: var(--s3);
+}
+.wbfund__cardH { font-size: var(--text-md); font-weight: 700; margin: 0 0 6px; }
+.wbfund__cardP { font-size: var(--text-sm); line-height: 1.55; color: var(--f-ink-3); margin: 0; }
+
+/* named-wins strip */
+.wbfund__wins { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s4); margin-top: var(--s4); }
+.wbfund__win {
+    display: flex; align-items: baseline; gap: var(--s3);
+    background: var(--f-surface); border: 1px solid var(--f-rule);
+    border-radius: var(--radius-sm); padding: var(--s4);
+}
+.wbfund__winAge {
+    font-size: var(--text-lg); font-weight: 800; color: var(--f-gold-700);
+    letter-spacing: -.02em; flex: 0 0 auto;
+}
+.wbfund__winName { font-size: var(--text-sm); font-weight: 700; }
+.wbfund__winRace { font-size: var(--text-xs); color: var(--f-ink-3); }
+
+/* ============================================================================
+   WHAT WE'RE BUILDING
+   ============================================================================ */
+.wbfund__feats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s4); }
+.wbfund__feat {
+    background: var(--f-surface); border: 1px solid var(--f-rule);
+    border-radius: var(--radius); padding: var(--s5);
+    display: flex; gap: var(--s4); align-items: flex-start;
+}
+.wbfund__featIcon {
+    flex: 0 0 auto; width: 38px; height: 38px; border-radius: 11px;
+    display: grid; place-items: center;
+    background: var(--f-gold-050); color: var(--f-gold-700);
+    border: 1px solid var(--wb-gold-hair);
+}
+
+/* ============================================================================
+   USE OF FUNDS
+   ============================================================================ */
+.wbfund__allocBar {
+    display: flex; height: 44px; border-radius: var(--radius-sm);
+    overflow: hidden; border: 1px solid var(--wb-gold-hair);
+    margin-bottom: var(--s5);
+}
+.wbfund__allocSeg {
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 800; color: var(--f-on-gold);
+    min-width: 0; overflow: hidden;
+}
+.wbfund__allocList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3) var(--s6); }
+/* The budget is currently ONE line. A single row left-aligned in a two-column
+   grid reads as a broken second column, so an only child takes the full width —
+   and the moment the budget splits back out, this rule stops applying on its
+   own. */
+.wbfund__allocRow:only-child { grid-column: 1 / -1; }
+.wbfund__allocRow {
+    display: flex; align-items: baseline; gap: var(--s3);
+    padding-block: var(--s2);
+    border-bottom: 1px solid var(--f-rule-2);
+}
+.wbfund__swatch { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
+.wbfund__allocName { font-size: var(--text-sm); font-weight: 600; flex: 1 1 auto; }
+.wbfund__allocPct { font-size: var(--text-sm); font-weight: 800; color: var(--f-gold-700); }
+
+/* ============================================================================
+   TIERS
+   ============================================================================ */
+.wbfund__tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s4); align-items: stretch; }
+.wbfund__tier {
+    position: relative;
+    display: flex; flex-direction: column;
+    background: var(--f-surface);
+    border: 1px solid var(--f-rule);
+    border-radius: var(--radius);
+    padding: var(--s5);
+    text-align: left;
+    cursor: pointer;
+    font: inherit; color: inherit;
+    transition: border-color .16s var(--wb-ease), transform .16s var(--wb-ease), box-shadow .16s var(--wb-ease);
+}
+.wbfund__tier:hover { border-color: var(--f-gold-300); transform: translateY(-2px); box-shadow: 0 12px 30px rgba(122, 82, 17, .10); }
+/* The featured tier is marked by WEIGHT, not by a different colour: a second
+   fill here would make three cards read as two kinds of thing. */
+.wbfund__tier--featured { border-color: var(--f-gold-500); border-width: 2px; padding: calc(var(--s5) - 1px); }
+
+.wbfund__tierFlag {
+    position: absolute; top: -11px; left: var(--s5);
+    background: var(--f-brushed); color: var(--f-on-gold);
+    font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+    padding: 4px 12px; border-radius: 99px;
+    border: 1px solid rgba(66, 40, 10, .18);
+}
+.wbfund__tierLvl { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--f-ink-3); margin-bottom: var(--s2); }
+.wbfund__tierAmt { font-size: 34px; font-weight: 800; letter-spacing: -.03em; line-height: 1; margin-bottom: 6px; }
+.wbfund__tierName { font-size: var(--text-md); font-weight: 700; margin-bottom: var(--s3); }
+.wbfund__tierRule { height: 1px; background: var(--f-rule-2); margin-bottom: var(--s3); }
+.wbfund__tierList { list-style: none; margin: 0 0 var(--s5); padding: 0; display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; }
+.wbfund__tierList li { display: flex; gap: 10px; font-size: var(--text-sm); line-height: 1.45; color: var(--f-ink-2); }
+.wbfund__tick { flex: 0 0 auto; color: var(--f-gold-700); margin-top: 2px; }
+.wbfund__tierMeta {
+    font-size: var(--text-xs); color: var(--f-ink-3);
+    margin-top: var(--s3); text-align: center;
+}
+.wbfund__tierTrophy {
+    display: flex; align-items: center; gap: var(--s2);
+    background: var(--f-gold-050); border: 1px solid var(--wb-gold-hair);
+    border-radius: var(--radius-sm); padding: 10px var(--s3); margin-bottom: var(--s4);
+    font-size: var(--text-xs); font-weight: 700; color: var(--f-gold-700);
+}
+
+/* the no-reward / custom row under the tiers */
+.wbfund__custom {
+    margin-top: var(--s4);
+    display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4);
+    background: var(--f-surface); border: 1px dashed var(--wb-gold-hair);
+    border-radius: var(--radius); padding: var(--s4) var(--s5);
+}
+.wbfund__customText { flex: 1 1 260px; }
+.wbfund__customH { font-size: var(--text-sm); font-weight: 700; }
+.wbfund__customP { font-size: var(--text-xs); color: var(--f-ink-3); }
+
+/* ============================================================================
+   GTM + TEAM
+   ============================================================================ */
+.wbfund__steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s4); }
+.wbfund__step {
+    background: var(--f-surface); border: 1px solid var(--f-rule);
+    border-radius: var(--radius); padding: var(--s5);
+}
+.wbfund__stepN {
+    width: 26px; height: 26px; border-radius: 99px;
+    background: var(--f-brushed); color: var(--f-on-gold);
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 800; margin-bottom: var(--s3);
+}
+
+/* Three people, three equal cards. `align-items: stretch` (the grid default) is
+   load-bearing: the founder card carries a bio and firm chips the other two do
+   not yet, and without equal heights the row would read as one real card beside
+   two stubs. Equal heights make the shorter cards read as deliberately concise. */
+.wbfund__people {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s4);
+}
+.wbfund__person {
+    display: flex; flex-direction: column;
+    background: var(--f-surface); border: 1px solid var(--f-rule);
+    border-radius: var(--radius); padding: var(--s5);
+    transition: border-color .16s var(--wb-ease), box-shadow .16s var(--wb-ease);
+}
+.wbfund__person:hover { border-color: var(--f-gold-300); box-shadow: 0 10px 26px rgba(122, 82, 17, .08); }
+
+/* A CIRCLE, not the rounded square this started as. The photos are cropped to
+   the inside of the LinkedIn ring, so the square's corners hold leftover ring
+   and banner — border-radius: 50% is what clips them off. Change this and the
+   corners come back. */
+.wbfund__avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: var(--f-brushed); color: var(--f-on-gold);
+    display: grid; place-items: center;
+    font-size: 21px; font-weight: 800; letter-spacing: -.02em;
+    margin-bottom: var(--s4);
+}
+/* The photo occupies the SAME 64px rounded box as the initials fallback, so
+   swapping one in never moves the card's layout by a pixel. */
+.wbfund__avatar--img { object-fit: cover; background: var(--f-sunk); }
+
+.wbfund__personName { font-size: var(--text-md); font-weight: 800; letter-spacing: -.01em; }
+.wbfund__personRole {
+    font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--f-gold-700); margin-bottom: var(--s3);
+}
+/* The link sits at the CARD FOOT, not under the bio — `margin-top: auto` pins it
+   there so all three links land on one line across the row however long the
+   copy above them runs. */
+.wbfund__li {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: auto; padding-top: var(--s4);
+    font-size: var(--text-sm); font-weight: 700;
+    color: var(--f-ink-2); text-decoration: none;
+}
+.wbfund__li:hover { color: var(--f-gold-700); text-decoration: none; }
+.wbfund__li svg { flex: 0 0 auto; }
+.wbfund__logos { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s4); }
+.wbfund__logoChip {
+    font-size: var(--text-xs); font-weight: 700;
+    color: var(--f-ink-2); background: var(--f-sunk);
+    border: 1px solid var(--f-rule); border-radius: var(--radius-pill);
+    padding: 6px 12px;
+}
+
+/* ============================================================================
+   FAQ
+   ============================================================================ */
+.wbfund__faq { display: flex; flex-direction: column; gap: 0; max-width: 780px; }
+.wbfund__q { border-bottom: 1px solid var(--f-rule); }
+.wbfund__q summary {
+    list-style: none; cursor: pointer;
+    padding: var(--s4) 0;
+    font-size: var(--text-md); font-weight: 700;
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s4);
+}
+.wbfund__q summary::-webkit-details-marker { display: none; }
+.wbfund__q summary::after {
+    content: '+'; font-size: 20px; font-weight: 400; color: var(--f-gold-700); flex: 0 0 auto;
+}
+.wbfund__q[open] summary::after { content: '–'; }
+.wbfund__q p { font-size: var(--text-sm); line-height: 1.65; color: var(--f-ink-2); margin: 0 0 var(--s4); max-width: 68ch; }
+
+/* ============================================================================
+   FOOTER
+   ============================================================================ */
+.wbfund__foot {
+    border-top: 1px solid var(--f-rule);
+    padding-block: var(--s6);
+    display: flex; flex-wrap: wrap; gap: var(--s4);
+    align-items: center; justify-content: space-between;
+    font-size: var(--text-xs); color: var(--f-ink-3);
+}
+.wbfund__footLinks { display: flex; flex-wrap: wrap; gap: var(--s4); }
+.wbfund__footLinks a { color: var(--f-ink-3); }
+
+/* The legal line. Small, but the single most load-bearing sentence on the page:
+   this is a rewards pre-sale for a company, NOT a political contribution and
+   NOT a security. */
+.wbfund__legal {
+    margin-top: var(--s4);
+    font-size: 11px; line-height: 1.6; color: var(--f-ink-3);
+    max-width: 90ch;
+}
+
+/* ============================================================================
+   CHECKOUT MODAL — mock. See the note in Fund.jsx for where Stripe attaches.
+   ============================================================================ */
+.wbfund__overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(22, 21, 15, .55);
+    backdrop-filter: blur(3px);
+    display: grid; place-items: center;
+    padding: var(--s4);
+    overflow-y: auto;
+}
+.wbfund__modal {
+    width: 100%; max-width: 460px;
+    background: var(--f-surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--f-rule);
+    box-shadow: 0 30px 80px rgba(22, 21, 15, .3);
+    padding: var(--s6);
+    max-height: calc(100vh - var(--s8));
+    overflow-y: auto;
+}
+.wbfund__modalHead { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s4); margin-bottom: var(--s5); }
+.wbfund__modalH { font-size: var(--text-lg); font-weight: 800; letter-spacing: -.02em; margin: 0; }
+.wbfund__modalSub { font-size: var(--text-sm); color: var(--f-ink-3); margin: 4px 0 0; }
+.wbfund__x {
+    flex: 0 0 auto; width: 32px; height: 32px; border-radius: 99px;
+    border: 1px solid var(--f-rule); background: var(--f-surface);
+    cursor: pointer; color: var(--f-ink-3); font-size: 18px; line-height: 1;
+}
+.wbfund__x:hover { color: var(--f-ink); }
+
+.wbfund__field { margin-bottom: var(--s4); }
+.wbfund__label {
+    display: block; font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--f-ink-3); margin-bottom: var(--s2);
+}
+.wbfund__input {
+    width: 100%; padding: 12px var(--s4);
+    font: inherit; font-size: var(--text-md);
+    border: 1px solid var(--f-rule); border-radius: var(--radius-sm);
+    background: var(--f-surface); color: var(--f-ink);
+}
+.wbfund__input:focus { outline: none; border-color: var(--f-gold-500); box-shadow: 0 0 0 3px var(--f-gold-050); }
+.wbfund__amtRow { display: flex; align-items: center; gap: var(--s2); }
+.wbfund__amtPrefix { font-size: var(--text-lg); font-weight: 800; color: var(--f-ink-3); }
+
+.wbfund__pays { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2); }
+.wbfund__pay {
+    display: flex; align-items: center; gap: var(--s2);
+    padding: 12px var(--s3);
+    border: 1px solid var(--f-rule); border-radius: var(--radius-sm);
+    background: var(--f-surface); color: var(--f-ink);
+    font: inherit; font-size: var(--text-sm); font-weight: 600;
+    cursor: pointer; text-align: left;
+    transition: border-color .16s, background .16s;
+}
+.wbfund__pay:hover { border-color: var(--f-gold-300); }
+.wbfund__pay[aria-pressed="true"] { border-color: var(--f-gold-500); background: var(--f-gold-050); color: var(--f-gold-900); }
+.wbfund__paySub { font-size: 10px; color: var(--f-ink-3); font-weight: 500; }
+
+/* "More ways to pay" — a link, not a button. It reveals options rather than
+   performing an action, and styling it as a fifth button would make it compete
+   with the four real choices above it. */
+.wbfund__morePay {
+    display: block; width: 100%;
+    margin-top: var(--s2); padding: var(--s2);
+    background: none; border: none;
+    font: inherit; font-size: var(--text-xs); font-weight: 600;
+    color: var(--f-gold-700); cursor: pointer; text-align: center;
+}
+.wbfund__morePay:hover { text-decoration: underline; }
+
+.wbfund__error {
+    margin: 0 0 var(--s3);
+    padding: 10px var(--s3);
+    font-size: var(--text-sm); line-height: 1.45;
+    color: #7A1C12;
+    background: #FDF1EF; border: 1px solid #F0CFC9;
+    border-radius: var(--radius-sm);
+}
+
+.wbfund__summary {
+    background: var(--f-sunk); border-radius: var(--radius-sm);
+    padding: var(--s4); margin-block: var(--s4);
+    font-size: var(--text-sm);
+}
+.wbfund__sumRow { display: flex; justify-content: space-between; gap: var(--s4); padding-block: 3px; color: var(--f-ink-2); }
+.wbfund__sumRow--total { font-weight: 800; color: var(--f-ink); border-top: 1px solid var(--f-rule); margin-top: var(--s2); padding-top: var(--s3); }
+
+.wbfund__done { text-align: center; padding-block: var(--s4); }
+.wbfund__doneMark {
+    width: 60px; height: 60px; border-radius: 99px; margin: 0 auto var(--s4);
+    background: var(--f-brushed); color: var(--f-on-gold);
+    display: grid; place-items: center; font-size: 28px;
+}
+.wbfund__mockTag {
+    display: inline-block; margin-top: var(--s3);
+    font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--f-ink-3); background: var(--f-sunk);
+    border: 1px solid var(--f-rule); border-radius: 99px; padding: 4px 10px;
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+@media (max-width: 980px) {
+    /* The pledge panel un-sticks and leads. A fixed money box on a phone eats
+       the screen the argument needs. */
+    .wbfund__heroGrid { grid-template-columns: minmax(0, 1fr); gap: var(--s6); }
+    .wbfund__pledge { position: static; order: -1; }
+    .wbfund__cards, .wbfund__wins, .wbfund__feats, .wbfund__tiers { grid-template-columns: minmax(0, 1fr); }
+    .wbfund__steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .wbfund__people { grid-template-columns: minmax(0, 1fr); }
+    .wbfund__allocList { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+    .wbfund__brandText { display: none; }
+    .wbfund__steps { grid-template-columns: minmax(0, 1fr); }
+    .wbfund__pays { grid-template-columns: minmax(0, 1fr); }
+    .wbfund__section { padding-block: var(--s8); }
+}

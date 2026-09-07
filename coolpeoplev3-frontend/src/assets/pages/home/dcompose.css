@@ -1,0 +1,274 @@
+/* ============================================================================
+   dcompose.css — the debate form, as a card in the feed.
+
+   IT IS THE SAME FORM. Every field, every validation and every payload is
+   untouched; what changed is the surface it is drawn on. The form was built for
+   a dark standalone page (data-surface="dark", stacked rows, a wide gold rail)
+   and embedding that in a white column read as a different application rather
+   than as a form on this one.
+
+   Rebuilt out of the card system already on the page: --card ground,
+   --rule-strong only on the card's own edge, --rule-2 between rows, --sunk
+   under grouped controls, --foot on the footer bar.
+
+   THE TWO-COLUMN ROW is the whole reason this fits in half the height: label
+   left at a fixed 126px, control right. Stacked, every field cost two lines and
+   a gap.
+   ============================================================================ */
+
+/* ---- the shell ----
+   Inline these must not claim a viewport or paint a ground of their own: the
+   card is the ground. .debategradientV2 wraps the whole flow and is where the
+   dark used to live. */
+.wbfeed .wbf__form .debategradientV2 {
+    background: none; color: var(--fg); min-height: 0;
+}
+.wbfeed .wbf__form .wb-form-page,
+.wbfeed .wbf__form .wb-form-page--inline {
+    background: none; color: var(--fg); min-height: 0; padding: 0;
+}
+.wbfeed .wbf__form .wb-form-wrap {
+    display: grid; grid-template-columns: minmax(0, 1fr) 248px;
+    gap: 0; max-width: none; margin: 0; padding: 0;
+}
+.wbfeed .wbf__form form { min-width: 0; padding: 2px 20px 14px; }
+
+/* The form's own header is redundant inside a card that already has one. */
+.wbfeed .wbf__form .wb-form-head { display: none; }
+
+/* ---- sections: a label, not a box ----
+   The fieldset had a bordered panel inside a bordered fieldset inside a card —
+   three edges deep, and the card's own edge stopped meaning anything. */
+.wbfeed .wbf__form .wb-fs { border: 0; margin: 0; padding: 0; }
+.wbfeed .wbf__form .wb-fs__legend {
+    padding: 14px 0 4px; font-size: 9.5px; font-weight: 800;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--fg-3);
+}
+.wbfeed .wbf__form .wb-panel {
+    background: none; border: 0; border-radius: 0; padding: 0; box-shadow: none;
+}
+
+/* ---- a row ---- */
+.wbfeed .wbf__form .wb-row {
+    display: grid; grid-template-columns: 126px minmax(0, 1fr); gap: 5px 18px;
+    align-items: start; padding: 10px 0; border-bottom: 1px solid var(--rule-2);
+    margin: 0;
+}
+.wbfeed .wbf__form .wb-row:last-child { border-bottom: 0; }
+.wbfeed .wbf__form .wb-row__l {
+    font-size: 12.5px; font-weight: 700; letter-spacing: -.01em;
+    padding-top: 9px; color: var(--fg);
+}
+.wbfeed .wbf__form .wb-row__req { color: var(--gold-ink); margin-left: 2px; }
+.wbfeed .wbf__form .wb-row__c {
+    min-width: 0; display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+}
+.wbfeed .wbf__form .wb-hint {
+    margin: 0; font-size: 11px; line-height: 1.45; color: var(--fg-3); max-width: 62ch;
+}
+.wbfeed .wbf__form .wb-err { margin: 0; font-size: 11px; color: var(--live); font-weight: 700; }
+.wbfeed .wbf__form .wb-inline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* ---- controls, in the shapes the page already uses ---- */
+.wbfeed .wbf__form .wb-input,
+.wbfeed .wbf__form .wb-textarea,
+.wbfeed .wbf__form .wb-date,
+.wbfeed .wbf__form select {
+    width: 100%; min-height: 36px; padding: 0 12px; border-radius: 9px;
+    border: 1px solid var(--rule); background: var(--card);
+    font: inherit; font-size: 13.5px; color: var(--fg);
+}
+.wbfeed .wbf__form .wb-textarea { padding: 9px 12px; line-height: 1.5; min-height: 54px; }
+.wbfeed .wbf__form .wb-input::placeholder,
+.wbfeed .wbf__form .wb-textarea::placeholder { color: var(--fg-3); }
+.wbfeed .wbf__form .wb-input:focus,
+.wbfeed .wbf__form .wb-textarea:focus,
+.wbfeed .wbf__form .wb-date:focus,
+.wbfeed .wbf__form select:focus {
+    outline: none; border-color: var(--gold-mark);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold-mark) 16%, transparent);
+}
+.wbfeed .wbf__form .wb-input--short { width: 104px; font-variant-numeric: tabular-nums; }
+.wbfeed .wbf__form .wb-date { max-width: 250px; }
+
+/* The segmented control sits on --sunk, like the toolbar's. */
+.wbfeed .wbf__form .wb-seg {
+    display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px;
+    background: var(--sunk); border: 0; align-self: flex-start; flex-wrap: wrap;
+}
+.wbfeed .wbf__form .wb-seg button {
+    padding: 7px 13px; border-radius: 8px; border: 0; background: none;
+    font-size: 12.5px; font-weight: 700; color: var(--fg-2); white-space: nowrap;
+}
+.wbfeed .wbf__form .wb-seg button[aria-pressed="true"] {
+    background: var(--card); color: var(--fg); box-shadow: 0 1px 2px rgba(30, 22, 10, .08);
+}
+.wbfeed .wbf__form .wb-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.wbfeed .wbf__form .wb-chipbtn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 32px; padding: 0 13px; border-radius: 999px;
+    border: 1px solid var(--rule-2); background: var(--card);
+    font-size: 12.5px; font-weight: 700; color: var(--fg-2);
+}
+.wbfeed .wbf__form .wb-chipbtn[aria-pressed="true"] {
+    background: var(--gold-950); border-color: var(--gold-950); color: var(--gold-200);
+}
+.wbfeed .wbf__form .wb-help {
+    flex: none; width: 20px; height: 20px; border-radius: 999px;
+    border: 1px solid var(--rule); background: var(--card);
+    font-size: 11px; font-weight: 800; color: var(--fg-3);
+}
+
+/* ---- the brackets: the one part allowed to be tall ----
+   Its length is not a styling choice, it is the format. A 16-seat field is
+   EIGHT brackets and eight questions, so this list has to stay readable at
+   eight rows: a numbered plate rather than a 160px label column, so the
+   questions get the width. */
+.wbfeed .wbf__form .wb-bks { display: flex; flex-direction: column; }
+/* The rows stay live with a brief — see the note in the JSX. What marks a
+   blank as deliberate is the placeholder, not a dimmed field. */
+.wbfeed .wbf__form .wb-brief__l b { color: var(--gold-ink); font-weight: 800; }
+.wbfeed .wbf__form .wb-bks__f {
+    margin: 8px 0 0; font-size: 11px; line-height: 1.45; color: var(--fg-3);
+}
+.wbfeed .wbf__form .wb-bkq {
+    display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 9px;
+    padding: 5px 0; border: 0; align-items: start;
+}
+/* The plate carries the NUMBER and only the number. It used to try to hold the
+   word "Final" in a 26px square, which overflowed the pill and clipped the
+   text — and with pairs rather than rounds there is no final here anyway:
+   every bracket is a peer. */
+.wbfeed .wbf__form .wb-bkq__n {
+    display: flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 8px; margin-top: 5px; padding: 0;
+    font-size: 10.5px; font-weight: 800; font-variant-numeric: tabular-nums;
+    background: var(--sunk); color: var(--fg-2);
+}
+.wbfeed .wbf__form .wb-bkq__t { min-height: 44px; }
+
+/* ---- hand it over ---- */
+.wbfeed .wbf__form .wb-brief {
+    display: grid; gap: 6px; margin: 4px 0 12px;
+    padding: 12px 13px; border-radius: 9px;
+    background: var(--gold-wash); border: 1px solid var(--gold-hair);
+}
+.wbfeed .wbf__form .wb-brief__l {
+    display: flex; flex-direction: column; gap: 2px;
+    font-size: 12.5px; font-weight: 700; letter-spacing: -.01em; color: var(--gold-ink);
+}
+.wbfeed .wbf__form .wb-brief__l em {
+    font-style: normal; font-size: 11px; font-weight: 500; line-height: 1.4; color: var(--fg-2);
+}
+
+/* ---- the checklist rail ---- */
+.wbfeed .wbf__form .wb-summary {
+    border-left: 1px solid var(--rule-2); background: var(--sunk);
+    padding: 18px 18px 20px; margin: 0; position: sticky; top: 120px; align-self: start;
+}
+.wbfeed .wbf__form .wb-summary__card {
+    background: none; border: 0; box-shadow: none; padding: 0; display: grid; gap: 10px;
+}
+.wbfeed .wbf__form .wb-summary__h {
+    font-size: 9.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--fg-3);
+}
+.wbfeed .wbf__form .wb-prog__bar {
+    display: block; height: 5px; border-radius: 999px; background: var(--rule); overflow: hidden;
+}
+.wbfeed .wbf__form .wb-prog__bar i { display: block; height: 100%; background: var(--gold-mark); }
+.wbfeed .wbf__form .wb-prog__n { font-size: 12px; color: var(--fg-2); }
+.wbfeed .wbf__form .wb-prog__n b { color: var(--fg); font-weight: 800; }
+.wbfeed .wbf__form .wb-checks { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.wbfeed .wbf__form .wb-checks li {
+    display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--fg-3);
+}
+.wbfeed .wbf__form .wb-checks li[data-done="true"] { color: var(--fg); font-weight: 600; }
+.wbfeed .wbf__form .wb-btn--primary { width: 100%; }
+
+@media (max-width: 900px) {
+    .wbfeed .wbf__form .wb-form-wrap { grid-template-columns: minmax(0, 1fr); }
+    .wbfeed .wbf__form .wb-summary {
+        border-left: 0; border-top: 1px solid var(--rule-2); position: static;
+    }
+    .wbfeed .wbf__form form { padding: 4px 16px 16px; }
+}
+@media (max-width: 560px) {
+    .wbfeed .wbf__form .wb-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    .wbfeed .wbf__form .wb-row__l { padding-top: 0; }
+}
+
+/* ---- the card's own bar ----
+   Inline, the form's header IS the card header: what this is, what it costs,
+   and the way out. */
+.wbfeed .wbf__form .wb-form-head--bar {
+    display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap;
+    padding: 13px 20px; border-bottom: 1px solid var(--rule-2); margin: 0;
+}
+.wbfeed .wbf__form .wb-form-head--bar .wb-form-title {
+    font-size: 14.5px; font-weight: 800; letter-spacing: -.02em; margin: 0; color: var(--fg);
+}
+/* GOLD, because it names the thing being made and this platform's word for
+   "this is one of ours" is gold. It was a neutral chip carrying the prize,
+   which is a field two rows below it and changed under the reader as they
+   filled it in. */
+.wbfeed .wbf__form .wb-form-chip {
+    flex: none;
+    font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+    border: 1px solid var(--gold-hair); border-radius: 5px; padding: 3px 8px;
+    background: var(--gold-wash); color: var(--gold-ink);
+}
+
+/* WHO CAN ANSWER. A standing rule of the format rather than a setting, so it
+   is a note beside the chip and not a field in the form — and it wraps to its
+   own line rather than squeezing the bar, because the sentence is the point. */
+.wbfeed .wbf__form .wb-form-gate {
+    flex: 1 1 100%; order: 3;
+    display: block; margin-top: 2px;
+    font-size: 11px; line-height: 1.5; color: var(--fg-3); max-width: 78ch;
+}
+.wbfeed .wbf__form .wb-form-bow {
+    display: inline-block; vertical-align: -2px; margin-inline: 3px;
+}
+/* On a wide bar it sits inline after the chip, where a reader looking at the
+   chip will actually read it. */
+@media (min-width: 900px) {
+    .wbfeed .wbf__form .wb-form-gate {
+        flex: 1 1 auto; order: 0; margin-top: 0; padding-right: 12px;
+    }
+}
+.wbfeed .wbf__form .wb-form-x {
+    margin-left: auto; order: 2; flex: none; padding: 6px 9px; border-radius: 7px; border: 0; background: none;
+    font-size: 12.5px; font-weight: 700; color: var(--fg-3); cursor: pointer;
+}
+.wbfeed .wbf__form .wb-form-x:hover { background: var(--sunk); color: var(--fg); }
+
+/* ---- the footer bar ----
+   --foot, like every card on this feed. The committing action belongs on the
+   card's bottom edge, not at the end of a column of read-only checkboxes. */
+.wbfeed .wbf__form .wb-form-ft {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 12px 20px; border-top: 1px solid var(--rule-2); background: var(--foot);
+}
+.wbfeed .wbf__form .wb-form-left { font-size: 11.5px; color: var(--fg-2); }
+.wbfeed .wbf__form .wb-form-ft .wb-btn { margin-left: auto; width: auto; }
+
+/* ---- what happens after submit ----
+   The card keeps its own end state rather than handing off to the flow's,
+   because this form is also reachable at /startadebate where there is no flow
+   around it — one panel, both places. */
+.wbfeed .wbf__form .wb-done {
+    display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
+    margin: 14px 0 4px; padding: 16px 18px; border-radius: var(--r-s);
+    background: var(--gold-wash); border: 1px solid var(--gold-hair);
+}
+.wbfeed .wbf__form .wb-done__h {
+    margin: 0; font-size: 14.5px; font-weight: 800; letter-spacing: -.015em; color: var(--gold-ink);
+}
+.wbfeed .wbf__form .wb-done__p {
+    margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--fg-2); max-width: 58ch;
+}
+.wbfeed .wbf__form .wb-done__go {
+    margin-top: 4px; width: auto; text-decoration: none;
+    display: inline-flex; align-items: center;
+}

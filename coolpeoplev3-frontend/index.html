@@ -5,6 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>coolpeoplev3-frontend</title>
+    <!-- Archivo for the chrome, Newsreader for the argument bodies. The split is
+         the point: the serif marks "this is the record" and separates testimony
+         from UI. Nothing loaded a webfont before this — index.css asked for
+         'Inter' and silently got the system stack — so these are the first two
+         real faces in the app. preconnect because the CSS and the font files
+         come from two different origins and the second lookup is otherwise
+         serialised behind the first. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400..900;1,400..900&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&display=swap"
+    />
   </head>
   <body>
     <div id="root"></div>

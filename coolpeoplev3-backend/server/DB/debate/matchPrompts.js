@@ -159,7 +159,17 @@ const _unslotted = async (debate_id, db = client) => {
 //
 // Callable without a debate row (the application path validates before the
 // debate exists), which is why it takes field_size rather than a debate_id.
-const validateMatchPrompts = ({ prompts, field_size }) => {
+/**
+ * `partial` accepts a set with gaps in it.
+ *
+ * A sponsor can hand us a brief instead of writing all eight questions, and the
+ * ones they DID write still have to be stored — dropping them because the set
+ * was incomplete threw away the work and left review with nothing to build on.
+ * Empty slots are skipped rather than refused; everything present is validated
+ * exactly as before, and prompt_order stays the slot's own index so a question
+ * written later lands in the right place.
+ */
+const validateMatchPrompts = ({ prompts, field_size, partial = false }) => {
     const slots = bracketSlots(field_size);
     if (!slots.length) throw httpError(400, "a bracket needs at least 2 contestants");
     if (!Array.isArray(prompts)) throw httpError(400, "prompts must be an array");
@@ -181,6 +191,7 @@ const validateMatchPrompts = ({ prompts, field_size }) => {
         const p = ordered[i];
         const body = p?.body != null ? String(p.body).trim() : "";
         if (!body) {
+            if (partial) return null;
             throw httpError(400, `every match needs a prompt — "${slot.label}" is empty`);
         }
         if (body.length > MAX_BODY) {
@@ -194,7 +205,7 @@ const validateMatchPrompts = ({ prompts, field_size }) => {
             bracket_side: slot.side,
             bracket_position: slot.position,
         };
-    });
+    }).filter(Boolean);
 };
 
 // insertMatchPrompts — write a validated set. Runs on the CALLER'S executor so

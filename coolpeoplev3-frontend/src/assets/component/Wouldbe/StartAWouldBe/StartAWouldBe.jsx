@@ -1,8 +1,8 @@
 import { useState } from 'react'
+import ImagePicker from "../../ImagePicker/ImagePicker"
 import { formatUSD } from '../WouldBeRows/deadlineFormat'
 import "./StartAWouldBe.css"
 import FilingTimeline from '../FilingTimeline/FilingTimeline'
-import HowItWorksTimeline from "../HowItWorksTimeline/HowItWorksTimeline.jsx"
 import { useNavigate } from 'react-router-dom'
 
 // ============================================================================
@@ -25,10 +25,29 @@ import { useNavigate } from 'react-router-dom'
 const GOAL_FLOOR_CENTS = 500000        // $5,000
 const GOAL_CEILING_CENTS = 100000000   // $1,000,000
 
+// A jurisdiction's `type` is a database enum — state_leg_lower, us_house,
+// municipal — and none of those are words a candidate uses. Anything not in the
+// map falls through to the jurisdiction's own name rather than to the raw value:
+// an unmapped enum on screen is the bug this map exists to stop.
+const JURISDICTION_TYPE = {
+  us_senate: "US Senate",
+  us_house: "US House district",
+  state_leg_upper: "State Senate district",
+  state_leg_lower: "State House district",
+  statewide: "Statewide",
+  county: "County",
+  municipal: "City or town",
+  school_district: "School district",
+  special_district: "Special district",
+  national: "National",
+}
+
 function StartAWouldBe({ office, jurisdiction, onComplete }) {
   const originalGoalCents = office.goalCents
   // Seed from the recommended goal; fall back to the $5,000 floor when the
   // office has no recommended goal (that endpoint can return null).
+  // Optional. Held here until there is an endpoint for it — see ImagePicker.
+  const [image, setImage] = useState(null)
   const [goalCents, setGoalCents] = useState(originalGoalCents ?? GOAL_FLOOR_CENTS)
 
   // The recommended goal is fixed to what the backend saved for this office — it
@@ -104,7 +123,17 @@ function StartAWouldBe({ office, jurisdiction, onComplete }) {
                 </div>
                 <div className="wb-req wb-req--pass">
                   <dt className="wb-req__k">Jurisdiction</dt>
-                  <dd className="wb-req__v">{jurisdiction.type}</dd>
+                  {/* THE NAME, then what kind of thing it is. This printed
+                      `jurisdiction.type` alone — a raw column value, so the row
+                      read "Jurisdiction: state_leg_lower", which is a database
+                      enum shown to a candidate. The name is the answer to
+                      "which jurisdiction"; the type is a note under it. */}
+                  <dd className="wb-req__v">
+                    {jurisdiction.name || JURISDICTION_TYPE[jurisdiction.type] || "—"}
+                    {jurisdiction.name && JURISDICTION_TYPE[jurisdiction.type] && (
+                      <small>{JURISDICTION_TYPE[jurisdiction.type]}</small>
+                    )}
+                  </dd>
                 </div>
                 {reg.residency_requirement === "yes" && (
                   <div className="wb-req wb-req--pass">
@@ -153,11 +182,7 @@ function StartAWouldBe({ office, jurisdiction, onComplete }) {
             </div>
           </section>
 
-          {/* HOW IT WORKS */}
-          <section className="wb-sec">
-            <h2 className="wb-sec__h">How it works</h2>
-            <HowItWorksTimeline />
-          </section>
+
         </div>
       </div>
 
@@ -195,9 +220,26 @@ function StartAWouldBe({ office, jurisdiction, onComplete }) {
             </b>
           </div>
 
+          {/* OPTIONAL, and it belongs with the ask rather than in the plan:
+              plan components already take their own images, and this is the one
+              picture that stands for the campaign itself. */}
+          <div className="sawb-img">
+            <span className="sawb-img__l">Campaign image</span>
+            <ImagePicker value={image} onChange={setImage} note={null} />
+          </div>
+
           <button className="wb-btn wb-btn--primary sawb-cta" onClick={startACampaign}>
             Start a campaign →
           </button>
+          {/* THE TERMS, under the button that accepts them. A four-card "How it
+              works" ran above this explaining the model in the abstract; the
+              one sentence that changes whether somebody presses the button is
+              that nothing is collected until the goal is met, and it belongs
+              here rather than four scrolls up. */}
+          <span className="sawb-terms">
+            Campaigns only get fundraised when the goal is reached, not before.
+            Everyone who pledged gets notified that it is time to contribute.
+          </span>
         </div>
       </aside>
     </div>

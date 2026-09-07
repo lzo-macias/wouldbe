@@ -1,0 +1,46 @@
+
+/* ============================================================================
+   THE FORM, SHORTER. It was tall enough that the prompts — the only part that
+   is actually the debate — were three screens below the settings that describe
+   it. Everything above them tightened; the prompts kept their room.
+   ============================================================================ */
+
+/* The header carried two paragraphs of explanation above the first field. They
+   are gone, so the block only needs to name the thing. */
+.wb-form-head { margin-bottom: 14px; }
+.wb-form-title { margin: 2px 0 0; }
+
+/* A tighter panel for the brackets: the rows are two-line textareas, and 18px
+   of padding around each one added a screen of height across four of them. */
+.wb-panel--tight { padding: 6px 14px 12px; }
+
+/* ---- one question per bracket ----
+   Label and field on one row at width, stacked on a phone. The label carries
+   WHEN it opens, because the order is the format: a bracket is released when
+   the one before it closes, and a sponsor writing question three should be
+   thinking about what has already been answered. */
+.wb-bkq {
+    display: grid;
+    grid-template-columns: 160px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+}
+.wb-bkq:first-child { border-top: 0; }
+.wb-bkq__n {
+    display: flex; flex-direction: column; gap: 3px;
+    font-size: 13px; font-weight: 700; letter-spacing: -.01em; padding-top: 8px;
+}
+.wb-bkq__n em {
+    font-style: normal; font-size: 11px; font-weight: 500; line-height: 1.35;
+    color: var(--muted);
+}
+.wb-bkq__t { resize: vertical; min-height: 54px; line-height: 1.45; }
+
+.wb-empty { margin: 10px 0; font-size: 13px; color: var(--muted); }
+
+@media (max-width: 700px) {
+    .wb-bkq { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+    .wb-bkq__n { padding-top: 0; }
+}

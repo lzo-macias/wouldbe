@@ -23,8 +23,17 @@ import "./StartADebate.css"
 // sends anyone to it.
 // ============================================================================
 
-function ConnectTwitch() {
-    const { debateId } = useParams()
+/**
+ * `debateId` as a prop when this runs inline, useParams when it is the route.
+ * Same split as DebateDetail and StartAnOffice.
+ *
+ * THE OAUTH HANDOFF STILL LEAVES THE SITE — that is Twitch's, not ours — but
+ * the screen that asks for it does not have to, and coming back lands on the
+ * route, which is why the route stays mounted.
+ */
+function ConnectTwitch({ debateId: debateIdProp, embedded = false, onSkip }) {
+    const params = useParams()
+    const debateId = debateIdProp ?? params.debateId
     const navigate = useNavigate()
 
     const [stream, setStream] = useState(null)
@@ -52,7 +61,8 @@ function ConnectTwitch() {
 
     return (
         <div className="debategradientV2">
-            <StartADebateHeader />
+            {/* Inline, the feed's header is already on screen. */}
+            {!embedded && <StartADebateHeader />}
             <div className="applyPage">
                 <p className="eyebrow">Step 2 of 2</p>
                 <h1 className="pageTitle">Set up your broadcast</h1>
@@ -78,7 +88,7 @@ function ConnectTwitch() {
                                   }. That's everything: your debate is with an admin for review, usually within a day.`}
                         </p>
                         <div className="formActions">
-                            <button type="button" onClick={() => navigate("/debate")}>
+                            <button type="button" onClick={() => (onSkip ? onSkip() : navigate("/debate"))}>
                                 Back to debates
                             </button>
                         </div>

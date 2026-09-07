@@ -65,6 +65,12 @@ const DATASETS = {
             ['tier_name','Plan (legacy)'],
             ['tier_status','Fee (legacy)'],
             ['prompt_count','Prompts'],
+            // NON-NULL MEANS WE OWE THEM QUESTIONS. A sponsor with a subject
+            // but not eight drafted prompts can hand us the brief instead, and
+            // this column is the only place that shows up — an application with
+            // 0 prompts and no brief is incomplete, one with 0 prompts and a
+            // brief is waiting on us.
+            ['prompt_brief','Write for them'],
             ['win_type','Win by'],
             ['judge_count','Judges'],
             ['sponsor_contribution_cents','Prize'],

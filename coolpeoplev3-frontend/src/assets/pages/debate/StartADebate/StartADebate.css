@@ -20,10 +20,16 @@
     display: flow-root;
     min-height: 100vh;
     width: 100%;
-    color: #F5F0E4;
+    /* LIGHT. This was a near-black gradient — #17140E to #0F0D0A with a warm
+       pool over it — and it is the outermost element of the whole start-a-debate
+       flow, so every override inside it was fighting a black ground it could not
+       see past. There is one scheme now and it is paper.
+
+       The warm pool stays, because the reason it was there is still true: a flat
+       rectangle is a worse ground than one with a light source. It is just a
+       gold wash on white now instead of on black. */
+    color: var(--ink);
     background:
-        /* A single warm pool behind the top of the page, so the ground is not a
-           flat black rectangle — it is the same trick the debate page uses. */
-        radial-gradient(1100px 520px at 50% -10%, rgba(232, 197, 106, .09), transparent 70%),
-        linear-gradient(to bottom, #17140E 0%, #0F0D0A 60%, #0F0D0A 100%);
+        radial-gradient(1100px 520px at 50% -10%, rgba(201, 164, 55, .07), transparent 70%),
+        #FFFFFF;
 }

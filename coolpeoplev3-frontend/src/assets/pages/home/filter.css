@@ -1,0 +1,152 @@
+/* ============================================================================
+   filter.css — the filter chip and its popover.
+
+   Scoped under .wbfeed like everything else in this folder.
+
+   TWO RULES HERE ARE LOAD-BEARING and easy to undo by accident. Both are
+   marked where they appear:
+     · .flt__p[hidden]{display:none}  — a class that sets display beats the UA
+       rule for [hidden], so without this the panel is invisible and still
+       hit-tests, swallowing clicks on the cards underneath.
+     · the toolbar's overflow-x below 840 — an overflow container clips its
+       descendants, which cut this panel off and offset it by the toolbar's
+       scroll position.
+   ============================================================================ */
+
+.wbfeed .flt { position: relative; display: inline-flex; }
+
+/* ---- the popover ---- */
+.wbfeed .flt__p {
+    position: absolute; top: calc(100% + 10px); right: 0; z-index: 70;
+    width: 372px; max-width: calc(100vw - 32px);
+    display: flex; flex-direction: column;
+    max-height: min(74vh, 640px);
+    background: var(--card); border: 1px solid var(--rule); border-radius: 14px;
+    box-shadow: 0 18px 44px rgba(23, 19, 14, .17), 0 2px 8px rgba(23, 19, 14, .07);
+}
+/* LOAD-BEARING — see the header. .flt__p sets display:flex, and any author
+   `display` outranks the UA's [hidden]{display:none}. */
+.wbfeed .flt__p[hidden] { display: none; }
+
+/* THE CARET. It is what ties the panel to the button that opened it — without
+   it the thing reads as a modal whose overlay failed to load. Two squares: the
+   lower one carries the border, the upper one covers the border's inner half so
+   the panel and the caret read as one shape. */
+.wbfeed .flt__p::before,
+.wbfeed .flt__p::after {
+    content: ""; position: absolute; right: 22px; width: 12px; height: 12px;
+    transform: rotate(45deg);
+}
+.wbfeed .flt__p::before {
+    top: -7px; background: var(--card);
+    border-top: 1px solid var(--rule); border-left: 1px solid var(--rule);
+    border-radius: 3px 0 0 0;
+}
+.wbfeed .flt__p::after { top: -5px; background: var(--card); }
+
+/* ---- header ---- */
+.wbfeed .flt__h {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 14px 11px; border-bottom: 1px solid var(--rule-2);
+}
+.wbfeed .flt__t {
+    font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--fg-3);
+}
+/* HOW MANY ARE ON. Nothing said this before, so a narrowed feed and an empty
+   one were the same screen. */
+.wbfeed .flt__n {
+    padding: 2px 8px; border-radius: 999px;
+    background: var(--gold-wash); border: 1px solid var(--gold-hair);
+    font-size: 10.5px; font-weight: 800; color: var(--gold-ink);
+}
+.wbfeed .flt__x {
+    margin-left: auto; display: grid; place-items: center;
+    width: 26px; height: 26px; border-radius: 999px; color: var(--fg-3);
+}
+.wbfeed .flt__x:hover { background: var(--sunk); color: var(--fg); }
+
+/* ---- body ----
+   Scrolls, and SAYS it scrolls: the mask fades the last few pixels so a cut
+   never lands mid-chip and looks like the panel simply ended. */
+.wbfeed .flt__b {
+    flex: 1; min-height: 0; overflow-y: auto; padding: 4px 14px 14px;
+    scrollbar-width: thin;
+    -webkit-mask-image: linear-gradient(#000 calc(100% - 18px), transparent);
+    mask-image: linear-gradient(#000 calc(100% - 18px), transparent);
+}
+
+/* ---- a group: label ABOVE, chips get the whole width ----
+   The label used to sit in a left column and spend ~140px of a ~380px panel on
+   the word PRIZE, which is why three chips per row was the ceiling and why
+   "For the arrow" kept landing alone on a line. */
+.wbfeed .fg { padding: 11px 0 2px; }
+.wbfeed .fg__l {
+    display: block; margin-bottom: 8px;
+    font-size: 9.5px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase;
+    color: var(--fg-3);
+}
+.wbfeed .fg__c { display: flex; flex-wrap: wrap; gap: 6px; }
+/* A FIXED 2-UP for the four kinds. Wrapping put them 3 + 1 and orphaned
+   "Articles" — the one wrapping shape that always looks like a mistake — and a
+   grid reads as a set of four rather than a queue that ran out of room. */
+.wbfeed .fg--grid .fg__c { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.wbfeed .fg__n {
+    margin: 8px 0 0; font-size: 11px; line-height: 1.45; color: var(--fg-3);
+}
+
+/* ---- a chip ---- */
+.wbfeed .fc {
+    height: 32px; padding: 0 13px; border-radius: 999px;
+    border: 1px solid var(--rule-2); background: var(--card);
+    font-size: 12.5px; font-weight: 700; color: var(--fg-2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: border-color .12s, background .12s, color .12s;
+}
+.wbfeed .fc:hover:not(:disabled) { border-color: var(--fg-3); color: var(--fg); }
+/* SELECTED IS A PLATE. It was --gold-wash on --card — a 1.04:1 fill difference,
+   which is to say invisible. This is the same solid the LIVE chip uses, at
+   11:1. */
+.wbfeed .fc[aria-pressed="true"] {
+    background: var(--gold-950); border-color: var(--gold-950); color: var(--gold-200);
+}
+.wbfeed .fc:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ---- a section ----
+   Dimmed, not removed: taking it out re-flows the panel under the cursor every
+   time you toggle a kind, which is how you mis-click. The chips inside are
+   properly `disabled`, so the keyboard cannot reach a filter whose effect the
+   reader cannot see. */
+.wbfeed .fs {
+    margin-top: 10px; padding-top: 12px; border-top: 1px solid var(--rule-2);
+    transition: opacity .14s;
+}
+.wbfeed .fs[data-off] { opacity: .45; }
+.wbfeed .fs__h {
+    font-size: 11.5px; font-weight: 800; letter-spacing: -.01em; color: var(--fg);
+}
+
+/* ---- footer ----
+   Its own row outside the scroll, so content can never run under it. */
+.wbfeed .flt__f {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 11px 14px; border-top: 1px solid var(--rule-2);
+    background: var(--card); border-radius: 0 0 13px 13px;
+}
+.wbfeed .flt__r {
+    padding: 7px 10px; border-radius: 8px;
+    font-size: 12.5px; font-weight: 700; color: var(--fg-2);
+}
+.wbfeed .flt__r:hover:not(:disabled) { background: var(--sunk); color: var(--fg); }
+.wbfeed .flt__r:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ---- the overflow trap ----
+   LOAD-BEARING. The toolbar is overflow-x:auto below 840 so its controls can
+   scroll sideways — and an overflow container clips its descendants, which cut
+   this panel off and offset it by the toolbar's scroll position. Below that
+   width the bar wraps instead. */
+@media (max-width: 840px) {
+    .wbfeed .bar { overflow: visible; flex-wrap: wrap; }
+    .wbfeed .flt__p { right: auto; left: 0; }
+    .wbfeed .flt__p::before, .wbfeed .flt__p::after { right: auto; left: 22px; }
+}

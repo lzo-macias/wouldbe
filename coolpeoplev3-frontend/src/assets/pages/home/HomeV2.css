@@ -1,0 +1,943 @@
+/* ============================================================================
+   HomeV2.css — the feed. Ships the "Cards · white" model.
+
+   The canvas is chosen with a data attribute. It lives on the PAGE WRAPPER
+   rather than on <html>, because <html> is shared by every route in this SPA
+   and an attribute set there would outlive the page that wanted it:
+
+       <div class="wbfeed" data-canvas="white">   ← default, what ships
+       …data-canvas="paper" | "deep"              ← warm ground + cards
+       …data-canvas="flat"  | "flat-tight"        ← no cards at all
+
+   ── two invariants this design rests on ──────────────────────────────────
+
+   1. --rule-strong (#DFD8C8, 1.42:1 on white) is for OUTER boundaries ONLY.
+      On a white ground the card and the page are the same colour, so the card
+      is a FRAME rather than a raised surface, and that 1px outline is the only
+      thing separating a prompt from the page. Put a border of that weight on
+      anything INSIDE a card and the card edge stops reading as the outer edge.
+      Internal separators use --rule-2 (1.18:1).
+
+   2. --foot (#FAF5E9) is load-bearing, not decoration. It is the only fill
+      change left on the card, and it is what gives the card a bottom edge
+      instead of letting it trail off. Do not "clean it up" to white.
+
+   ── scoping ──────────────────────────────────────────────────────────────
+   Every selector is prefixed `.wbfeed`, because .card, .btn, .nav, .app and
+   .feed are names index.css already uses app-wide. Unprefixed, `.card` here
+   would repaint every card on every other page and index.css's `.btn` would
+   fight this one for the gold pill. Two class names beat one.
+
+   ── tokens ───────────────────────────────────────────────────────────────
+   The gold family is ALIASED to the app's ramp, not restated — the values are
+   already identical and a second copy of a colour is a colour that drifts.
+   The neutrals are local: they are a property of this layout, not the brand.
+
+   CONTRAST. --fg-3 is #7A715F — 4.8:1 on the card, 4.6:1 on the canvas. The
+   obvious lighter grey for the role, #948B7C, measures 3.4:1 and fails AA on
+   exactly the text it carries: every handle, timestamp and legal line.
+   ============================================================================ */
+
+.wbfeed {
+    /* the brand ramp, borrowed not copied */
+    --gold-950: var(--wb-gold-950);
+    --gold-900: var(--wb-gold-900);
+    --gold-800: var(--wb-gold-800);
+    --gold-700: var(--wb-gold-700);
+    --gold-600: var(--wb-gold-600);
+    --gold-500: var(--wb-gold-500);
+    --gold-400: var(--wb-gold-400);
+    --gold-300: var(--wb-gold-300);
+    --gold-200: var(--wb-gold-200);
+    --gold-100: var(--wb-gold-100);
+    --gold-050: var(--wb-gold-050);
+    --on-gold:  var(--wb-on-gold);
+    --gold-ink: var(--wb-gold-ink);
+    --brushed:  var(--wb-brushed);
+
+    /* Two tints this page owns: lighter than the app's --wb-gold-hair and
+       --wb-gold-wash, which were tuned against flat white in a denser layout
+       and read as a stain at this size. */
+    --gold-mark: #B07524;
+    --gold-hair: #EADFC4;
+    --gold-wash: #FCF7EC;
+
+    /* neutrals, biased warm toward the accent */
+    --fg:     #17130E;
+    --fg-2:   #6B6357;      /* 5.9:1 on white */
+    --fg-3:   #7A715F;      /* 4.8:1 on card, 4.6:1 on canvas */
+    --rule-strong: #DFD8C8; /* OUTER boundaries only — see invariant 1 */
+    --rule:   #E8E2D6;      /* page-level dividers */
+    --rule-2: #EFEAE0;      /* everything inside a card */
+    --sunk:   #F5F2EB;      /* pressed/segmented grounds */
+    --foot:   #FAF5E9;      /* the card's bottom edge — see invariant 2 */
+
+    --live: #B4442C;   /* a deadline, and a like */
+    --ok:   #2F6B45;   /* a repost — 5.6:1 on the card */
+
+    --r:   14px;
+    --r-s: 9px;
+    --shadow: 0 1px 2px rgba(30, 22, 10, .05), 0 8px 22px -14px rgba(30, 22, 10, .22);
+
+    --sans:  "Archivo", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --serif: "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+
+    /* The page paints its own ground: <main> in App.jsx is transparent, so
+       without this the canvas never appears. */
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- the canvases ----------
+   Each one sets four things and nothing else: the ground, the card fill, the
+   card's edge and whether the card is raised. Everything downstream reads
+   --card-line / --card-shadow, so a new canvas is four lines, not a fork. */
+
+/* WHITE — what ships. Card and page are the same colour, so the card is a
+   frame: a strong hairline, no shadow. A shadow here would claim a height the
+   card does not have and turn the outline into a double edge. */
+.wbfeed, .wbfeed[data-canvas="white"] {
+    --bg: #FFFFFF;
+    --card: #FFFFFF;
+    --card-line: var(--rule-strong);
+    --card-shadow: none;
+}
+/* PAPER — warm ground, white cards. The card is genuinely a surface here, so
+   it gets the softer hairline and its lift back. */
+.wbfeed[data-canvas="paper"] {
+    --bg: #FAF8F4;
+    --card: #FFFFFF;
+    --card-line: var(--rule);
+    --card-shadow: var(--shadow);
+}
+/* DEEP — the same idea with more contrast under the cards. */
+.wbfeed[data-canvas="deep"] {
+    --bg: #F3EFE5;
+    --card: #FFFFFF;
+    --card-line: var(--rule);
+    --card-shadow: var(--shadow);
+}
+/* FLAT — no cards. The feed becomes one column of records separated by rules,
+   which is the right shape when the reading matters more than the browsing. */
+.wbfeed[data-canvas="flat"],
+.wbfeed[data-canvas="flat-tight"] {
+    --bg: #FFFFFF;
+    --card: transparent;
+    --card-line: transparent;
+    --card-shadow: none;
+}
+
+/* NO DARK MODE. Two blocks used to sit here — a prefers-color-scheme override
+   and a [data-theme="dark"] one — and they are gone on purpose.
+
+   THE PRODUCT IS THE WHITE SCHEME. The whole feed is built on one claim that
+   only works on paper: --rule-strong is the card's OUTER edge, and on a white
+   ground the card and the page are the same colour so that 1px line is the only
+   thing separating a prompt from the page. Invert it and the card becomes a
+   raised surface, the invariant stops meaning anything, and every judgement
+   made against it — the --foot bar, the --sunk fills, the gold ladder in the
+   post menu — is being read on a ground it was never checked against.
+
+   A dark mode nobody has designed is not a feature, it is a second product
+   shipped untested. `color-scheme: light` below tells the browser so, which is
+   also what stops form controls and scrollbars going dark underneath us.
+   ============================================================================ */
+:root { color-scheme: light; }
+
+.wbfeed *, .wbfeed *::before, .wbfeed *::after { box-sizing: border-box; }
+/* [hidden] IS ONLY A UA RULE, so any author `display` outranks it — and half
+   the panels in this folder are flex or grid. Without this, `hidden` silently
+   does nothing on exactly the elements most likely to use it. !important
+   because the whole point is to beat a more specific author rule. */
+.wbfeed [hidden] { display: none !important; }
+.wbfeed a { color: inherit; text-decoration: none; }
+.wbfeed button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+.wbfeed svg { display: block; }
+.wbfeed :focus-visible { outline: 2px solid var(--gold-mark); outline-offset: 2px; border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) {
+    .wbfeed * { transition: none !important; animation: none !important; }
+}
+
+/* The one measure the whole page is built on. The header uses the SAME grid
+   template as the body below it, which is what puts the wordmark over the nav
+   and the search over the feed rather than merely near them. */
+.wbfeed .wrap { max-width: 1272px; margin-inline: auto; padding-inline: 24px; }
+
+/* ---------- header ---------- */
+.wbfeed .hdr {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: saturate(180%) blur(12px);
+    /* An outer boundary — the chrome against the page. */
+    border-bottom: 1px solid var(--rule-strong);
+}
+.wbfeed .hdr__in {
+    display: grid; grid-template-columns: 208px minmax(0, 1fr) 304px;
+    gap: 40px; align-items: center; height: 68px;
+}
+/* Centred as a stacked mark: the figure over the middle of the tagline, not
+   over its left edge. The tagline is a two-line block that all but fills the
+   208px column, so centring the pair is what makes them read as one mark rather
+   than as an icon that happens to have words under it. */
+.wbfeed .mark { display: block; text-align: center; }
+/* The figure, at the size the wordmark used to occupy. No axis nudge here:
+   Trophy's viewBox is cropped tight to the art, so the box's left edge IS her
+   left edge, which is what lines her up with the tagline below. (The centring
+   transform is only needed inside a circle or a tile.) */
+/* flex, not text-align: the SVG is a block, and a block does not centre on the
+   inline axis just because its parent centres text. */
+.wbfeed .mark__i { display: flex; justify-content: center; }
+.wbfeed .mark__i .trophy { display: block; }
+
+/* Kept for anywhere the wordmark still renders as the mark. */
+.wbfeed .mark__w {
+    font-weight: 800; font-style: italic; font-size: 25px; letter-spacing: -.035em;
+    line-height: 1; display: block;
+}
+/* The full sentence, not a shortening of it: "candidates under 45" names an
+   age bracket, the whole line names a product. It wraps to two lines in the
+   208px column, so the tracking is loosened rather than the size cut. */
+.wbfeed .mark__t {
+    display: block; margin-top: 5px; font-size: 9.5px; font-weight: 600;
+    letter-spacing: .085em; text-transform: uppercase; color: var(--fg-3);
+    line-height: 1.35; max-width: 210px; margin-inline: auto;
+}
+.wbfeed .search { position: relative; display: flex; align-items: center; }
+.wbfeed .search > svg { position: absolute; left: 14px; color: var(--fg-3); }
+.wbfeed .search input {
+    width: 100%; height: 40px; padding: 0 56px 0 42px;
+    font: inherit; color: var(--fg);
+    background: var(--card); border: 1px solid var(--rule); border-radius: 999px;
+    transition: border-color .14s, box-shadow .14s;
+}
+.wbfeed .search input::placeholder { color: var(--fg-3); }
+.wbfeed .search input:focus {
+    outline: none; border-color: var(--gold-mark);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold-mark) 16%, transparent);
+}
+.wbfeed .kbd {
+    position: absolute; right: 12px; font-size: 11px; font-weight: 600; color: var(--fg-3);
+    border: 1px solid var(--rule); border-radius: 5px; padding: 1px 6px; line-height: 1.4;
+    pointer-events: none;
+}
+.wbfeed .hdr__r { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+
+/* WIDER THAN ITS WORD. "Start" is five characters, so padding alone leaves a
+   button the size of a chip in the one slot on the page reserved for the front
+   door — it read as a tag rather than an action. min-width rather than a fixed
+   width so the label can still grow (a longer word, another language) without
+   the pill clipping it.
+
+   132 is what the column can afford: the right track is 304px and the avatar
+   plus its gap take 48, so the button can reach 256 before it crowds anything.
+   Half of that is presence without the button becoming the header. */
+.wbfeed .hdr__start { min-width: 132px; }
+
+/* THE HEADER'S START IS THE UNDERSTUDY. The join panel is the real front door —
+   it is the one block on the page whose whole job is joining, and Start reads
+   best beside the Sign in it is an alternative to. So this copy is hidden
+   whenever that panel is on screen, and appears only where the panel is not:
+     · in expand mode, where the rail stands down
+     · below 1120px, where the rail is display:none
+   Hidden with display, not opacity — a button nobody can see must not still be
+   in the tab order.
+
+   THREE CLASSES DEEP ON PURPOSE. `.wbfeed .hdr__start` ties with `.wbfeed .btn`
+   at 0-2-0, and .btn is declared LATER in this file — so `display:none` lost to
+   .btn's `display:inline-flex` and the header's Start never hid at all. Adding
+   .hdr__r takes it to 0-3-0, which wins on specificity rather than on where it
+   happens to sit in the file. Do not flatten this back. */
+.wbfeed .hdr__r .hdr__start { display: none; }
+.wbfeed[data-expanded] .hdr__r .hdr__start { display: inline-flex; }
+
+.wbfeed .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    height: 38px; padding: 0 16px; border-radius: 999px;
+    font-size: 13.5px; font-weight: 600; letter-spacing: -.005em;
+    border: 1px solid transparent; transition: filter .14s, background .14s, border-color .14s;
+    white-space: nowrap;
+}
+.wbfeed .btn--gold { background: var(--brushed); color: var(--on-gold); font-weight: 700; }
+.wbfeed .btn--gold:hover { filter: brightness(1.06); }
+.wbfeed .btn--ghost { border-color: var(--rule); background: var(--card); }
+.wbfeed .btn--ghost:hover { border-color: var(--fg-3); }
+.wbfeed .btn--full { width: 100%; }
+
+.wbfeed .av {
+    flex: none; display: grid; place-items: center; border-radius: 50%;
+    background: var(--sunk); color: var(--fg-2);
+    font-weight: 700; letter-spacing: -.02em;
+    border: 1px solid var(--rule); overflow: hidden;
+}
+.wbfeed .av--38 { width: 38px; height: 38px; font-size: 14px; }
+.wbfeed .av--34 { width: 34px; height: 34px; font-size: 13px; }
+.wbfeed .av--24 { width: 24px; height: 24px; font-size: 10.5px; }
+/* An avatar that IS a photo fills its circle — the border becomes its ring.
+   Both selectors, because the photo is sometimes the element (a rendered
+   Avatar) and sometimes a child of it (the header's account BUTTON, which has
+   to stay a button to be pressable). */
+.wbfeed img.av { object-fit: cover; }
+.wbfeed .av > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* The glyph inherits the .av colour rather than setting its own — the button
+   keeps the ground, the border and the ink it already had; only what is drawn
+   inside the circle changed. */
+.wbfeed button.av { cursor: pointer; }
+
+/* ---------- app grid ---------- */
+.wbfeed .app {
+    display: grid; grid-template-columns: 208px minmax(0, 1fr) 304px;
+    gap: 40px; align-items: start; padding: 26px 0 96px;
+}
+
+/* ---------- left nav ---------- */
+.wbfeed .nav { position: sticky; top: 94px; }
+.wbfeed .nav__list { display: flex; flex-direction: column; gap: 2px; }
+.wbfeed .nav__i {
+    position: relative; display: flex; align-items: center; gap: 13px;
+    height: 42px; padding: 0 12px; border-radius: 10px;
+    font-size: 14.5px; font-weight: 500; color: var(--fg-2);
+    transition: background .14s, color .14s;
+}
+.wbfeed .nav__i:hover { background: var(--sunk); color: var(--fg); }
+.wbfeed .nav__i svg { flex: none; color: currentColor; }
+.wbfeed .nav__i--on { color: var(--gold-ink); font-weight: 700; background: var(--gold-wash); }
+/* The marker sits OUTSIDE the pill, in the gutter — a bar inside the tinted
+   ground would read as part of the pill rather than as a pointer to it. */
+.wbfeed .nav__i--on::before {
+    content: ""; position: absolute; left: -12px; top: 11px; bottom: 11px; width: 3px;
+    border-radius: 0 3px 3px 0; background: var(--gold-mark);
+}
+.wbfeed .nav__n {
+    margin-left: auto; font-size: 11px; font-weight: 700; color: var(--on-gold);
+    background: var(--gold-300); border-radius: 999px; padding: 1px 6px; min-width: 19px;
+    text-align: center; font-variant-numeric: tabular-nums;
+}
+.wbfeed .nav__cta { margin-top: 18px; }
+.wbfeed .nav__foot {
+    margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--rule);
+    display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: var(--fg-3);
+}
+.wbfeed .nav__foot a:hover { color: var(--fg-2); }
+
+/* ---------- feed toolbar ---------- */
+.wbfeed .bar {
+    position: sticky; top: 68px; z-index: 20;
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 0 13px; margin-bottom: 2px;
+    background: color-mix(in srgb, var(--bg) 90%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--rule);
+}
+.wbfeed .seg { display: flex; background: var(--sunk); border-radius: 9px; padding: 3px; gap: 2px; }
+.wbfeed .seg button {
+    padding: 0 12px; height: 28px; border-radius: 6px; font-size: 13px;
+    font-weight: 600; color: var(--fg-2); display: flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+}
+.wbfeed .seg button[aria-pressed="true"] {
+    background: var(--card); color: var(--fg); box-shadow: 0 1px 2px rgba(30, 22, 10, .08);
+}
+/* On the white canvas --card IS the ground, so the pressed pill would vanish.
+   It borrows the card's own hairline to keep its edge. */
+.wbfeed[data-canvas="white"] .seg button[aria-pressed="true"],
+.wbfeed:not([data-canvas]) .seg button[aria-pressed="true"] {
+    box-shadow: 0 0 0 1px var(--rule-strong);
+}
+.wbfeed .seg--icon button { padding: 0 8px; }
+.wbfeed .bar__sp { flex: 1; }
+.wbfeed .chip {
+    display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px;
+    border: 1px solid var(--rule); border-radius: 999px; background: var(--card);
+    font-size: 13px; font-weight: 600; color: var(--fg-2);
+}
+.wbfeed .chip:hover { border-color: var(--fg-3); color: var(--fg); }
+
+/* The filter chip and its panel live in FeedFilter.css now. The rules that used
+   to sit here restyled HomeFilter — the v1 grid's control — into this bar's
+   chip; the feed has its own control and its own questions. */
+
+/* ============================================================================
+   EXPAND — the trigger, and the bleed.
+
+   THESE LIVE HERE, not with the panel they open, because DebateExpanded.css is
+   loaded LAZILY: it arrives with its chunk when a card is opened. Both are
+   needed the INSTANT the button is pressed — the column widens and the button
+   flips to Collapse while the chunk is still in flight — and the trigger itself
+   is on screen from first paint. Styled over there, the chevron stacked above
+   its own label on every card in the feed until something had been opened.
+   ============================================================================ */
+
+.wbfeed .expand {
+    display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 13px;
+    border-radius: 999px; border: 1px solid var(--rule-2); background: var(--card);
+    font-size: 12.5px; font-weight: 700; color: var(--fg-2);
+    transition: border-color .14s, color .14s, background .14s;
+}
+.wbfeed .expand:hover { border-color: var(--fg-3); color: var(--fg); }
+.wbfeed .expand svg { flex: none; transition: transform .18s ease; }
+.wbfeed .expand[aria-expanded="true"] {
+    background: var(--fg); border-color: var(--fg); color: var(--bg);
+}
+.wbfeed .expand[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+.wbfeed .app[data-expanded] .rail { visibility: hidden; }
+
+/* GRID VIEW DROPS THE RAIL OUTRIGHT, and this is deliberately NOT the
+   data-expanded treatment above. That one hides the rail with `visibility` so
+   the column survives and one expanding card can grow over it without reflowing
+   its neighbours. Switching to the grid is a change of LAYOUT, not of one card's
+   measure — the tiles need the width as real space to lay out four across, so
+   the track goes and everything re-lays. */
+.wbfeed .app[data-view="grid"] { grid-template-columns: 208px minmax(0, 1fr); }
+.wbfeed .app[data-view="grid"] .rail { display: none; }
+
+/* EVERY CARD WIDENS, not just the open one. Opening a post is a change of
+   MEASURE for the whole column: the rail stands down and the feed takes its
+   space, so the cards below the one you opened keep their headers at the same
+   width as the one above them. 304 rail + 40 gap = 344. */
+.wbfeed .feed .card { transition: margin-right .22s cubic-bezier(.2,.7,.3,1); }
+.wbfeed .app[data-expanded] .feed .card,
+/* The would be flow takes the same widened measure: it is a list of seats and
+   then a form, and both want the room the rail was using. */
+.wbfeed .app[data-expanded] .wbf { margin-right: -344px; }
+
+/* Below 1120 the rail is display:none and its space is already the feed's, so
+   the negative margin would push every card off the page. */
+@media (max-width: 1120px) {
+    .wbfeed .app[data-expanded] .feed .card,
+    .wbfeed .app[data-expanded] .wbf { margin-right: 0; }
+}
+
+/* ---------- feed ---------- */
+.wbfeed .feed { display: flex; flex-direction: column; gap: 16px; padding-top: 16px; }
+
+.wbfeed .card {
+    background: var(--card);
+    border: 1px solid var(--card-line);
+    border-radius: var(--r);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+}
+.wbfeed .card__pad { padding: 18px 20px 0; }
+
+.wbfeed .card__head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.wbfeed .who { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.wbfeed .who__t { display: flex; flex-direction: column; min-width: 0; }
+.wbfeed .who__n { font-size: 13.5px; font-weight: 700; letter-spacing: -.01em; }
+.wbfeed .who__m {
+    font-size: 11.5px; color: var(--fg-3); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+}
+.wbfeed .follow {
+    font-size: 12.5px; font-weight: 700; color: var(--gold-ink);
+    padding: 4px 9px; border-radius: 7px; margin-left: -2px;
+}
+.wbfeed .follow:hover { background: var(--gold-wash); }
+.wbfeed .prize {
+    margin-left: auto; flex: none; display: flex; flex-direction: column; align-items: flex-end;
+    padding-left: 14px;
+}
+.wbfeed .prize__n {
+    font-size: 19px; font-weight: 800; letter-spacing: -.03em; color: var(--gold-ink);
+    font-variant-numeric: tabular-nums; line-height: 1.05;
+}
+.wbfeed .prize__l {
+    font-size: 9.5px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase;
+    color: var(--fg-3);
+}
+
+/* THE DOOR TO THE DEBATE, in the slot the prize used to hold.
+   It is deliberately quieter than a .btn--gold: this card already has a gold
+   plate in its footer for the thing you do here (respond, expand), and a second
+   filled button in the corner would compete with it. This one is a destination,
+   so it reads as a link that happens to have edges — hairline, gold ink, and it
+   fills only on hover. */
+.wbfeed .tobig {
+    margin-left: auto; flex: none;
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 30px; padding: 0 14px; border-radius: 999px;
+    border: 1px solid var(--gold-hair); background: var(--card);
+    font-size: 12.5px; font-weight: 800; letter-spacing: -.01em; color: var(--gold-ink);
+    transition: background .14s, border-color .14s;
+}
+.wbfeed .tobig:hover { background: var(--gold-wash); border-color: var(--gold-mark); }
+.wbfeed .tobig::after {
+    content: ""; width: 5px; height: 5px; border-radius: 50%;
+    background: var(--gold-mark); opacity: .55;
+}
+
+.wbfeed .q {
+    display: block; margin: 13px 0 0;
+    font-size: 21px; font-weight: 700; line-height: 1.28; letter-spacing: -.022em;
+    text-wrap: balance;
+}
+.wbfeed .q:hover { color: var(--gold-ink); }
+
+.wbfeed .meta {
+    display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+    margin: 11px 0 16px; font-size: 12px; color: var(--fg-2);
+}
+.wbfeed .meta__dot { width: 3px; height: 3px; border-radius: 50%; background: var(--fg-3); flex: none; }
+.wbfeed .fmt {
+    display: inline-flex; align-items: center; gap: 6px; height: 23px; padding: 0 9px 0 8px;
+    border-radius: 999px; font-size: 11px; font-weight: 700;
+    letter-spacing: .05em; text-transform: uppercase;
+}
+.wbfeed .fmt--live { background: var(--gold-950); color: var(--gold-200); }
+.wbfeed .fmt--live .pip {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--gold-200);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold-200) 26%, transparent);
+}
+.wbfeed .fmt--writ { border: 1px solid var(--rule-2); color: var(--fg-2); background: var(--sunk); }
+/* A deadline is the one piece of metadata that is not neutral information, so
+   it is the one allowed a colour of its own — and NOT gold, which on this page
+   means "brand", not "hurry". */
+.wbfeed .meta__urgent { color: var(--live); font-weight: 700; }
+
+/* ---------- the duel ----------
+   Two opposed columns with a hairline down the middle. A debate is two people
+   opposed; stacking them makes it a comment thread and nesting them in a grey
+   box makes it a chat. Both separators are --rule-2: they are INSIDE the card,
+   and at --rule-strong they would compete with the card's own edge. */
+.wbfeed .duel {
+    display: grid; grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+    border-top: 1px solid var(--rule-2);
+}
+.wbfeed .duel__rule { background: var(--rule-2); }
+.wbfeed .side { min-width: 0; display: flex; flex-direction: column; padding: 15px 20px 14px; }
+.wbfeed .side__head { display: flex; align-items: center; gap: 8px; min-width: 0; margin-bottom: 9px; }
+.wbfeed .side__n {
+    font-size: 12.5px; font-weight: 700; letter-spacing: -.01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+.wbfeed .stance {
+    flex: none; margin-left: auto; font-size: 9.5px; font-weight: 800;
+    letter-spacing: .09em; text-transform: uppercase; color: var(--fg-2);
+    border: 1px solid var(--rule-2); border-radius: 5px; padding: 2px 6px;
+}
+/* The serif is the whole point of the split: it marks the argument as the
+   RECORD and separates testimony from interface. */
+.wbfeed .arg {
+    margin: 0 0 13px; font-family: var(--serif); font-size: 15.5px; line-height: 1.62;
+    color: var(--fg); letter-spacing: .002em; flex: 1;
+}
+/* The one emphasised sentence. The two side shadows plus box-decoration-break
+   are what keep the wash a continuous marked passage instead of a stack of
+   ragged rectangles once it wraps. */
+.wbfeed .arg b {
+    font-weight: 600; background: var(--gold-wash);
+    box-shadow: 2px 0 0 var(--gold-wash), -2px 0 0 var(--gold-wash);
+    -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+.wbfeed .side__foot { display: flex; align-items: center; gap: 12px; margin-top: auto; }
+
+/* ---- like · repost · reply ----
+   The three things you can do with somebody else's post, and the only three.
+   No pill around them: the up/down control was a bordered capsule because it
+   held a score between two arrows, and without the score there is nothing to
+   enclose — three bare glyphs read as actions, a boxed row reads as a widget.
+
+   Each has its own hover colour and keeps it when active, so the state you are
+   in and the state you are about to enter look like the same thing. */
+.wbfeed .acts { display: inline-flex; align-items: center; gap: 2px; margin-inline: -7px; }
+.wbfeed .act2 {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 28px; padding: 0 7px; border-radius: 999px;
+    font-size: 12px; font-weight: 700; color: var(--fg-3);
+    font-variant-numeric: tabular-nums;
+    transition: color .12s, background .12s;
+}
+.wbfeed .act2 svg { flex: none; }
+.wbfeed .act2--like:hover, .wbfeed .act2--like.is-on { color: var(--live); }
+.wbfeed .act2--like:hover { background: color-mix(in srgb, var(--live) 9%, transparent); }
+/* Filled once it is yours. An outline that only changes colour is easy to miss
+   at 15px; the fill is the part you see from across the card. */
+.wbfeed .act2--like.is-on svg { fill: currentColor; }
+.wbfeed .act2--repost:hover, .wbfeed .act2--repost.is-on { color: var(--ok); }
+.wbfeed .act2--repost:hover { background: color-mix(in srgb, var(--ok) 10%, transparent); }
+.wbfeed .act2--reply:hover { color: var(--gold-ink); background: var(--gold-wash); }
+
+.wbfeed .act {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; font-weight: 600; color: var(--fg-2);
+    padding: 5px 8px; border-radius: 7px; margin-inline: -2px;
+}
+.wbfeed .act:hover { background: var(--sunk); color: var(--fg); }
+
+/* Half a duel with nobody in it yet. Shipping the state beats shipping a gap. */
+.wbfeed .seat {
+    min-width: 0; display: flex; flex-direction: column; justify-content: center;
+    align-items: flex-start; gap: 9px; padding: 18px 20px;
+    background: repeating-linear-gradient(135deg,
+        transparent 0 7px, color-mix(in srgb, var(--rule-2) 70%, transparent) 7px 8px);
+}
+.wbfeed .seat__h { font-size: 13px; font-weight: 700; }
+.wbfeed .seat__p { margin: 0; font-size: 12.5px; color: var(--fg-2); max-width: 30ch; line-height: 1.45; }
+
+/* ---------- card footer ----------
+   --foot, and only --foot. On the white canvas this is the sole fill change on
+   the card, and it is what gives the card a bottom edge rather than letting it
+   trail off into the page. */
+.wbfeed .card__foot {
+    display: flex; align-items: center; gap: 4px;
+    padding: 9px 14px; border-top: 1px solid var(--rule-2); background: var(--foot);
+}
+.wbfeed .card__foot .act { padding: 6px 10px; white-space: nowrap; }
+.wbfeed .card__foot .sp { flex: 1; }
+.wbfeed .respond {
+    display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 14px;
+    border-radius: 999px; border: 1px solid var(--gold-hair); background: var(--card);
+    font-size: 12.5px; font-weight: 700; color: var(--gold-ink);
+}
+.wbfeed .respond:hover { background: var(--gold-wash); }
+
+/* ============================================================================
+   THE EXPANSION PANEL — the frame every kind opens into.
+
+   IT LIVES HERE, not in DebateExpanded.css, because that file is LAZY and
+   these classes are not its alone: the question and artifact expansions use
+   .xp, .xp__sec, .xp__h and .stats, and both of those render from PostTypes,
+   which is loaded statically. Left in the lazy sheet they were unstyled until
+   somebody happened to open a debate — a stats strip rendering as three lines
+   of running text, which is exactly what the debate page was doing too.
+   ============================================================================ */
+
+/* ---- the panel ------------------------------------------------------------ */
+.wbfeed .xp {
+    padding: 20px 20px 24px;
+    border-top: 1px solid var(--rule-2);
+    display: flex; flex-direction: column; gap: 20px;
+}
+.wbfeed .xp__sec { display: flex; flex-direction: column; gap: 11px; }
+.wbfeed .xp__h {
+    display: flex; align-items: baseline; gap: 10px; margin: 0;
+    font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--fg-3);
+}
+.wbfeed .xp__h em {
+    font-style: normal; font-size: 11.5px; font-weight: 700;
+    letter-spacing: 0; text-transform: none; color: var(--gold-ink);
+}
+
+/* ---- lede ---- */
+.wbfeed .xp__lede { display: flex; align-items: flex-start; gap: 24px; }
+.wbfeed .xp__blurb {
+    margin: 0; flex: 1; min-width: 0;
+    font-family: var(--serif); font-size: 15.5px; line-height: 1.6; color: var(--fg-2);
+}
+.wbfeed .host { display: flex; align-items: center; gap: 10px; flex: none; }
+.wbfeed .host__t { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.35; }
+.wbfeed .host__l {
+    font-size: 9.5px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase;
+    color: var(--fg-3);
+}
+.wbfeed .host__n { font-size: 13.5px; font-weight: 700; letter-spacing: -.01em; }
+.wbfeed .host__v {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--gold-ink);
+}
+
+/* ---- stats ----
+   One filled strip, divided by the lighter hairline. Outlined, it would be a
+   second box inside the card and the card's own edge would stop reading. */
+.wbfeed .stats {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    background: var(--sunk); border-radius: var(--r-s); overflow: hidden;
+}
+.wbfeed .stat {
+    display: flex; flex-direction: column; gap: 3px; padding: 13px 16px;
+    border-left: 1px solid var(--rule-2);
+}
+.wbfeed .stat:first-child { border-left: 0; }
+.wbfeed .stat__l {
+    font-size: 9.5px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase;
+    color: var(--fg-3);
+}
+.wbfeed .stat__v {
+    font-size: 17px; font-weight: 800; letter-spacing: -.025em;
+    font-variant-numeric: tabular-nums;
+}
+.wbfeed .stat__s { font-size: 11.5px; color: var(--fg-3); }
+
+/* ---- open votes ---- */
+.wbfeed .votes { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 10px; }
+.wbfeed .vm {
+    display: grid; gap: 8px; padding: 13px 14px;
+    background: var(--gold-wash); border: 1px solid var(--gold-hair); border-radius: var(--r-s);
+}
+.wbfeed .vm__r {
+    font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--gold-ink);
+}
+.wbfeed .vm__who { display: flex; align-items: center; gap: 9px; min-width: 0; }
+/* Overlapped, because they are two halves of one match rather than two rows. */
+.wbfeed .vm__faces, .wbfeed .mi__faces { display: flex; flex: none; }
+.wbfeed .vm__faces > *:last-child, .wbfeed .mi__faces > *:last-child { margin-left: -8px; }
+.wbfeed .vm__faces .av, .wbfeed .mi__faces .av { box-shadow: 0 0 0 2px var(--card); }
+.wbfeed .vm__n {
+    font-size: 13px; font-weight: 700; letter-spacing: -.01em; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wbfeed .vm__n s { text-decoration: none; color: var(--fg-3); font-weight: 600; }
+.wbfeed .vm__foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.wbfeed .vm__p { margin: 0; font-size: 12px; color: var(--fg-2); }
+.wbfeed .vm__t {
+    font-size: 11px; font-weight: 700; color: var(--fg-3); font-variant-numeric: tabular-nums;
+}
+
+/* ---- tabs ---- */
+.wbfeed .tabs {
+    display: flex; align-items: center; gap: 6px;
+    border-bottom: 1px solid var(--rule-2);
+}
+.wbfeed .tab {
+    padding: 0 2px 9px; margin-right: 12px;
+    font-size: 13.5px; font-weight: 700; color: var(--fg-3);
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.wbfeed .tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--gold-mark); }
+.wbfeed .tabs__note { margin-left: auto; font-size: 11.5px; color: var(--fg-3); padding-bottom: 9px; }
+
+
+/* ---------- right rail ---------- */
+.wbfeed .rail {
+    position: sticky; top: 94px; display: flex; flex-direction: column; gap: 14px;
+    max-height: calc(100vh - 118px); overflow-y: auto; scrollbar-width: thin;
+    padding-bottom: 4px;
+}
+/* A panel is a card by another name, so it takes the same edge and lift. */
+.wbfeed .panel {
+    background: var(--card); border: 1px solid var(--card-line); border-radius: var(--r);
+    padding: 18px; box-shadow: var(--card-shadow);
+}
+.wbfeed .panel--join {
+    background:
+        radial-gradient(120% 90% at 50% -20%, var(--gold-wash), transparent 62%),
+        var(--card);
+    border-color: var(--gold-hair);
+}
+
+/* THE MARK IS THE FIGURE, not a letter. Trophy — the standing bow pose in gold
+   — is what the bracket, the board and the finished-debate screen already use,
+   so the panel that asks you to join wears the same face you meet when you win.
+   A brushed-gold plate behind it would put gold on gold and lose her outline
+   entirely, so the tile is the pale wash with a gold hairline instead. */
+.wbfeed .join__mark {
+    width: 44px; height: 44px; border-radius: 11px; display: grid; place-items: center;
+    background: var(--gold-wash); border: 1px solid var(--gold-hair);
+    margin-bottom: 12px; overflow: hidden;
+}
+/* Her axis on the tile's axis, for whenever the figure is in a tile again.
+   Trophy's viewBox is cropped tight to the ART and her mass is nearly all in
+   the reaching arm, so centring the box leaves the standing leg well left of
+   centre. 20.2% is the measured distance from the box centre to the foot
+   (109.5 of 543 user units). */
+.wbfeed .join__mark .trophy { transform: translateX(20.2%); }
+
+/* THE WORDMARK, in the slot the figure used to hold. It is type, not an object,
+   so it sheds the tile entirely — a box around a word makes it a badge, and a
+   badge is a thing that changes state. Same italic 800 the header carried, one
+   step down because the panel is not the top of the page. */
+.wbfeed .join__mark--word {
+    width: auto; height: auto; border: 0; background: none; border-radius: 0;
+    display: block; margin-bottom: 14px;
+    font-weight: 800; font-style: italic; font-size: 21px; letter-spacing: -.035em;
+    line-height: 1; color: var(--fg);
+}
+
+/* Without the headline and paragraph the panel is a mark and two doors, so the
+   mark centres — left-aligned it hangs off the edge of text that is no longer
+   there. Only in the bare state: with the copy back, left is right again. */
+/* Centred over the buttons and the line beneath them. The auto margins alone
+   cannot do it — .join__mark--word is a full-width block, so they resolve to
+   zero — which is why the TEXT is what gets centred. Only in the bare state:
+   with the headline and paragraph back, left is right again. */
+.wbfeed .panel--join.is-bare .join__mark { margin-inline: auto; }
+.wbfeed .panel--join.is-bare .join__mark--word { text-align: center; }
+.wbfeed .panel--join.is-bare { padding-top: 20px; }
+
+.wbfeed .join__h { margin: 0 0 5px; font-size: 16.5px; font-weight: 800; letter-spacing: -.025em; }
+.wbfeed .join__p { margin: 0 0 14px; font-size: 13px; line-height: 1.5; color: var(--fg-2); }
+.wbfeed .join__btns { display: flex; flex-direction: column; gap: 8px; }
+.wbfeed .join__foot {
+    margin: 13px 0 0; font-size: 11px; color: var(--fg-3); line-height: 1.45; text-align: center;
+}
+
+.wbfeed .panel__h {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 0 0 3px; font-size: 11px; font-weight: 800;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--fg-3);
+}
+.wbfeed .panel__h a {
+    font-size: 11.5px; font-weight: 700; letter-spacing: 0; text-transform: none;
+    color: var(--gold-ink);
+}
+.wbfeed .soon { display: flex; flex-direction: column; }
+.wbfeed .soon__i {
+    display: flex; gap: 11px; align-items: flex-start;
+    padding: 13px 0; border-bottom: 1px solid var(--rule-2);
+}
+.wbfeed .soon__i:last-child { border-bottom: 0; padding-bottom: 2px; }
+/* 46, not 34: the badge no longer holds only "6 hrs" — a question's unit is
+   "answers" and an artifact's is "min read", because those are the numbers
+   those kinds actually have. A column sized for the shortest unit would have
+   forced the other two back into countdowns they do not run on. */
+.wbfeed .soon__b { flex: none; width: 46px; text-align: center; padding-top: 1px; }
+.wbfeed .soon__num {
+    display: block; font-size: 15px; font-weight: 800; letter-spacing: -.03em;
+    color: var(--gold-ink); font-variant-numeric: tabular-nums; line-height: 1;
+}
+.wbfeed .soon__unit {
+    display: block; font-size: 8px; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--fg-3); margin-top: 3px;
+    line-height: 1.25;
+}
+.wbfeed .soon__t { min-width: 0; }
+.wbfeed .soon__q {
+    margin: 0 0 4px; font-size: 13px; font-weight: 600; line-height: 1.35;
+    letter-spacing: -.01em;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.wbfeed .soon__m { font-size: 11.5px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+/* WHAT KIND OF THING THIS IS, ahead of its numbers. Four kinds share this list
+   and they are not interchangeable — a would be asks for money, a debate is
+   argued by two, a question by anyone, an article is read — so the row says
+   which before it says anything else. One treatment for all four rather than a
+   colour each: four tinted labels in a six-row list is a legend, not a list. */
+.wbfeed .soon__k {
+    font-weight: 800; color: var(--fg-2); letter-spacing: .04em;
+    font-variant-numeric: normal;
+}
+.wbfeed .soon__i:hover .soon__q { color: var(--gold-ink); }
+
+/* ---------- the flat canvases ----------
+   No card, so no frame and no fill: the record runs edge to edge in its column
+   and one rule separates it from the next. The footer keeps its --foot tint —
+   without a border there it is the only thing that closes a prompt. */
+.wbfeed[data-canvas^="flat"] .card {
+    border: 0; border-bottom: 1px solid var(--rule); border-radius: 0;
+    background: transparent; box-shadow: none; overflow: visible;
+}
+.wbfeed[data-canvas^="flat"] .feed > .card:last-child { border-bottom: 0; }
+.wbfeed[data-canvas^="flat"] .card__pad { padding-inline: 0; }
+.wbfeed[data-canvas^="flat"] .side { padding-inline: 0; }
+.wbfeed[data-canvas^="flat"] .side + .duel__rule { margin-inline: 16px; }
+.wbfeed[data-canvas^="flat"] .card__foot {
+    padding-inline: 0; background: transparent; border-top-color: var(--rule-2);
+}
+.wbfeed[data-canvas^="flat"] .panel { border-radius: 0; border-inline: 0; }
+.wbfeed[data-canvas="flat-tight"] .feed { gap: 0; padding-top: 8px; }
+.wbfeed[data-canvas="flat-tight"] .card__pad { padding-top: 14px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1120px) {
+    /* The right track collapses to what the buttons need rather than to a fixed
+       304, because the rail below it is gone and nothing has to line up with it
+       any more. */
+    .wbfeed .hdr__in { grid-template-columns: 208px minmax(0, 1fr) auto; }
+    .wbfeed .app { grid-template-columns: 208px minmax(0, 1fr); }
+    .wbfeed .rail { display: none; }
+    /* .hdr__r USED to hide here, back when the rail carried the only Start.
+       Below 1120 the rail is gone, so this IS the only Start — hiding it would
+       leave the page with no way in at all. */
+    .wbfeed .hdr__r .hdr__start { display: inline-flex; min-width: 104px; }
+}
+@media (max-width: 840px) {
+    .wbfeed .hdr__in, .wbfeed .app { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .wbfeed .nav { display: none; }
+    .wbfeed .wrap { padding-inline: 16px; }
+    .wbfeed .hdr__in { grid-template-columns: auto minmax(0, 1fr); gap: 16px; }
+    .wbfeed .mark__t { display: none; }
+    .wbfeed .app { padding-top: 0; }
+    .wbfeed .bar { overflow-x: auto; scrollbar-width: none; }
+    .wbfeed .bar::-webkit-scrollbar { display: none; }
+}
+@media (max-width: 700px) {
+    .wbfeed .duel { grid-template-columns: minmax(0, 1fr); }
+    .wbfeed .duel__rule { height: 1px; background: var(--rule-2); }
+    .wbfeed .side { padding: 14px 16px; }
+    .wbfeed .side + .duel__rule { margin-inline: 16px; }
+    .wbfeed .card__pad { padding: 16px 16px 0; }
+    .wbfeed .q { font-size: 19px; }
+    .wbfeed .seat { padding: 16px; }
+}
+
+/* ============================================================================
+   ONE PAGE. A debate opens INSIDE its card and the composer opens above the
+   feed, so neither costs a navigation — the column keeps its scroll, the rail
+   keeps its place, and coming back is not a thing you have to do.
+   ============================================================================ */
+
+/* The footer toggle is .expand, and it lives with the panel it opens — see
+   DebateExpanded.css. */
+
+/* The question as a button. Everything the anchor had, minus the anchor: a
+   <button> defaults to centred text in a padded box with the UA's own font, so
+   all three are reset here rather than inherited by luck. */
+.wbfeed .q--btn {
+    width: 100%; text-align: left; padding: 0; font: inherit;
+    font-size: 21px; font-weight: 700; line-height: 1.28; letter-spacing: -.022em;
+    color: inherit; cursor: pointer;
+}
+
+/* The dark in-card panel that used to live here is gone: the debate now expands
+   on WHITE, inside the card, styled by DebateExpanded.css. Reddit and Substack
+   expand onto the same paper, and a ground change says "new page" about
+   something that deliberately is not one. */
+
+/* ---- the composer ----
+   Above the cards, because it is the thing being added to the column. It keeps
+   StartADebate's own dark ground (the form was designed on one) and adds only a
+   bar to close it — inline, there is no back button to be the way out. */
+.wbfeed .composer {
+    margin-top: 16px;
+    border: 1px solid var(--card-line);
+    border-radius: var(--r);
+    overflow: hidden;
+    background: var(--card);
+    box-shadow: var(--card-shadow);
+}
+.wbfeed .composer__bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: var(--foot);
+    border-bottom: 1px solid var(--rule-2);
+}
+.wbfeed .composer__h {
+    font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--fg-3);
+}
+.wbfeed .composer__x {
+    display: grid; place-items: center; width: 28px; height: 28px;
+    border-radius: 999px; color: var(--fg-2);
+}
+.wbfeed .composer__x:hover { background: var(--sunk); color: var(--fg); }
+/* The form is a page component. Inline it must not claim a viewport. */
+.wbfeed .composer .debategradientV2 { min-height: 0; }
+.wbfeed .composer__wait { margin: 0; padding: 28px 20px; color: var(--fg-3); font-size: 13px; }
+
+/* ---- the way out of expand mode ----
+   First thing in the toolbar, because that is where a back control lives in
+   every app anyone has used. It only exists in expand mode — on a feed that is
+   already the top of the stack, a back arrow points at nothing. */
+.wbfeed .bar__back {
+    display: inline-flex; align-items: center; gap: 6px; height: 34px;
+    padding: 0 13px 0 10px; margin-right: 2px;
+    border-radius: 999px; border: 1px solid var(--rule-2); background: var(--card);
+    font-size: 13px; font-weight: 700; color: var(--fg-2);
+    transition: border-color .14s, color .14s, background .14s;
+}
+.wbfeed .bar__back:hover { border-color: var(--fg-3); color: var(--fg); background: var(--sunk); }
+
+/* A post that is not a debate carries prose where the duel would be. Same
+   serif as an argument body: both are the record rather than the interface. */
+.wbfeed .post__b {
+    margin: 0 0 16px;
+    font-family: var(--serif); font-size: 15.5px; line-height: 1.62; color: var(--fg-2);
+}

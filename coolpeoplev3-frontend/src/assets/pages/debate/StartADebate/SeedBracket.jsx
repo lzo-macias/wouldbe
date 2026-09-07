@@ -138,7 +138,7 @@ function SeedBracket() {
 
     if (error && !board) {
         return (
-            <div className="debategradientV2" data-surface="dark">
+            <div className="debategradientV2">
                 <StartADebateHeader />
                 <p className="sb-status" role="alert">{error}</p>
             </div>
@@ -146,7 +146,7 @@ function SeedBracket() {
     }
     if (!board) {
         return (
-            <div className="debategradientV2" data-surface="dark">
+            <div className="debategradientV2">
                 <StartADebateHeader />
                 <p className="sb-status">Loading the bracket…</p>
             </div>
@@ -157,7 +157,7 @@ function SeedBracket() {
     const byNominations = debate.participation_type === 'open'
 
     return (
-        <div className="debategradientV2" data-surface="dark">
+        <div className="debategradientV2">
             <StartADebateHeader />
 
             <div className="sb-wrap">

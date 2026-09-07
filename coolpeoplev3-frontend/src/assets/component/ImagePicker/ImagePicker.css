@@ -1,0 +1,58 @@
+/* ============================================================================
+   ImagePicker — one optional image, in whatever form is asking for it.
+
+   NOT SCOPED TO .wbfeed. It renders inside the feed's compose card AND on
+   /startadebate, which is outside it — so the block owns a unique prefix
+   instead of borrowing a page's scope. Every colour falls back, because the
+   token set above it differs between those two places.
+   ============================================================================ */
+
+.impk { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; width: 100%; }
+
+/* A dashed well rather than a filled button: it is a place something goes, and
+   the dash is the oldest way of saying so without a label that reads "empty". */
+.impk__drop {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 40px; padding: 0 15px; border-radius: 10px;
+    border: 1px dashed var(--rule, #E8E2D6); background: none;
+    font: inherit; font-size: 13px; font-weight: 700;
+    color: var(--fg-2, #6B6357); cursor: pointer;
+    transition: border-color .14s, background .14s, color .14s;
+}
+.impk__drop:hover:not(:disabled) {
+    border-color: var(--gold-mark, #B07524); background: var(--gold-wash, #FCF7EC);
+    color: var(--gold-ink, #7A5211);
+}
+.impk__drop:disabled { opacity: .6; cursor: progress; }
+/* "optional" travels with the control, not with the label — the label says what
+   the field is, this says whether you have to fill it. */
+.impk__drop em {
+    font-style: normal; font-size: 10.5px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--fg-3, #7A715F);
+}
+
+.impk__has {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px; border-radius: 10px;
+    border: 1px solid var(--rule-2, #EFEAE0); background: var(--sunk, #F5F2EB);
+}
+/* Fixed box, cover fit: a preview that changes the row's height with every
+   photo makes the form jump as you pick. */
+.impk__img {
+    width: 84px; height: 56px; object-fit: cover; border-radius: 7px; display: block;
+    background: var(--card, #FFF);
+}
+.impk__meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.impk__n {
+    font-size: 12.5px; font-weight: 700; max-width: 30ch;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.impk__s { font-size: 11px; color: var(--fg-3, #7A715F); font-variant-numeric: tabular-nums; }
+.impk__x {
+    align-self: flex-start; padding: 0; border: 0; background: none; cursor: pointer;
+    font: inherit; font-size: 11.5px; font-weight: 700; color: var(--live, #B4442C);
+}
+.impk__x:hover { text-decoration: underline; }
+
+.impk__note { margin: 0; font-size: 11px; line-height: 1.45; color: var(--fg-3, #7A715F); }
+.impk__err { margin: 0; font-size: 11.5px; font-weight: 700; color: var(--live, #B4442C); }

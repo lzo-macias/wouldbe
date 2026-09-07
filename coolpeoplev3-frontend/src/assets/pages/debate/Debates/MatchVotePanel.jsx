@@ -81,6 +81,9 @@ function MatchVotePanel({ debate, activeKey = null, refreshKey = 0 }) {
     // an expression the compiler cannot memoise around.
     const debateId = debate?.id
     const [ballots, setBallots] = useState([])
+    // Not a count of what is missing — a count of what is OVER. An empty list
+    // means one of two opposite things, and the panel has to say which.
+    const [closed, setClosed] = useState({ n: 0, at: null })
     const [open, setOpen] = useState(null)
     const signedIn = !!localStorage.getItem('token')
 
@@ -89,6 +92,7 @@ function MatchVotePanel({ debate, activeKey = null, refreshKey = 0 }) {
         try {
             const { data } = await api.get(`/api/debates/${debateId}/ballots`)
             setBallots(data.ballots || [])
+            setClosed({ n: data.closed || 0, at: data.closes_last || null })
         } catch (err) {
             console.error('[MatchVotePanel] ballots failed', err)
         }
@@ -111,7 +115,18 @@ function MatchVotePanel({ debate, activeKey = null, refreshKey = 0 }) {
                     <span className="dbt-label">votes</span>
                     <p className="mvp-lede">
                         {empty
-                            ? 'Nothing to vote on yet — a match opens for voting when its answers are released.'
+                            ? closed.n
+                              // EVERY WINDOW HAS RUN OUT. Saying "nothing to
+                              // vote on yet" here is the opposite of true, and
+                              // it sends a reader clicking through every match
+                              // in the bracket looking for a ballot that closed
+                              // days ago.
+                              ? `Voting has closed on all ${closed.n} match${closed.n === 1 ? '' : 'es'}${
+                                    closed.at
+                                        ? ` — the last one ${new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(closed.at))}.`
+                                        : '.'
+                                }`
+                              : 'Nothing to vote on yet — a match opens for voting when its answers are released.'
                             : signedIn
                               ? `${ballots.filter((b) => !b.my_vote).length} of ${ballots.length} still to score.`
                               : `${ballots.length} match${ballots.length === 1 ? '' : 'es'} open — sign in to vote.`}

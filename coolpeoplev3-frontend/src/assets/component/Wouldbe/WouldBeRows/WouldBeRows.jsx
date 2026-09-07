@@ -291,7 +291,7 @@ function OfficeDetail({ office, calendar = [], goalCents, onOpen }) {
     );
 }
 
-function WouldBeRows({ offices: officesProp }) {
+function WouldBeRows({ offices: officesProp, onStart }) {
     const [offices, setOffices] = useState([]);
     // jurisdiction id -> soonest filing/petition date (ISO string)
     const [deadlineByJurisdiction, setDeadlineByJurisdiction] = useState({});
@@ -459,6 +459,10 @@ function WouldBeRows({ offices: officesProp }) {
 
     // Click through to the full StartAWouldBe flow for an office.
     const openOffice = useCallback((office) => {
+        // INLINE, THERE IS NOWHERE TO NAVIGATE TO. The would be flow runs in
+        // the feed column now, so the browser hands the chosen office back to
+        // whoever mounted it. The route keeps navigating, unchanged.
+        if (onStart) return onStart(office);
         navigate(`/wouldbe/${office.jurisdiction_id}/${office.id}`);
     }, [navigate]);
 

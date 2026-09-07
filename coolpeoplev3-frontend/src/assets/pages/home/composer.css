@@ -1,0 +1,138 @@
+/* ============================================================================
+   composer.css — starting a post, inside the feed.
+
+   Scoped under .wbfeed. It reuses the card's frame (--card-line, --foot bar)
+   because a composer IS a card being written rather than read, and giving it a
+   chrome of its own would make posting feel like leaving the feed — which is
+   the one thing this whole flow exists to avoid.
+   ============================================================================ */
+
+.wbfeed .cmp {
+    margin-top: 16px;
+    border: 1px solid var(--card-line); border-radius: var(--r);
+    background: var(--card); box-shadow: var(--card-shadow); overflow: hidden;
+}
+.wbfeed .cmp__bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: var(--foot); border-bottom: 1px solid var(--rule-2);
+}
+.wbfeed .cmp__h {
+    font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--fg-3);
+}
+.wbfeed .cmp__x {
+    display: grid; place-items: center; width: 28px; height: 28px;
+    border-radius: 999px; color: var(--fg-2);
+}
+.wbfeed .cmp__x:hover { background: var(--sunk); color: var(--fg); }
+
+/* The chooser that used to live here is gone — the four kinds are a popover on
+   the button now (postmenu.css). A full-width panel above the column pushed the
+   feed down to ask a question with four one-word answers. */
+
+/* ---- the written forms ----
+   The same card the debate form is: a bar, two-column rows, a footer. Three
+   post kinds that each invented their own compose surface would be three
+   products, and the reader would have to learn each one. */
+.wbfeed .cmp__card { display: block; }
+
+.wbfeed .cmp__hd {
+    display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap;
+    padding: 13px 20px; border-bottom: 1px solid var(--rule-2);
+}
+.wbfeed .cmp__t { font-size: 14.5px; font-weight: 800; letter-spacing: -.02em; }
+/* Gold, like the debate's — it names the kind of thing being made. */
+.wbfeed .cmp__k {
+    flex: none;
+    font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+    border: 1px solid var(--gold-hair); border-radius: 5px; padding: 3px 8px;
+    background: var(--gold-wash); color: var(--gold-ink);
+}
+/* WHO CAN RESPOND, in the slot where a debate states its gate. A debate is
+   restricted to approved judges and standing-bow holders; these two are not,
+   and that difference is the point of having three kinds — so it is said in the
+   same place rather than discovered by nobody stopping you. */
+.wbfeed .cmp__gate {
+    flex: 1 1 auto; font-size: 11px; color: var(--fg-3);
+}
+.wbfeed .cmp__x {
+    order: 2; flex: none; margin-left: auto;
+    padding: 6px 9px; border-radius: 7px;
+    font-size: 12.5px; font-weight: 700; color: var(--fg-3);
+}
+.wbfeed .cmp__x:hover { background: var(--sunk); color: var(--fg); }
+
+.wbfeed .cmp__rows { padding: 2px 20px 14px; }
+.wbfeed .cmp__r {
+    display: grid; grid-template-columns: 126px minmax(0, 1fr); gap: 5px 18px;
+    align-items: start; padding: 12px 0; border-bottom: 1px solid var(--rule-2);
+}
+.wbfeed .cmp__r:last-child { border-bottom: 0; }
+.wbfeed .cmp__l {
+    font-size: 12.5px; font-weight: 700; letter-spacing: -.01em; padding-top: 10px;
+}
+.wbfeed .cmp__l i { font-style: normal; color: var(--gold-ink); margin-left: 2px; }
+.wbfeed .cmp__c { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.wbfeed .cmp__h { font-size: 11px; line-height: 1.45; color: var(--fg-3); max-width: 62ch; }
+
+.wbfeed .cmp__in, .wbfeed .cmp__ta {
+    width: 100%; padding: 10px 12px; border-radius: 9px;
+    border: 1px solid var(--rule); background: var(--card);
+    font: inherit; font-size: 13.5px; color: var(--fg); resize: vertical;
+}
+/* THE HEADLINE IS TYPED AT HEADLINE SIZE. A composer that types it in 13px
+   chrome makes every headline read differently once it lands on a card. */
+.wbfeed .cmp__in--big {
+    font-size: 19px; font-weight: 700; letter-spacing: -.02em; line-height: 1.3; padding: 11px 13px;
+}
+/* The body is the record, so it takes the serif the record is set in. */
+.wbfeed .cmp__ta { font-family: var(--serif); font-size: 15.5px; line-height: 1.6; }
+.wbfeed .cmp__in::placeholder, .wbfeed .cmp__ta::placeholder {
+    color: var(--fg-3); font-weight: 400; font-size: 13.5px;
+}
+.wbfeed .cmp__in:focus, .wbfeed .cmp__ta:focus {
+    outline: none; border-color: var(--gold-mark);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold-mark) 15%, transparent);
+}
+
+/* THE FAILURE, WHERE THE ATTEMPT WAS. Above the footer rather than in a toast:
+   the message and the button that produced it are one glance apart, and it holds
+   until the next submit instead of timing out while somebody is still reading.
+   Same red as the image picker's — one error colour in one product. */
+.wbfeed .cmp__err {
+    margin: 0; padding: 10px 20px;
+    border-top: 1px solid var(--rule-2);
+    background: color-mix(in srgb, var(--live, #B4442C) 7%, transparent);
+    font-size: 12px; font-weight: 700; line-height: 1.45;
+    color: var(--live, #B4442C);
+}
+
+.wbfeed .cmp__ft {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 12px 20px; border-top: 1px solid var(--rule-2); background: var(--foot);
+}
+.wbfeed .cmp__ft .btn { margin-left: auto; }
+.wbfeed .cmp__note { font-size: 11.5px; color: var(--fg-2); }
+.wbfeed .cmp__ft .btn[disabled] { opacity: .45; cursor: not-allowed; filter: none; }
+
+@media (max-width: 560px) {
+    .wbfeed .cmp__r { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    .wbfeed .cmp__l { padding-top: 0; }
+    .wbfeed .cmp__in--big { font-size: 17px; }
+}
+
+/* ---- the would-be handoff ---- */
+.wbfeed .cmp__hand { display: flex; flex-direction: column; gap: 8px; padding: 18px 16px 16px; }
+.wbfeed .cmp__handh { margin: 0; font-size: 15px; font-weight: 800; letter-spacing: -.02em; }
+.wbfeed .cmp__handp {
+    margin: 0 0 6px; font-size: 13px; line-height: 1.55; color: var(--fg-2); max-width: 60ch;
+}
+
+/* ---- the embedded debate form ---- */
+.wbfeed .cmp__embed { position: relative; }
+.wbfeed .cmp .debategradientV2 { min-height: 0; }
+.wbfeed .cmp__wait { margin: 0; padding: 28px 16px; font-size: 13px; color: var(--fg-3); }
+
+@media (max-width: 620px) {
+    .wbfeed .cmp__in { font-size: 17px; }
+}

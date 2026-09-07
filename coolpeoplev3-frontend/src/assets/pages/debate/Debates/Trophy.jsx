@@ -4,7 +4,8 @@ import { useId } from 'react'
 // screen so "won" looks the same everywhere it is claimed.
 //
 // A figure in the standing bow (dancer) pose, cast in gold: balanced on one
-// leg, one arm reaching forward, the other pulling the back foot overhead. It
+// leg, one arm reaching forward to the right, the other pulling the back foot
+// overhead. It
 // claims what a cup claimed — this one came out on top — in a mark that is ours
 // rather than every league table on the internet.
 
@@ -358,11 +359,23 @@ function Trophy({ size = 22, className = '' }) {
                     <stop offset="1" stopColor="#8a6a20" stopOpacity="0" />
                 </radialGradient>
             </defs>
-            <ellipse cx="428" cy="633" rx="81" ry="11" fill={`url(#${groundId})`} />
-            <g transform="translate(0,670) scale(0.1,-0.1)">
-                {STATUE.map(([fill, d]) => (
-                    <path key={fill} d={d} fill={fill} />
-                ))}
+            {/* MIRRORED, so the reaching arm points RIGHT — forward, into the
+                page, rather than back off the left edge of whatever she sits
+                beside. The art was traced facing left; flipping it here rather
+                than re-tracing keeps the curves exactly as drawn.
+
+                583 is minX + maxX of the viewBox (20 + 563): mirroring about
+                that line maps the art onto itself, so the figure lands in the
+                same box she already occupied. The shadow is inside the same
+                group so it travels with her — mirroring only the figure would
+                leave her standing beside her own shadow. */}
+            <g transform="translate(583, 0) scale(-1, 1)">
+                <ellipse cx="428" cy="633" rx="81" ry="11" fill={`url(#${groundId})`} />
+                <g transform="translate(0,670) scale(0.1,-0.1)">
+                    {STATUE.map(([fill, d]) => (
+                        <path key={fill} d={d} fill={fill} />
+                    ))}
+                </g>
             </g>
         </svg>
     )

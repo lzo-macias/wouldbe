@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import api from '../../lib/api'
 import Header from '../../component/header/Header'
+import PreExistingDebates from '../../component/Prexistingdebate/PreExistingDebates'
 import './AnyUserProfile.css'
 
 // ============================================================================
@@ -88,6 +89,34 @@ function AnyUserProfile() {
         ;(async () => { if (!cancelled) await load() })()
         return () => { cancelled = true }
     }, [load])
+
+    // YOUR OWN DEBATES, on your own profile. This shelf used to be step one of
+    // "Start a debate", where it answered a question nobody had asked — here is
+    // what you already made — before letting anybody make anything. It is a
+    // record of your work, so it belongs where your work is listed.
+    //
+    // OWNER ONLY, and from /mine rather than from the public feed: a draft is
+    // unpublished and a rejected application is a private outcome. Neither is
+    // anybody else's business, so a visitor never sees this block at all.
+    const [mine, setMine] = useState(null)
+    const isOwner = String(userId) === String(localStorage.getItem('userId'))
+
+    useEffect(() => {
+        let cancelled = false
+        if (!isOwner || !localStorage.getItem('token')) return undefined
+        api.get('/api/debate-applications/mine')
+            .then(({ data }) => {
+                if (cancelled) return
+                const rows = Array.isArray(data) ? data : []
+                setMine({
+                    drafts: rows.filter((d) => d.status === 'draft'),
+                    approved: rows.filter((d) => d.status === 'open_entry'),
+                    rejected: rows.filter((d) => d.status === 'cancelled'),
+                })
+            })
+            .catch(() => { if (!cancelled) setMine(null) })
+        return () => { cancelled = true }
+    }, [isOwner, userId])
 
     // "Debates" is the same feed as Overview today. It is its own tab because
     // Overview will grow other kinds of activity, and this one should not have
@@ -226,7 +255,23 @@ function AnyUserProfile() {
                                 When {user.display_name} starts one it shows up here, with what it has raised.
                             </div>
                         )
-                    ) : rows.length ? (
+                    ) : (
+                    <>
+                    {/* THE SHELF, above the activity feed and only on your own
+                        profile. It is what you have submitted; the feed below is
+                        what you have done. Drafts and rejections are private, so
+                        a visitor never reaches this branch. */}
+                    {tab === 'debates' && isOwner && mine &&
+                        (mine.drafts.length > 0 || mine.approved.length > 0 || mine.rejected.length > 0) && (
+                        <div className="wb-mydebates">
+                            <PreExistingDebates
+                                approved={mine.approved}
+                                drafts={mine.drafts}
+                                rejected={mine.rejected}
+                            />
+                        </div>
+                    )}
+                    {rows.length ? (
                         <div className="wb-feed">
                             {rows.map((f) => (
                                 <article className="wb-fitem" key={f.id}>
@@ -271,6 +316,8 @@ function AnyUserProfile() {
                             Answers appear here once the round they were written for closes — before
                             that they are sealed, including from this page.
                         </div>
+                    )}
+                    </>
                     )}
                 </div>
             </div>

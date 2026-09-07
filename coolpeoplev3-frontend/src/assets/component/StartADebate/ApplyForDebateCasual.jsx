@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import api from "../../lib/api"
+import Trophy from "../../pages/debate/Debates/Trophy"
+import ImagePicker from "../ImagePicker/ImagePicker"
 import PrizeAgreementStep from "./PrizeAgreementStep"
-import MatchPromptGrid from "./MatchPromptGrid"
 import "./ApplyForDebateCasual.css"
 
 // DAY_MS and fmtDate lived here to derive each prompt's open/close window.
@@ -104,18 +105,8 @@ const Segmented = ({ label, value, onChange, options }) => (
     </div>
 )
 
-const OptionCards = ({ label, value, onChange, options }) => (
-    <div className="wb-opts" role="group" aria-label={label}>
-        {options.map((o) => (
-            <button key={o.value} type="button" className="wb-opt"
-                    aria-pressed={value === o.value}
-                    onClick={() => onChange(o.value)}>
-                <span className="wb-opt__t">{o.label}<Tick /></span>
-                <p className="wb-opt__d">{o.description}</p>
-            </button>
-        ))}
-    </div>
-)
+/* OptionCards lived here — it drew the live/typed format selector, which this
+   form no longer offers. */
 
 // SINGLE-select, despite looking like a chip set. The backend takes one
 // `category` plus an optional `custom_category`, and the rubric shown below is
@@ -193,30 +184,48 @@ const PromptList = ({ prompts, setPrompts }) => {
     )
 }
 
-function ApplyForDebateCasual() {
+/**
+ * `onDone` is what the flow does after the prize agreement is signed. Inline,
+ * there is nowhere to navigate to — the whole debate flow runs in the feed
+ * column now — so the form reports the debate it just created and lets its
+ * owner decide what comes next. Without it, the /startadebate route navigates
+ * exactly as it always did.
+ */
+function ApplyForDebateCasual({ onDone, embedded = false, onCancel }) {
     const [title, setTitle] = useState("")
+    // The public blurb. Optional either way, but it sits in a different place
+    // depending on the kind: under the PROMPT on a no-prize debate, because
+    // there the prompt is the whole thing and this is the context around it;
+    // under the TITLE on a prize debate, because there the title names the
+    // contest and this says what it is about.
+    const [description, setDescription] = useState("")
+    // Optional, and never in the readiness count — a debate is complete without
+    // a picture.
+    const [image, setImage] = useState(null)
     // `category` holds the checked radio ("Business" | … | "other"); the free
     // text lives separately so typing in it can't uncheck the "other" radio.
     const [category, setCategory] = useState("")
     const [customCategory, setCustomCategory] = useState("")
     const [prizeAmt, setPrizeAmt] = useState("")
-    // 'cash' | 'non_cash' | 'both'. Three-way rather than a boolean because a
-    // prize can genuinely be money AND something else, and the winner is owed
-    // both halves — a boolean would leave one of them unrecorded.
-    const [prizeType, setPrizeType] = useState("cash")
+    // 'none' | 'cash' | 'non_cash'. ONE CONTROL, and it starts at none.
+    //
+    // It used to be two: a "Kind" segment (prize / for fun) and then a prize
+    // type under it, which asked the same question twice and let the two
+    // disagree — a "for fun" debate could sit there holding a cash amount.
+    // Whether there is a prize IS the prize type, so it is one segment, and it
+    // opens on the smallest commitment rather than assuming money.
+    const [prizeType, setPrizeType] = useState("none")
     const [prizeDesc, setPrizeDesc] = useState("")
-    const wantsCash = prizeType === "cash" || prizeType === "both"
-    const wantsOther = prizeType === "non_cash" || prizeType === "both"
-    // HOW THE DEBATE IS ARGUED, picked before anything else on this form
-    // depends on it: 'live' streams on Twitch, 'typed' is played in writing with
-    // one prompt per bracket match. It changes which prompt UI renders, whether
-    // a stream is scheduled, and where the sponsor goes after submitting.
-    const [format, setFormat] = useState("live")
-    // FOR FUN — no prize, no gate, one question. It forces typed + open + no
-    // prize, which the server also enforces; holding it as its own flag rather
-    // than inferring it from "prize is empty" means the sponsor's intent
-    // survives a change of mind about any of the three.
-    const [isForFun, setIsForFun] = useState(false)
+    const wantsCash = prizeType === "cash"
+    const wantsOther = prizeType === "non_cash"
+    // EVERY DEBATE IS WRITTEN NOW. The format selector is gone from this form,
+    // so there is no live/typed choice to make and no Twitch channel to
+    // connect. It stays as a constant rather than being deleted because the
+    // payload, the prompt shape and the post-submit step all read it.
+    const format = "typed"
+    // NO PRIZE IS "for fun" — one fact, derived, not a second flag that could
+    // disagree with the prize control above it.
+    const isForFun = prizeType === "none"
     // Even numbers only; the stepper below moves by two.
     const [maxContestants, setMaxContestants] = useState(16)
     // Maps straight onto debates.participation_type, which already has these
@@ -248,6 +257,13 @@ function ApplyForDebateCasual() {
     // an index-keyed map would slide a final's question into a first-round match
     // when it did. { [slotKey]: body }
     const [matchPrompts, setMatchPrompts] = useState({})
+    // ONE STRING PER BRACKET, indexed by round. An array because the index IS
+    // the round and the bracket count is derived — a keyed object would let a
+    // stale key survive a change of field size.
+    const [bracketPrompts, setBracketPrompts] = useState([])
+    // "Tell us what you want and we'll handle it." Empty means the sponsor is
+    // writing their own.
+    const [promptBrief, setPromptBrief] = useState("")
 
     // The judge panel. Only sent (and only required) when the debate is hybrid —
     // a hybrid debate is decided by these people, so the backend rejects a hybrid
@@ -271,6 +287,24 @@ function ApplyForDebateCasual() {
     // so an N-field plays N-1 matches. Kept in step with the authoritative copy
     // by MatchPromptGrid, which ASKS the server for the labelled slots; this is
     // only for counting and for the completeness check below.
+    // ONE QUESTION PER BRACKET. A bracket is a pair, so a field of 16 is 8
+    // brackets and 8 questions — not 4 rounds, which is what this counted
+    // before and which quietly asked for half the questions the debate needs.
+    const bracketCount = (() => {
+        const n = Number(maxContestants)
+        if (!Number.isFinite(n) || n < 2) return 0
+        return Math.floor(n / 2)
+    })()
+
+    // WRITE WHAT YOU HAVE, HAND US THE REST. Eight good questions is an
+    // afternoon, and most sponsors have two or three and a subject for the
+    // others — so the brief does not replace the boxes, it covers whatever is
+    // still empty when they submit. A brief and six written questions is a
+    // perfectly good application; so is a brief and none.
+    const briefed = bracketCount > 1 && promptBrief.trim().length > 0
+    const writtenCount = Array.from({ length: bracketCount })
+        .filter((_, i) => (bracketPrompts[i] || "").trim()).length
+
     const matchSlotKeys = (() => {
         if (!isTyped) return []
         const n = Number(maxContestants)
@@ -364,40 +398,49 @@ function ApplyForDebateCasual() {
         if (wantsOther && !prizeDesc.trim()) {
             return setError(new Error("Describe what the winner receives"))
         }
-        const maxN = Number(maxContestants)
-        if (!Number.isInteger(maxN) || maxN < 2 || maxN % 2 !== 0) {
-            return setError(new Error("Max contestants must be an even number, 2 or more"))
+        // A DEBATE WITH NO PRIZE HAS NO BRACKET. It is one question, answered
+        // by whoever turns up — there is nothing to seed and nothing to
+        // eliminate — so the cap is not asked for and not checked.
+        if (!isForFun) {
+            const maxN = Number(maxContestants)
+            if (!Number.isInteger(maxN) || maxN < 2 || maxN % 2 !== 0) {
+                return setError(new Error("Max contestants must be an even number, 2 or more"))
+            }
         }
         // TWO PROMPT SHAPES. A live debate keeps the free-form ordered list; a
         // typed one needs exactly one prompt per bracket match, and the count is
         // arithmetic on the field size rather than the sponsor's choice. The
         // server enforces both — these checks just save a round trip.
-        if (isTyped) {
-            const missing = matchSlotKeys.filter((k) => !(matchPrompts[k] || "").trim())
-            if (!matchSlotKeys.length) {
-                return setError(new Error("Set a contestant cap so the bracket can be worked out"))
+        // NO PROMPTS TO CHECK ON A NO-PRIZE DEBATE: the title is the question.
+        if (!isForFun) {
+            if (!bracketCount) {
+                return setError(new Error("Set a contestant cap so the brackets can be worked out"))
             }
+            // A brief covers whatever is still empty, so nothing is missing
+            // once one exists.
+            const missing = briefed ? [] : Array.from({ length: bracketCount })
+                .map((_, i) => i)
+                .filter((i) => !(bracketPrompts[i] || "").trim())
             if (missing.length) {
                 return setError(
                     new Error(
-                        `${missing.length} match${missing.length === 1 ? "" : "es"} still ${
+                        `${missing.length} bracket${missing.length === 1 ? "" : "s"} still ${
                             missing.length === 1 ? "has" : "have"
-                        } no prompt — every match needs its own question`
+                        } no question`
                     )
                 )
             }
-        } else {
-            if (prompts.length === 0) return setError(new Error("Add at least one prompt"))
-            const blank = prompts.findIndex((p) => !p.body.trim())
-            if (blank !== -1) return setError(new Error(`Prompt ${blank + 1} needs a body`))
         }
 
         // The start INSTANT — a day and an hour. The API rejects a bare date
         // ("the 4th" is not a start time), so this is a datetime-local value and
         // the comparison is Date math rather than a string compare against a
         // day: "today at 9am" really is in the past by lunchtime.
-        if (!startDate) return setError(new Error("Pick when the debate starts"))
-        if (new Date(startDate).getTime() <= Date.now()) {
+        // OPTIONAL WITHOUT A PRIZE. Nothing has to be nominated, seeded or
+        // approved against a clock, so scheduling is a convenience — an empty
+        // field means post it now rather than an error.
+        if (!isForFun && !startDate) return setError(new Error("Pick when the debate starts"))
+        if (startDate && new Date(startDate).getTime() <= Date.now()) {
             return setError(new Error("The start time is in the past"))
         }
 
@@ -414,6 +457,11 @@ function ApplyForDebateCasual() {
             if (noWhy !== -1) return setError(new Error(`Judge ${noWhy + 1} needs a note on why they're qualified`))
         }
 
+        // An empty schedule means "post it now", which the API still needs as
+        // an instant — start_at is not nullable and a debate with no start is a
+        // debate nothing can order.
+        const startAt = startDate || new Date(Date.now() + 60_000).toISOString().slice(0, 16)
+
         setSubmitting(true)
         try {
             // Strip the client-only `key` and the File handle — the server assigns
@@ -421,6 +469,7 @@ function ApplyForDebateCasual() {
             // Array position becomes prompt_order on the backend.
             const { data } = await api.post("/api/debate-applications", {
                 title: title.trim(),
+                description: description.trim() || undefined,
                 category,
                 custom_category: customCategory,
                 win_type: voteType,
@@ -430,7 +479,8 @@ function ApplyForDebateCasual() {
                 // shape instead of "" vs null ambiguity.
                 prize_amount: wantsCash ? prizeAmt : undefined,
                 prize_description: wantsOther ? prizeDesc.trim() : undefined,
-                max_contestants: Number(maxContestants) || undefined,
+                // No cap on a no-prize debate: there is no bracket to size.
+                max_contestants: isForFun ? undefined : (Number(maxContestants) || undefined),
                 participation_type: participation,
                 entry_amount: entryAmt,
                 free_entry: freeEntry,
@@ -438,6 +488,9 @@ function ApplyForDebateCasual() {
                 // skips the Twitch step entirely.
                 format,
                 is_for_fun: isForFun,
+                // Internal. Non-null is the review queue's signal that this
+                // application is waiting on us for its questions.
+                prompt_brief: briefed ? promptBrief.trim() : undefined,
                 // The debate's schedule. A LIVE debate attaches its channel and
                 // seat count on the next screen, so the stream row lands with a
                 // date and no destination yet; a typed debate schedules no
@@ -447,20 +500,36 @@ function ApplyForDebateCasual() {
                 // The zone travels with the hour because the hour is meaningless
                 // without it: 8pm ET and 5pm PT are the same instant and only
                 // one of them is what the sponsor picked.
-                stream: { scheduled_at: startDate, timezone: startTimezone },
+                stream: { scheduled_at: startAt, timezone: startTimezone },
                 // TWO SHAPES, decided by format. Typed prompts carry the bracket
                 // slot they belong to — that coordinate is what ties each
                 // question to the match it is asked in.
+                // ONE PROMPT PER BRACKET, fanned out over that bracket's match
+                // slots. The API stores a prompt against a slot, which is right
+                // — a prompt has to be findable from a match — but the sponsor
+                // writes one question per round because that is what the round
+                // asks. Every match in a bracket gets the same body, which is
+                // the format's whole claim: nobody gets an easier question.
+                // EVERY QUESTION THE SPONSOR ACTUALLY WROTE, and no empty
+                // slots. With a brief the blanks are ours to fill, so an
+                // application can legitimately arrive with six of eight — the
+                // brief beside the count is what says the gap is deliberate.
                 prompts: isTyped
-                    ? matchSlotKeys.map((key) => {
+                    ? matchSlotKeys.map((key, i) => {
                           const [side, round, position] = key.split(":")
                           return {
                               bracket_side: side,
                               bracket_round: Number(round),
                               bracket_position: Number(position),
-                              body: matchPrompts[key],
+                              // The sponsor writes one question per bracket and
+                              // the first round IS the brackets, so the first
+                              // n/2 slots take them in order. Deeper rounds
+                              // reuse the question that fed them until their own
+                              // are written — a slot with no body is a match
+                              // nobody can answer.
+                              body: (bracketPrompts[i % Math.max(bracketCount, 1)] ?? "").trim(),
                           }
-                      })
+                      }).filter((p) => p.body)
                     : prompts.map((p) => ({
                           prompt_type: p.prompt_type,
                           body: p.body,
@@ -478,7 +547,7 @@ function ApplyForDebateCasual() {
                           }))
                     : undefined,
             })
-            setSubmitted(data)
+            setSubmitted({ ...data, startAt })
         } catch (err) {
             console.error(err)
             // axios puts the server's {error} payload on err.response.data.
@@ -496,22 +565,36 @@ function ApplyForDebateCasual() {
     // after you pressed the button.
     const checks = useMemo(() => {
         const list = [
-            { k: "Title", done: title.trim().length > 0 },
+            { k: isForFun ? "Prompt" : "Title", done: title.trim().length > 0 },
             {
                 k: "Prize",
                 done: (!wantsCash || toNumber(prizeAmt) > 0) && (!wantsOther || !!prizeDesc.trim()),
             },
-            { k: "Bracket size", done: Number.isInteger(Number(maxContestants)) && Number(maxContestants) >= 2 && Number(maxContestants) % 2 === 0 },
             { k: "Category", done: !!category && (category !== "other" || !!customCategory.trim()) },
             { k: "Won by", done: !!voteType },
-            { k: "Start time", done: !!startDate && !startIsPast },
-            {
-                k: isTyped ? "A prompt for every match" : "At least one prompt",
-                done: isTyped
-                    ? matchSlotKeys.length > 0 && matchSlotKeys.every((key) => (matchPrompts[key] || "").trim())
-                    : prompts.length > 0 && prompts.every((p) => p.body.trim()),
-            },
         ]
+        // A no-prize debate has no bracket, no brackets to write questions for
+        // and no clock — so the rail does not count rows the form is not
+        // showing. A checklist that asks for things the page never offered is
+        // how "3 of 7" becomes permanent.
+        if (!isForFun) {
+            list.push({
+                k: "Contestants",
+                done: Number.isInteger(Number(maxContestants)) && Number(maxContestants) >= 2 && Number(maxContestants) % 2 === 0,
+            })
+            list.push({ k: "Start time", done: !!startDate && !startIsPast })
+            list.push({
+                k: briefed
+                    ? writtenCount === 0
+                        ? "We'll write all of them"
+                        : `${writtenCount} written, we'll do the rest`
+                    : `A question for all ${bracketCount || ""} brackets`.replace("  ", " "),
+                done: bracketCount > 0 && (briefed || Array.from({ length: bracketCount })
+                    .every((_, i) => (bracketPrompts[i] || "").trim())),
+            })
+        } else {
+            list.push({ k: "Schedule", done: !startDate || !startIsPast })
+        }
         // Only a hybrid debate has a panel to fill in, so the denominator moves
         // with the format rather than counting a row that does not apply.
         if (needsJudges) {
@@ -523,8 +606,8 @@ function ApplyForDebateCasual() {
         }
         return list
     }, [title, wantsCash, prizeAmt, wantsOther, prizeDesc, maxContestants, category,
-        customCategory, voteType, startDate, startIsPast, isTyped, matchSlotKeys,
-        matchPrompts, prompts, needsJudges, judges])
+        customCategory, voteType, startDate, startIsPast, isForFun, bracketCount,
+        bracketPrompts, briefed, writtenCount, needsJudges, judges])
 
     const doneCount = checks.filter((c) => c.done).length
     const ready = doneCount === checks.length
@@ -535,72 +618,84 @@ function ApplyForDebateCasual() {
             : null
 
     return (
-        /* data-surface="dark" is the line that fixes the invisible headings: it
-           flips --wb-gold-ink from #7A5211 (1.29:1 here) to #E8C56A. The page
-           shell already declares it, and declaring it again costs nothing —
-           this form is also reachable on its own. */
-        <div className="wb-form-page" data-surface="dark">
+        /* NO data-surface="dark" ANYWHERE. This form used to declare it, which
+           flipped --wb-gold-ink to #E8C56A for a dark page shell — and then the
+           same markup was embedded in the white feed, where it read as a
+           different application. There is one scheme now, so there is one
+           surface and nothing to flip. */
+        <div className={`wb-form-page${embedded ? " wb-form-page--inline" : ""}`}>
             <div className="wb-form-wrap">
                 {/* One form, not two. The old split meant the debate fields lived in a
                     form with no submit button while the prompts form owned submission —
                     it worked because state is lifted, but Enter in a title field did
                     nothing and native validation could never see half the fields. */}
                 <form id="applyForm" onSubmit={onSubmit}>
-                    <header className="wb-form-head">
-                        <span className="wb-form-kicker">Apply to host</span>
-                        <h1 className="wb-form-title">Casual</h1>
-                        <p className="wb-form-dek">
-                            For debates and competitions among friends, or open to the whole web.
-                            Set the terms below and we&apos;ll review it before it goes live.
-                        </p>
-                        <p className="wb-form-dek">
-                            Anyone can nominate contestants. The most-nominated entrants fill
-                            the bracket and compete{isTyped ? " in writing" : " on stream"}.
-                        </p>
-                    </header>
+                    {/* INLINE THE HEADER IS THE CARD'S BAR: what this is, what
+                        it costs, and the way out. On its own route it stays the
+                        page heading it always was. */}
+                    {embedded ? (
+                        <header className="wb-form-head wb-form-head--bar">
+                            <span className="wb-form-title">
+                                {isForFun ? "Start a prompt" : "Start a debate"}
+                            </span>
+                            {/* ALWAYS "DEBATE". It used to say the prize — No
+                                prize / Cash prize — which is already the first
+                                field two rows down and changed under the reader
+                                as they filled it in. What the chip is for is
+                                naming the KIND of thing being made, and that
+                                does not change. */}
+                            <span className="wb-form-chip">Debate</span>
+                            {/* WHO CAN ANSWER, said where the debate is made
+                                rather than discovered later by somebody whose
+                                answer is refused. It is a standing rule of the
+                                format, not a setting on this form, so it is a
+                                note and not a field. */}
+                            {/* THREE WAYS IN, and the spacing around the icon is
+                                explicit. JSX collapses the whitespace between a
+                                text line and an element on the next line to
+                                nothing, which is why this read
+                                "enoughstanding-bow icons" — {" "} is the only
+                                thing that survives the newline. */}
+                            <span className="wb-form-gate">
+                                Only judges approved for the subject can answer — or users in your
+                                community, or users with enough{" "}
+                                <Trophy size={13} className="wb-form-bow" />{" "}
+                                standing-bow icons, earned by the most-liked response on posts of a
+                                similar subject.
+                            </span>
+                            {onCancel && (
+                                <button type="button" className="wb-form-x" onClick={onCancel}>
+                                    Cancel
+                                </button>
+                            )}
+                        </header>
+                    ) : (
+                        <header className="wb-form-head">
+                            <span className="wb-form-kicker">Apply to host</span>
+                            {/* Not "Casual" — that named the branch of a chooser
+                                that no longer exists. */}
+                            <h1 className="wb-form-title">Start a debate</h1>
+                        </header>
+                    )}
 
                     <fieldset className="wb-fs">
                         <legend className="wb-fs__legend">The debate</legend>
                         <div className="wb-panel">
-                            <Row label="Kind" required
-                                 hint={isForFun
-                                     ? "No prize, no entry gate, and it's written rather than streamed. Anyone can enter; nominating still works, it just isn't required. The winner takes a standing arrow."
-                                     : "A prize debate: you put something up, and you'll sign an agreement to deliver it."}>
-                                <Segmented label="Kind" value={isForFun ? "fun" : "prize"}
-                                           onChange={(v) => setIsForFun(v === "fun")}
-                                           options={[
-                                               { value: "prize", label: "Prize debate" },
-                                               { value: "fun", label: "For fun" },
-                                           ]} />
-                            </Row>
-
-                            {/* FOR A FOR-FUN DEBATE THE PROMPT IS THE TITLE. It
-                                is one question, so storing it twice would let the
-                                two drift — the label changes, the field does not. */}
-                            <Row label={isForFun ? "The question" : "Title"} required
-                                 hint={isForFun
-                                     ? "This is the whole debate — it's the title and the prompt at once."
-                                     : "What competitors and voters see first."}>
-                                <input className="wb-input" id="title" value={title}
-                                       onChange={(e) => setTitle(e.target.value)}
-                                       placeholder={isForFun
-                                           ? "Does pineapple belong on pizza?"
-                                           : "Would be the best president?"} />
-                            </Row>
-
-                            {/* The segment owns which inputs EXIST, not just which are
-                                visible. A hidden-but-mounted field keeps its value and
-                                would still be read at submit, so switching away from
-                                cash could quietly send an amount nobody intends. */}
-                            {!isForFun && (
+                            {/* WHETHER THERE IS A PRIZE IS THE PRIZE TYPE. This
+                                was two controls — a Kind segment and then a type
+                                under it — which asked the same question twice and
+                                let the answers disagree. It opens on None: the
+                                smallest commitment, not an assumption of money. */}
                             <Row label="Prize" required
-                                 hint="You'll sign an agreement to deliver this to the winner after you submit.">
+                                 hint={isForFun
+                                     ? "No prize, no bracket, no clock — one question, answered by whoever turns up."
+                                     : "You'll sign an agreement to deliver this to the winner after you submit."}>
                                 <div className="wb-inline">
-                                    <Segmented label="Prize type" value={prizeType} onChange={setPrizeType}
+                                    <Segmented label="Prize" value={prizeType} onChange={setPrizeType}
                                                options={[
+                                                   { value: "none", label: "None" },
                                                    { value: "cash", label: "Cash" },
                                                    { value: "non_cash", label: "Something else" },
-                                                   { value: "both", label: "Both" },
                                                ]} />
                                     {wantsCash && (
                                         <input className="wb-input wb-input--short" inputMode="decimal"
@@ -615,25 +710,54 @@ function ApplyForDebateCasual() {
                                            aria-label="Non-cash prize" />
                                 )}
                             </Row>
-                            )}
 
-                            {/* HOW IT IS ARGUED — asked early, because everything below
-                                reads differently depending on the answer: a typed debate
-                                writes a prompt per match and never touches Twitch. */}
-                            {!isForFun && (
-                            <Row label="Format" required>
-                                <OptionCards label="Format" value={format} onChange={setFormat}
-                                    options={[
-                                        { value: "live", label: "Live",
-                                          description: "Contestants argue on a Twitch stream. You connect the channel after submitting and put each match to a vote as it happens." },
-                                        { value: "typed", label: "Typed",
-                                          description: "No stream. Every match has its own written prompt; the two contestants answer it and the room scores the answers." },
-                                    ]} />
+                            {/* WITH NO PRIZE THE TITLE IS THE PROMPT. It is one
+                                question and there is nothing else to ask, so the
+                                label says what the field actually holds. Storing
+                                it twice would let the two drift — the label
+                                changes, the field does not. */}
+                            <Row label={isForFun ? "Prompt" : "Title"} required
+                                 hint={isForFun
+                                     ? "The whole debate — this is the question people answer."
+                                     : "What competitors and voters see first."}>
+                                <input className="wb-input" id="title" value={title}
+                                       onChange={(e) => setTitle(e.target.value)}
+                                       placeholder={isForFun
+                                           ? "Does pineapple belong on pizza?"
+                                           : "Would be the best president?"} />
                             </Row>
-                            )}
 
-                            <Row label="Bracket size" required error={contestantsErr}
-                                 hint="Even numbers only, so the bracket halves cleanly.">
+                            {/* IT FOLLOWS WHATEVER IT DESCRIBES. On a no-prize
+                                debate the prompt above IS the debate, so this is
+                                the context around the question; on a prize
+                                debate the title names a contest, so this is what
+                                the contest is about. Same field, same row
+                                position — only the label and the ask change. */}
+                            <Row label="Description"
+                                 hint={isForFun
+                                     ? "Optional. Anything that stops the obvious answer from being the whole answer."
+                                     : "Optional. What entrants and voters should know before they take part."}>
+                                <textarea className="wb-textarea" value={description} rows={2}
+                                          maxLength={1000}
+                                          onChange={(e) => setDescription(e.target.value)}
+                                          placeholder={isForFun
+                                              ? "Assume the pizza is already made and somebody else is paying."
+                                              : "Eight brackets on housing, argued in writing over two weeks."} />
+                            </Row>
+
+                            {/* NO FORMAT SELECTOR. Every debate is written now —
+                                one question per bracket, answered together — so
+                                there is no live/typed choice to make and no
+                                channel to connect. `format` is a constant.
+
+                                NO BRACKET WITHOUT A PRIZE either: there is
+                                nothing to seed and nothing to eliminate, so the
+                                cap is not asked for. */}
+                            {!isForFun && (
+                            <Row label="Max contestants" required error={contestantsErr}
+                                 hint={bracketCount
+                                     ? `Even numbers only. ${maxContestants} contestants is ${bracketCount} bracket${bracketCount === 1 ? "" : "s"}, so ${bracketCount} question${bracketCount === 1 ? "" : "s"} below.`
+                                     : "Even numbers only, so the bracket halves cleanly."}>
                                 {/* step=2 covers the arrows and the keyboard, but a typed
                                     odd number would still pass, so the value snaps to even
                                     on change and the server rejects odd regardless. */}
@@ -645,6 +769,7 @@ function ApplyForDebateCasual() {
                                            setMaxContestants(Math.max(2, Math.round(n / 2) * 2))
                                        }} />
                             </Row>
+                            )}
 
                             {!isForFun && (
                             <Row label="Who can enter"
@@ -658,6 +783,15 @@ function ApplyForDebateCasual() {
                                            ]} />
                             </Row>
                             )}
+
+                            {/* LAST OF THE THREE THAT DESCRIBE IT — title,
+                                description, picture — and optional like the one
+                                above it. It sits before Category because that is
+                                where the form stops describing the debate and
+                                starts setting its rules. */}
+                            <Row label="Image">
+                                <ImagePicker value={image} onChange={setImage} />
+                            </Row>
 
                             <Row label="Category" required
                                  hint="It's how people find this debate, and it decides the judging criteria below.">
@@ -770,11 +904,15 @@ function ApplyForDebateCasual() {
                                 which is the only place that knows both ends of it.
                                 All the sponsor needs from this screen is the lead
                                 time to plan around, which is what the span says. */}
-                            <Row label="Starts" required
+                            {/* WITHOUT A PRIZE THIS IS A SCHEDULING CONVENIENCE,
+                                not a start time: nothing has to be nominated,
+                                seeded or approved against a clock, so an empty
+                                field means post it now. */}
+                            <Row label={isForFun ? "Schedule post" : "Starts"} required={!isForFun}
                                  error={startIsPast ? "That time has already passed." : null}
-                                 hint={isTyped
-                                     ? `When the first prompts open. Times are in ${startTimezone}.`
-                                     : `When your debate streams — times are in ${startTimezone}. You'll connect your Twitch channel after submitting.`}>
+                                 hint={isForFun
+                                     ? `Optional — leave it empty to post now. Times are in ${startTimezone}.`
+                                     : `When the first bracket opens. Times are in ${startTimezone}.`}>
                                 <input className="wb-date" type="datetime-local"
                                        min={`${todayStr}T00:00`} value={startDate}
                                        onChange={(e) => {
@@ -783,63 +921,140 @@ function ApplyForDebateCasual() {
                                            setStartIsPast(!!v && new Date(v).getTime() <= Date.now())
                                        }}
                                        aria-label="Start date and time" />
-                                <span className="wb-lead">
-                                    Approval usually takes 1–2 days, and your debate needs to be open
-                                    for nominations for a week before it starts — so give yourself
-                                    about 9 days from today.
-                                </span>
+                                {!isForFun && (
+                                    <span className="wb-lead">
+                                        Approval takes 1–2 days and nominations run for a week before
+                                        the first bracket — give yourself about 9 days.
+                                    </span>
+                                )}
                             </Row>
                         </div>
                     </fieldset>
 
+                    {/* THE PROMPTS ARE WHERE THE HEIGHT GOES, and that is the
+                        right place for it. Everything above is settings; this is
+                        the debate. One question per BRACKET rather than per
+                        match — 16 contestants used to mean fifteen boxes, and it
+                        means four now, because everybody in a bracket answers
+                        the same question at the same time.
+
+                        None on a no-prize debate: the title above IS the
+                        question, and asking for it twice would let the two
+                        drift. */}
+                    {!isForFun && (
                     <fieldset className="wb-fs">
-                        <legend className="wb-fs__legend">Prompts</legend>
-                        <p className="wb-form-dek" style={{ fontSize: 14.5, marginBottom: 16 }}>
-                            {isTyped
-                                ? "A typed debate is played in writing: every match in the bracket has its own prompt, and the two contestants in that match answer it."
-                                : "Prompts are published before the debate starts. During the debate you can use these or go off-list."}
-                        </p>
-                        <div className="wb-panel" style={{ padding: 18 }}>
-                            {/* One prompt per MATCH for a typed debate — the count comes
-                                from the bracket size, not from an "add" button — and the
-                                free-form ordered list for a live one, where the stream is
-                                the debate and prompts are supporting material. */}
-                            {isTyped ? (
-                                <MatchPromptGrid
-                                    fieldSize={maxContestants}
-                                    category={category === "other" ? customCategory : category}
-                                    prompts={matchPrompts}
-                                    setPrompts={setMatchPrompts}
-                                    disabled={!!submitted}
-                                />
+                        <legend className="wb-fs__legend">
+                            {bracketCount ? `${bracketCount} bracket${bracketCount === 1 ? "" : "s"}` : "Brackets"}
+                        </legend>
+                        <div className="wb-panel wb-panel--tight">
+                            {bracketCount === 0 ? (
+                                <p className="wb-empty">Set a contestant cap and the brackets appear here.</p>
                             ) : (
-                                <PromptList prompts={prompts} setPrompts={setPrompts} />
+                                <>
+                                {/* HAND IT OVER. Eight good questions is an
+                                    afternoon, and a sponsor who has a subject
+                                    but not eight drafts should not be stuck on
+                                    this row. Filling it makes every box below
+                                    optional and flags the application in review
+                                    as one we owe questions to. */}
+                                {bracketCount > 1 && (
+                                    <label className="wb-brief">
+                                        <span className="wb-brief__l">
+                                            Tell us what you want and we&apos;ll handle it
+                                            <em>
+                                                Optional. Write the ones you have below — this covers
+                                                whatever is still empty when you submit.
+                                                {briefed && writtenCount > 0 && (
+                                                    <b> {writtenCount} of {bracketCount} written; we&apos;ll do {bracketCount - writtenCount}.</b>
+                                                )}
+                                            </em>
+                                        </span>
+                                        <input
+                                            className="wb-input" value={promptBrief}
+                                            disabled={!!submitted}
+                                            onChange={(e) => setPromptBrief(e.target.value)}
+                                            placeholder="Eight questions on rent caps — one on supply, one on displacement, and make the last two harder."
+                                        />
+                                    </label>
+                                )}
+
+                                {/* STILL EDITABLE with a brief. The two are not
+                                    alternatives: a sponsor with three questions
+                                    and a subject for the rest should be able to
+                                    say both, and disabling these the moment a
+                                    brief appeared threw away exactly that. */}
+                                <div className="wb-bks">
+                                    {Array.from({ length: bracketCount }).map((_, i) => (
+                                        <label className="wb-bkq" key={i}>
+                                            <span className="wb-bkq__n">{i + 1}</span>
+                                            <textarea
+                                                className="wb-input wb-bkq__t" rows={2}
+                                                value={bracketPrompts[i] ?? ""}
+                                                disabled={!!submitted}
+                                                onChange={(e) => setBracketPrompts((prev) => {
+                                                    const next = [...prev]
+                                                    next[i] = e.target.value
+                                                    return next
+                                                })}
+                                                placeholder={briefed
+                                                    ? "Leave blank and we'll write this one."
+                                                    : i === 0
+                                                        ? "A cap holds rents down for the people already inside it. What about everybody else?"
+                                                        : "Your opponent just named the cost of your position. Answer it."}
+                                            />
+                                        </label>
+                                    ))}
+                                </div>
+                                <p className="wb-bks__f">
+                                    One question per bracket, released together when the bracket opens
+                                    — both contestants answer the same one.
+                                </p>
+                                </>
                             )}
                         </div>
                     </fieldset>
+                    )}
 
                     {error && <p className="formError" role="alert">{String(error.message ?? error)}</p>}
 
                     {/* The last thing this page does: sign the prize agreement.
                         Connecting Twitch and paying happen on the next page. */}
                     {submitted && (
-                        <div style={{ display: "grid", gap: 16, marginTop: 8 }}>
-                            <p className="formSuccess">
-                                {`Draft saved — "${submitted.debate.title}" with ${submitted.prompts.length} prompt${submitted.prompts.length === 1 ? "" : "s"}, ${isTyped ? "opening" : "streaming"} ${new Date(startDate).toLocaleString(undefined, { month: "long", day: "numeric", hour: "numeric", minute: "2-digit" })}. One thing before review: sign the prize agreement.`}
+                        <div className="wb-done">
+                            <p className="wb-done__h">
+                                {/* NOT `startDate` — it is empty on a debate that
+                                    posts now, and formatting an empty string is
+                                    where "opening Invalid Date" came from. The
+                                    resolved instant is what was actually sent. */}
+                                Draft saved. {submitted.prompts.length > 0
+                                    ? `${submitted.prompts.length} question${submitted.prompts.length === 1 ? "" : "s"} in, `
+                                    : ""}
+                                {submitted.startAt
+                                    ? `opening ${new Date(submitted.startAt).toLocaleString(undefined, { month: "long", day: "numeric", hour: "numeric", minute: "2-digit" })}.`
+                                    : "posting as soon as it is approved."}
                             </p>
-                            {/* A TYPED debate has no channel to connect, so it does not go
-                                to the Twitch step — sending it there would ask the sponsor
-                                to authorise a broadcast that will never happen. */}
-                            <PrizeAgreementStep
-                                debateId={submitted.debate.id}
-                                onSigned={() =>
-                                    navigate(
-                                        isTyped
-                                            ? `/debate/${submitted.debate.id}`
-                                            : `/startadebate/${submitted.debate.id}/twitch`
-                                    )
-                                }
-                            />
+                            {/* A FOR-FUN DEBATE HAS NOTHING TO PROMISE. The prize
+                                agreement is a contract to deliver a prize, and
+                                there is no prize — asking somebody to sign
+                                "You're offering For fun — no prize to the winner"
+                                is a contract about nothing. */}
+                            {isForFun ? (
+                                <p className="wb-done__p">
+                                    An admin reviews it before it goes live. You can edit it until then.
+                                </p>
+                            ) : (
+                                <>
+                                    <p className="wb-done__p">
+                                        One thing before review: sign the prize agreement. It is a
+                                        contract to deliver what you have promised, so it opens on its
+                                        own page — this draft is saved and waiting.
+                                    </p>
+                                    <a className="wb-btn wb-btn--primary wb-done__go"
+                                       href={`/debate/${submitted.debate.id}/agreement`}>
+                                        Sign the prize agreement →
+                                    </a>
+                                </>
+                            )}
                         </div>
                     )}
                 </form>
@@ -872,18 +1087,38 @@ function ApplyForDebateCasual() {
                             type="submit" out here submits nothing, and an onClick
                             handler instead would leave Enter-in-a-field doing
                             nothing. */}
-                        {!submitted && (
-                            <button type="submit" form="applyForm" className="wb-btn wb-btn--primary"
-                                    disabled={submitting}>
-                                {submitting ? "Sending…" : ready ? "Submit for review" : `${checks.length - doneCount} left`}
-                            </button>
-                        )}
                         <p className="wb-hint" style={{ margin: 0 }}>
                             An admin approves your debate before it goes live. You can edit it until then.
                         </p>
                     </div>
                 </aside>
             </div>
+
+            {/* THE FOOTER BAR. The submit used to sit at the bottom of the
+                checklist rail, which put the page's only committing action in a
+                column of read-only text and left it at a different height from
+                the form it submits. It is the card's own bottom edge now, on
+                --foot, with what is left beside it.
+
+                Still OUTSIDE the <form>, so `form="applyForm"` is what
+                associates it — a bare type="submit" out here submits nothing,
+                and an onClick instead would leave Enter-in-a-field doing
+                nothing.
+
+                NOT disabled on an incomplete form: a disabled button gives a
+                keyboard user no explanation. It submits, and onSubmit names the
+                first thing that is wrong. */}
+            {!submitted && (
+                <footer className="wb-form-ft">
+                    <span className="wb-form-left">
+                        {ready ? "Ready to submit" : `${checks.length - doneCount} left`}
+                    </span>
+                    <button type="submit" form="applyForm" className="wb-btn wb-btn--primary"
+                            disabled={submitting}>
+                        {submitting ? "Sending…" : "Submit for review"}
+                    </button>
+                </footer>
+            )}
         </div>
     )
 }

@@ -1,0 +1,76 @@
+/* ============================================================================
+   wouldbeflow.css — starting a campaign, in the feed column.
+
+   It renders AS the feed: same card frame, same rows, same widened measure. A
+   chooser that arrives in its own chrome makes starting a campaign feel like
+   leaving the product to fill in a form somewhere else, which is the exact
+   feeling the inline flow exists to remove.
+   ============================================================================ */
+
+.wbfeed .wbf {
+    margin-top: 16px;
+    border: 1px solid var(--card-line); border-radius: var(--r);
+    background: var(--card); box-shadow: var(--card-shadow); overflow: hidden;
+}
+
+.wbf__head, .wbfeed .wbf__head {
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 20px 22px 16px;
+}
+.wbfeed .wbf__h { margin: 0 0 4px; font-size: 21px; font-weight: 800; letter-spacing: -.025em; }
+.wbfeed .wbf__p {
+    margin: 0; font-size: 13px; line-height: 1.55; color: var(--fg-2); max-width: 64ch;
+}
+.wbfeed .wbf__acts { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: none; }
+.wbfeed .wbf__q {
+    padding: 7px 13px; border-radius: 999px;
+    border: 1px solid var(--gold-hair); background: var(--gold-wash);
+    font-size: 12.5px; font-weight: 700; color: var(--gold-ink);
+}
+.wbfeed .wbf__q:hover { background: var(--card); border-color: var(--gold-mark); }
+.wbfeed .wbf__x {
+    flex: none; padding: 7px 12px; border-radius: 999px;
+    font-size: 12.5px; font-weight: 700; color: var(--fg-2);
+}
+.wbfeed .wbf__x:hover { background: var(--sunk); color: var(--fg); }
+
+/* The rows themselves are WouldBeRows — the app's real office browser, with
+   its own styles in index.css's .wb-browse block. Nothing here restyles it: a
+   second set of rules over a component that already works is how the two drift.
+   What IS needed is room, since it was built for a full page. */
+.wbfeed .wbf .wb-browse { padding-inline: 22px; }
+
+/* ---- step two ---- */
+.wbfeed .wbf__crumb {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 16px; background: var(--foot); border-bottom: 1px solid var(--rule-2);
+}
+.wbfeed .wbf__back {
+    padding: 6px 11px; border-radius: 999px;
+    font-size: 12.5px; font-weight: 700; color: var(--fg-2);
+}
+.wbfeed .wbf__back:hover { background: var(--card); color: var(--fg); }
+.wbfeed .wbf__crumb .wbf__x { margin-left: auto; }
+.wbfeed .wbf__crumbn {
+    font-size: 12.5px; font-weight: 800; letter-spacing: -.01em; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* The office form is a page component. Inline it must not claim a viewport. */
+.wbfeed .wbf__form > div { min-height: 0; }
+
+@media (max-width: 700px) {
+    .wbfeed .wbf__head { padding: 16px; flex-wrap: wrap; }
+    .wbfeed .wbf .wb-browse { padding-inline: 16px; }
+}
+
+/* ---- the end of a flow ----
+   A place, not a redirect. Both flows used to finish by navigating somewhere
+   and leaving the reader to work out that they had succeeded. */
+.wbfeed .wbf__done { display: flex; flex-direction: column; gap: 8px; padding: 26px 22px 24px; }
+.wbfeed .wbf__doneh { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -.025em; }
+.wbfeed .wbf__donep {
+    margin: 0 0 8px; font-size: 13.5px; line-height: 1.55; color: var(--fg-2); max-width: 62ch;
+}
+.wbfeed .wbf__doneact { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* The form is a page component. Inline it must not claim a viewport. */
+.wbfeed .wbf__form .debategradientV2 { min-height: 0; }

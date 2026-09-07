@@ -29,6 +29,9 @@ const PARENT_TYPES = [
     // optional image attached to a plan-of-action position
     // (added with the CHECK in migration 1782300000000)
     "plan_component",
+    // optional image on a written post — a question or an artifact
+    // (added with the CHECK in migration 1784300000000)
+    "written_post",
 ];
 const CONTENT_TYPES = ["video", "image", "text", "audio"];
 const MODERATION_STATUSES = [
@@ -249,6 +252,7 @@ const removeContentItem = async ({ id, removed_reason }) => {
         if (rows[0]) {
             await syncProfilePhoto(rows[0], client);
             await syncPlanComponentImage(rows[0], client);
+            await syncPostImage(rows[0], client);
         }
         return rows[0] || null;
     } catch (err) {
@@ -349,6 +353,50 @@ const syncPlanComponentImage = async (item, db) => {
     }
 };
 
+// syncPostImage — the written-post twin of syncPlanComponentImage. Same reason it
+// exists: "approved" and "visible" have to be one event, or some caller eventually
+// publishes an image the scanner never cleared.
+//
+// parent_id is the posts row. The post itself is already in the feed by then —
+// text is live on arrival — so this is the image appearing on a card that was
+// already there, which is the honest order: the words are the post, the picture
+// is an attachment that has to clear first.
+//
+// Retraction is guarded on the URL matching so taking down a superseded image
+// can't blank the replacement.
+const syncPostImage = async (item, db) => {
+    if (!item || item.parent_type !== "written_post" || item.content_type !== "image") return;
+
+    if (item.moderation_status === "approved" && item.storage_url) {
+        await db.query(
+            `UPDATE posts SET image_url = $2, updated_at = now() WHERE id = $1`,
+            [item.parent_id, item.storage_url]
+        );
+        const { rows } = await db.query(
+            `UPDATE content_items
+                SET visibility = 'public',
+                    published_at = COALESCE(published_at, now())
+              WHERE id = $1
+              RETURNING visibility, published_at`,
+            [item.id]
+        );
+        if (rows[0]) {
+            item.visibility = rows[0].visibility;
+            item.published_at = rows[0].published_at;
+        }
+        return;
+    }
+
+    if (["rejected", "removed", "flagged", "pending_human_review"].includes(item.moderation_status)) {
+        await db.query(
+            `UPDATE posts
+                SET image_url = NULL, updated_at = now()
+              WHERE id = $1 AND image_url IS NOT DISTINCT FROM $2`,
+            [item.parent_id, item.storage_url]
+        );
+    }
+};
+
 // setModerationStatus — INTERNAL/admin only. The moderation pipeline (and admins)
 // drive moderation_status here; users can NEVER reach this. Composable: pass
 // db=client by default, or a tx from withTransaction so applyAutoDecision can
@@ -385,6 +433,7 @@ const setModerationStatus = async ({ id, moderation_status, removed_reason = nul
         if (rows[0]) {
             await syncProfilePhoto(rows[0], db);
             await syncPlanComponentImage(rows[0], db);
+            await syncPostImage(rows[0], db);
         }
         return rows[0] || null;
     } catch (err) {

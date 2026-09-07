@@ -5,7 +5,11 @@ import { useNavigate } from 'react-router-dom'
 import HomeFilter from './HomeFilter'
 
 
-function HomeHeader({ filters, onFiltersChange }) {
+// `showActions` exists because HomeV2 wants this exact header MINUS the two
+// action buttons — the V2 layout carries "start" and "sign in" in its own right
+// panel, so the pair here would be the same two doors offered twice. It defaults
+// to true so every existing caller (the v1 Home) is untouched.
+function HomeHeader({ filters, onFiltersChange, showActions = true }) {
     const [travelToMyWouldBes, setTravelToMyWouldBes] = useState(false)
     // The signed-in user's own avatar, so the button is a picture of THEM
     // rather than a generic glyph once we know who they are. Read from the
@@ -126,47 +130,49 @@ function HomeHeader({ filters, onFiltersChange }) {
             </div> */}
         </div>
 
-        <div className='HomeHeaderActionButtons'>
-            {/* ALSO A REAL BUTTON NOW, for the same reasons its twin below is:
-                as an <img> the label was outlined paths that no screen reader,
-                no find-in-page and no text zoom could reach, and the shape could
-                not respond to a hover, a focus ring or a theme.
+        {showActions && (
+            <div className='HomeHeaderActionButtons'>
+                {/* ALSO A REAL BUTTON NOW, for the same reasons its twin below is:
+                    as an <img> the label was outlined paths that no screen reader,
+                    no find-in-page and no text zoom could reach, and the shape could
+                    not respond to a hover, a focus ring or a theme.
 
-                It is the ink half of the pair — same 164x38 box, same 12px
-                radius, same italic weight, same specular. Where the Debate
-                button reads the brushed gold plate, this one reads a black
-                plate built from the same recipe, so the two are one object in
-                two finishes rather than two designs that happen to be adjacent. */}
-            <button
-                type="button"
-                className="wb-btn headerActionBtn headerActionBtn--ink"
-                onClick={()=> {travelToWouldbes(travelToMyWouldBes)}}
-            >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" strokeWidth="2.4"
-                     strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M12 5v14M5 12h14" />
-                </svg>
-                Would Be
-            </button>
-            {/* A REAL BUTTON, not a picture of one. As an <img> the gold was
-                baked into the file: it could not take the plate's hover slide,
-                could not inherit a token, and its label was outlined paths that
-                no screen reader or find-in-page could reach. Same 164x38 and the
-                same 12px radius, so the pair with "+ Would Be" is unchanged. */}
-            <button
-                type="button"
-                className="wb-btn wb-btn--primary headerActionBtn"
-                onClick={travelToStartADebate}
-            >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" strokeWidth="2.4"
-                     strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M12 5v14M5 12h14" />
-                </svg>
-                Debate
-            </button>
-        </div>
+                    It is the ink half of the pair — same 164x38 box, same 12px
+                    radius, same italic weight, same specular. Where the Debate
+                    button reads the brushed gold plate, this one reads a black
+                    plate built from the same recipe, so the two are one object in
+                    two finishes rather than two designs that happen to be adjacent. */}
+                <button
+                    type="button"
+                    className="wb-btn headerActionBtn headerActionBtn--ink"
+                    onClick={()=> {travelToWouldbes(travelToMyWouldBes)}}
+                >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" strokeWidth="2.4"
+                         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M12 5v14M5 12h14" />
+                    </svg>
+                    Would Be
+                </button>
+                {/* A REAL BUTTON, not a picture of one. As an <img> the gold was
+                    baked into the file: it could not take the plate's hover slide,
+                    could not inherit a token, and its label was outlined paths that
+                    no screen reader or find-in-page could reach. Same 164x38 and the
+                    same 12px radius, so the pair with "+ Would Be" is unchanged. */}
+                <button
+                    type="button"
+                    className="wb-btn wb-btn--primary headerActionBtn"
+                    onClick={travelToStartADebate}
+                >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" strokeWidth="2.4"
+                         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M12 5v14M5 12h14" />
+                    </svg>
+                    Debate
+                </button>
+            </div>
+        )}
     </div>
 
   )

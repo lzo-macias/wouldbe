@@ -110,3 +110,36 @@
 }
 
 .sawb-cta { width: 100%; }
+
+/* THE TERMS, directly under the button that accepts them. Not fine print and
+   not a warning — it is the mechanic that makes pledging safe to do, and it is
+   the reason somebody presses the button rather than a caveat about it. Sits at
+   11.5px in --muted so it reads as a note on the action rather than as a second
+   thing to decide. */
+.sawb-terms {
+  display: block;
+  margin-top: 10px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* ---- the campaign image ----
+   In the rail with the goal and the button, not down in the plan: plan
+   components take their own pictures, and this is the one that stands for the
+   campaign itself. */
+.sawb-img {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.sawb-img__l {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--muted);
+}

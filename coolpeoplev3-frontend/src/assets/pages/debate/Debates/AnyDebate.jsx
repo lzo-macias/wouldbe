@@ -196,8 +196,15 @@ function Shell({ children }) {
     )
 }
 
-function AnyDebate() {
-    const { debateId } = useParams()
+// DebateDetail — everything this page shows, minus the page. Split out so the
+// SAME screen can render in two places: at /debate/:id as its own page, and
+// inline inside a feed card on /homev2, where opening a debate must not cost a
+// navigation. Extracting it rather than reimplementing is the whole point — a
+// second copy of the phase logic is a second copy that goes stale.
+//
+// It takes `debateId` as a prop instead of reading useParams(), because inline
+// there is no route param to read.
+export function DebateDetail({ debateId }) {
     const [searchParams] = useSearchParams()
     // The `?invite=` token from a nomination link. Read once per URL — it is a
     // credential, so it is never put in state, logged, or sent anywhere except
@@ -313,18 +320,8 @@ function AnyDebate() {
         // otherwise keeps showing the first one.
     }, [debateId, loadData])
 
-    if (error)
-        return (
-            <Shell>
-                <p className="dbt-status" role="alert">{error}</p>
-            </Shell>
-        )
-    if (!payload)
-        return (
-            <Shell>
-                <p className="dbt-status">Loading…</p>
-            </Shell>
-        )
+    if (error) return <p className="dbt-status" role="alert">{error}</p>
+    if (!payload) return <p className="dbt-status">Loading…</p>
 
     const {
         debate,
@@ -425,7 +422,7 @@ function AnyDebate() {
     }
 
     return (
-        <Shell>
+        <>
             {showSignUpPop && (
                 <SignUpPopUp
                     message={message}
@@ -534,6 +531,17 @@ function AnyDebate() {
                     </div>
                 )}
             </div>
+        </>
+    )
+}
+
+// The ROUTE. Shell is the only thing it adds — the dark ground and the app
+// header — which is exactly what the inline copy must not have.
+function AnyDebate() {
+    const { debateId } = useParams()
+    return (
+        <Shell>
+            <DebateDetail debateId={debateId} />
         </Shell>
     )
 }

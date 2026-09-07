@@ -1,0 +1,184 @@
+/* ============================================================================
+   feedgrid.css — the feed as tiles.
+
+   Scoped under .wbfeed, like everything else on this page. It deliberately does
+   NOT import HomeGrid2x.css: that file is the v1 hero grid's, its class names
+   are unscoped globals, and pulling it in here would restyle a screen nobody
+   asked me to touch. What IS shared is the one thing that must not drift — the
+   brushed plate, from --wb-brushed in index.css.
+
+   ONE SKELETON, FOUR FACES. Every tile is a fixed-ratio face plus a meta row, so
+   the grid holds a baseline across kinds: the faces line up, the meta rows line
+   up, and the eye can compare a debate to a campaign without re-learning where
+   to look. That is the whole reason to put mixed content in a grid at all.
+   ============================================================================ */
+
+.wbfeed .grid {
+    display: grid;
+    /* auto-fill, not auto-fit: with few tiles auto-fit stretches them to fill
+       the row, so three debates render as three enormous plates. Fixed track
+       width means four tiles look like four tiles. */
+    grid-template-columns: repeat(auto-fill, minmax(min(212px, 100%), 1fr));
+    gap: 26px 20px;
+    padding: 20px 0 40px;
+    align-items: start;
+}
+
+/* ---- the tile ---- */
+.wbfeed .gt {
+    display: flex; flex-direction: column; gap: 9px;
+    min-width: 0; text-align: left;
+    background: none; border: 0; padding: 0;
+    color: inherit; text-decoration: none;
+    cursor: pointer;
+}
+.wbfeed .gt:focus-visible { outline: 2px solid var(--gold-mark); outline-offset: 4px; border-radius: 16px; }
+
+/* THE FACE IS A FIXED RATIO, always. A grid whose tiles size to their content
+   is a masonry wall — the meta rows land at eight different heights and nothing
+   is comparable to anything. */
+.wbfeed .gt__face {
+    position: relative; isolation: isolate; overflow: hidden;
+    display: flex; flex-direction: column;
+    width: 100%; aspect-ratio: 225 / 200;
+    padding: 13px 15px; border-radius: 14px;
+}
+.wbfeed .gt:hover .gt__face { transform: translateY(-2px); }
+.wbfeed .gt__face { transition: transform .2s var(--wb-ease), background-position .55s var(--wb-ease); }
+
+/* ---- the debate plate ----
+   The specular band slides on hover, the way light moves on real metal. A flat
+   fill is what made these read as coloured rectangles where an image failed to
+   load. isolation + a z-index:-1 pseudo keeps the streaks behind the text. */
+.wbfeed .gt__face--gold {
+    background: var(--wb-brushed);
+    background-size: 190% 190%; background-position: 0% 0%;
+    color: var(--wb-on-gold);
+    box-shadow: 0 1px 3px rgba(40, 28, 6, .18);
+}
+.wbfeed .gt:hover .gt__face--gold { background-position: 100% 60%; }
+/* Anisotropic streaks — what makes it read brushed rather than airbrushed. */
+.wbfeed .gt__face--gold::after {
+    content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: repeating-linear-gradient(152deg,
+        rgba(255,255,255,.055) 0 1px, transparent 1px 3px);
+}
+/* The badge is flex:none or a three-line question squashes it on the main axis. */
+.wbfeed .gt__face .wb-fmt { flex: none; align-self: flex-start; }
+
+/* ---- the campaign face ----
+   With a photo the tile IS the image; without one the title is the face, on
+   ink, so a tile is never blank. */
+.wbfeed .gt__face--wb { padding: 0; background: var(--wb-ink, #1A1203); }
+.wbfeed .gt__img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; z-index: -1;
+}
+.wbfeed .gt__scrim {
+    display: flex; flex-direction: column; gap: 4px;
+    margin-top: auto; padding: 22px 15px 13px; color: #fff;
+    background: linear-gradient(to top, rgba(12, 8, 2, .88) 30%, rgba(12, 8, 2, 0));
+}
+/* No photo: the gradient has nothing to sit on, so the face carries the text
+   outright rather than fading into a colour it already is. */
+.wbfeed .gt__scrim--flat {
+    margin-top: 0; height: 100%; padding: 14px 15px;
+    background: none; justify-content: flex-start;
+}
+.wbfeed .gt__office {
+    font-size: 10.5px; font-weight: 600; letter-spacing: .01em;
+    color: rgba(255,255,255,.72);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ---- the written faces ----
+   Paper, not gold. These two cost nothing to post and have nothing at stake, and
+   a plate that says "purse" would be the tile making a promise the post does not
+   keep. They take the card's own surface so they read as the quiet kind. */
+.wbfeed .gt__face--question,
+.wbfeed .gt__face--artifact {
+    background: var(--card); border: 1px solid var(--card-line);
+    box-shadow: var(--card-shadow); color: var(--fg);
+}
+.wbfeed .gt__face--artifact { background: var(--sunk); }
+.wbfeed .gt__chip {
+    align-self: flex-start; flex: none;
+    font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+    border: 1px solid var(--gold-hair); border-radius: 5px; padding: 3px 7px;
+    background: var(--gold-wash); color: var(--gold-ink);
+}
+/* An image on a written post sits UNDER the text, small, in the corner it has
+   left over — the words are the post and the picture is an attachment. */
+.wbfeed .gt__thumb {
+    position: absolute; right: 0; bottom: 0; width: 62%; height: 44%;
+    object-fit: cover; border-top-left-radius: 12px; z-index: -1; opacity: .9;
+}
+
+/* ---- what every face carries ---- */
+.wbfeed .gt__q {
+    width: 100%; margin: 11px 0 0;
+    font-size: 14.5px; font-weight: 800; line-height: 1.26; letter-spacing: -.012em;
+    overflow-wrap: anywhere;
+    /* A long title must not push the prize line off a fixed-ratio face. */
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+}
+.wbfeed .gt__scrim .gt__q { margin: 0; -webkit-line-clamp: 3; font-size: 13.5px; }
+.wbfeed .gt__q--serif { font-family: var(--serif); font-weight: 700; font-size: 15px; line-height: 1.3; }
+
+/* The prize is a LINE ON the plate, not a plaque inset into it — a dark panel
+   here is a second surface competing with the one it sits on. auto top margin
+   means it sits on the floor of the face whatever the title's height, so every
+   tile in a row shares one prize baseline. */
+.wbfeed .gt__prize {
+    display: flex; align-items: baseline; gap: 6px;
+    margin: auto 0 0; min-width: 0; white-space: nowrap;
+}
+.wbfeed .gt__prize em {
+    font-style: normal; font-size: 9px; font-weight: 800;
+    letter-spacing: .11em; text-transform: uppercase; opacity: .74;
+}
+.wbfeed .gt__prize b {
+    font-size: 20px; font-weight: 800; letter-spacing: -.03em;
+    overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ---- the meta row, identical for all four kinds ---- */
+/* TIGHT GAPS, because the handle pays for them. Everything in this row but the
+   name is flex:none, so every pixel of gap comes straight out of the only string
+   that can shrink — and at four columns on a 1440 screen a 11px gap was clipping
+   "maya.okonkwo" down to "may…". */
+.wbfeed .gt__meta {
+    display: flex; align-items: center; gap: 8px; min-width: 0;
+    font-size: 10.5px; font-weight: 600; color: var(--fg-3);
+}
+.wbfeed .gt__who { display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1 1 auto; }
+/* The handle is the only variable-length string in the row, so it is the one
+   that gets clipped rather than pushing the stats off the tile. */
+.wbfeed .gt__nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wbfeed .gt:hover .gt__nm { text-decoration: underline; }
+.wbfeed .gt__st { display: flex; align-items: center; gap: 3px; flex: none; white-space: nowrap; }
+.wbfeed .gt__ic { flex: none; opacity: .8; }
+.wbfeed .gt__av {
+    flex: none; width: 17px; height: 17px; border-radius: 999px;
+    object-fit: cover; background: var(--sunk);
+}
+.wbfeed .gt__av--i {
+    display: grid; place-items: center;
+    background: var(--wb-brushed); color: var(--wb-on-gold);
+    font-size: 9px; font-weight: 800;
+}
+
+/* ---- the rest ---- */
+.wbfeed .grid__empty { padding: 48px 0; font-size: 13px; color: var(--fg-3); text-align: center; }
+/* Spans the row it lands on rather than sitting in a tile-sized slot, which
+   would leave a hole in the grid the width of a card. */
+.wbfeed .grid__note {
+    grid-column: 1 / -1; padding-top: 14px;
+    font-size: 11.5px; font-weight: 600; color: var(--fg-3); text-align: center;
+}
+
+@media (max-width: 560px) {
+    .wbfeed .grid { grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); gap: 20px 14px; }
+    .wbfeed .gt__q { font-size: 13px; }
+    .wbfeed .gt__prize b { font-size: 17px; }
+}

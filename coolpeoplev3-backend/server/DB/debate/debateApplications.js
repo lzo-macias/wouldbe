@@ -229,6 +229,10 @@ const submitDebateApplication = async ({
     excluded_states = null,
     prize_distribution_rules = null,
     scoring_methodology = null,
+    // What the sponsor wants the bracket questions to be, when they would
+    // rather we wrote them. Internal — see the migration for why it is not
+    // `description`.
+    prompt_brief = null,
     // sponsor
     sponsor_display_name = null,
     // prompts
@@ -338,12 +342,31 @@ const submitDebateApplication = async ({
     //           cannot be repaired while it is being played, so it is refused
     //           here rather than discovered later.
     const isTyped = format === "typed";
-    if (isTyped && !maxContestants) {
+    // A FOR-FUN DEBATE IS ONE QUESTION AND NO BRACKET. There is nothing to
+    // seed and nothing to eliminate, so it has no field size and no per-match
+    // prompts — the title IS the question. The cap check below is about
+    // deriving a prompt count from a bracket, which is a thing this kind of
+    // debate does not have, so it cannot apply to it.
+    //
+    // This was rejecting every no-prize debate: the form stopped asking for a
+    // cap (correctly), the format is always typed now, and the two together
+    // hit a rule written when "typed" always meant "bracketed".
+    if (isTyped && !is_for_fun && !maxContestants) {
         throw httpError(400, "a typed debate needs a contestant cap — the number of prompts is derived from it");
     }
-    const rounds = isTyped
-        ? validateMatchPrompts({ prompts, field_size: maxContestants })
-        : validatePrompts(prompts);
+    // A BRIEF IS A DEFERRAL, not an omission. When the sponsor has asked us to
+    // write the questions, the application arrives with fewer prompts than
+    // brackets on purpose — validating them against the geometry would refuse
+    // exactly the state the review queue exists to handle. They are checked
+    // when they are written.
+    const briefed = prompt_brief != null && String(prompt_brief).trim().length > 0;
+    const rounds = !isTyped
+        ? validatePrompts(prompts)
+        : is_for_fun
+            ? []
+            // Briefed: whatever they wrote is kept, the gaps are ours to fill.
+            // The completeness check is what is deferred, not the prompts.
+            : validateMatchPrompts({ prompts, field_size: maxContestants, partial: briefed });
     // max_contestants IS the broadcast's seat count — one number, asked once on
     // the form. Injected here so validateStream sees it as invite_slots and the
     // two can never drift apart. The DB caps invite_slots at 100; a bigger field
@@ -396,7 +419,7 @@ const submitDebateApplication = async ({
                     scoring_methodology, status, start_date, end_date, concluding_stream_at,
                     min_age_required, excluded_states,
                     prize_type, prize_description, max_contestants,
-                    start_at, start_timezone, format, is_for_fun
+                    start_at, start_timezone, format, is_for_fun, prompt_brief
                  )
                  VALUES (
                     $1, $2, $3, $4, $5, $6,
@@ -405,7 +428,7 @@ const submitDebateApplication = async ({
                     $13, 'draft', $14, $15, $16,
                     COALESCE($17, 18), COALESCE($18::text[], '{}'),
                     $19, $20, $21,
-                    $22, $23, $24, $25
+                    $22, $23, $24, $25, $26
                  )
                  RETURNING *;`,
                 [
@@ -423,6 +446,10 @@ const submitDebateApplication = async ({
                     // start_at is the instant; start_timezone is the zone the
                     // sponsor picked it in, which the instant cannot remember.
                     broadcast.scheduled_at, broadcast.timezone, format, is_for_fun,
+                    // Empty string is not a brief — it is a sponsor who typed
+                    // nothing, and NULL is what the review queue reads as
+                    // "they wrote their own".
+                    prompt_brief && String(prompt_brief).trim() ? String(prompt_brief).trim() : null,
                 ]
             );
             const debate = debateResult.rows[0];
@@ -436,7 +463,11 @@ const submitDebateApplication = async ({
             // is the question for. Same table, same transaction; the extra three
             // columns are what makes the row findable from the bracket.
             let created;
-            if (isTyped) {
+            // Nothing to insert when the questions are still ours to write, or
+            // when the debate is one question that lives on the title.
+            if (!rounds.length) {
+                created = [];
+            } else if (isTyped) {
                 created = await insertMatchPrompts({ debate_id: debate.id, rows: rounds }, tx);
             } else {
                 created = [];

@@ -1,0 +1,183 @@
+/* ============================================================================
+   DebateEntry.css — the nomination stage, collapsed and expanded.
+
+   Same frame as the other two expansions (.xp, .xp__h, .socials), same
+   invariant: --rule-strong is the CARD's outer edge and nothing here uses it.
+   ============================================================================ */
+
+/* ---- the collapsed preview ----
+   It sits exactly where the duel sits on a live card, so the feed's rhythm does
+   not change when a debate is at a different point in its life. */
+.wbfeed .epv {
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 14px 20px 16px; border-top: 1px solid var(--rule-2);
+}
+.wbfeed .epv__top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.wbfeed .epv__l {
+    font-size: 9.5px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase;
+    color: var(--fg-3);
+}
+.wbfeed .epv__c { font-size: 11.5px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.wbfeed .epv__row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* A nomination is a person plus a count, so the chip carries both — a bare face
+   row would make the leader indistinguishable from the third name. */
+.wbfeed .nomchip {
+    display: inline-flex; align-items: center; gap: 7px;
+    height: 34px; padding: 0 12px 0 5px; border-radius: 999px;
+    background: var(--sunk); border: 1px solid var(--rule-2);
+    font-size: 12.5px; font-weight: 700; letter-spacing: -.01em; color: var(--fg);
+    transition: border-color .14s, background .14s;
+}
+.wbfeed .nomchip:hover { background: var(--gold-wash); border-color: var(--gold-hair); }
+.wbfeed .nomchip b {
+    font-size: 11.5px; font-weight: 800; color: var(--gold-ink);
+    font-variant-numeric: tabular-nums;
+}
+.wbfeed .epv__more { font-size: 12px; color: var(--fg-3); }
+.wbfeed .epv__cta { margin-left: auto; }
+
+/* NOBODY YET is a state worth designing, not a gap to leave. A debate with no
+   nominations is the one that most needs somebody to act. */
+.wbfeed .epv--empty {
+    flex-direction: row; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+}
+.wbfeed .epv__t { display: flex; flex-direction: column; gap: 3px; min-width: 220px; flex: 1; }
+.wbfeed .epv__t b { font-size: 13.5px; font-weight: 800; letter-spacing: -.015em; }
+.wbfeed .epv__t p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--fg-2); max-width: 54ch; }
+
+/* ---- the expansion: prompts beside the entry panel ---- */
+.wbfeed .ent__cols {
+    display: grid; grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 0 22px; align-items: start;
+}
+.wbfeed .pr { display: flex; flex-direction: column; gap: 11px; min-width: 0; padding-bottom: 8px; }
+.wbfeed .pr__lede {
+    margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--fg-2); max-width: 62ch;
+}
+.wbfeed .pr__list { display: flex; flex-direction: column; }
+/* Numbered, because the order is the running order of the debate — this is a
+   schedule, not a set of topics. */
+.wbfeed .pr__i {
+    display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 11px; align-items: baseline;
+    padding: 11px 0; border-bottom: 1px solid var(--rule-2);
+}
+.wbfeed .pr__i:last-child { border-bottom: 0; }
+.wbfeed .pr__n {
+    display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px;
+    background: var(--sunk); color: var(--fg-2);
+    font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums;
+    align-self: start;
+}
+.wbfeed .pr__q { font-family: var(--serif); font-size: 15px; line-height: 1.55; color: var(--fg); }
+.wbfeed .pr__empty {
+    padding: 20px 16px; border-radius: var(--r-s);
+    border: 1px dashed var(--rule-2);
+    font-size: 12.5px; line-height: 1.55; color: var(--fg-2);
+}
+.wbfeed .pr__crit { padding-top: 2px; }
+.wbfeed .critbtn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 32px; padding: 0 13px; border-radius: 999px;
+    border: 1px solid var(--rule-2); background: var(--card);
+    font-size: 12.5px; font-weight: 700; color: var(--fg-2);
+}
+.wbfeed .critbtn:hover { border-color: var(--gold-hair); background: var(--gold-wash); color: var(--gold-ink); }
+
+/* Bled right and down like the funding rail, for the same reason: a floating
+   panel inside a card inside a feed is three nested boxes. */
+.wbfeed .ent {
+    display: flex; flex-direction: column; gap: 6px;
+    margin: -4px -21px -24px 0;
+    padding: 18px; border-left: 1px solid var(--rule-2);
+    background: var(--foot);
+    position: sticky; top: 130px;
+}
+.wbfeed .ent__l {
+    font-size: 9.5px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase;
+    color: var(--fg-3);
+}
+.wbfeed .ent__v { font-size: 15px; font-weight: 700; letter-spacing: -.015em; }
+
+.wbfeed .purse {
+    display: flex; flex-direction: column; gap: 2px;
+    margin: 10px 0 4px; padding: 13px 14px; border-radius: 9px;
+    background: var(--gold-wash); border: 1px solid var(--gold-hair);
+}
+.wbfeed .purse__n {
+    font-size: 24px; font-weight: 800; letter-spacing: -.035em; color: var(--gold-ink);
+    font-variant-numeric: tabular-nums; line-height: 1.1;
+}
+.wbfeed .purse__s { font-size: 11px; line-height: 1.45; color: var(--fg-2); }
+
+.wbfeed .ent__btns { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.wbfeed .ent__note {
+    margin: 0; padding-top: 12px; border-top: 1px solid var(--rule-2);
+    font-size: 11.5px; line-height: 1.5; color: var(--fg-3);
+}
+
+/* ---- the ranked list ---- */
+.wbfeed .nom { display: flex; flex-direction: column; gap: 10px; }
+.wbfeed .nom__h { display: flex; align-items: baseline; gap: 10px; }
+.wbfeed .nom__t {
+    font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--fg-3);
+}
+.wbfeed .nom__s { font-size: 11.5px; color: var(--fg-3); }
+.wbfeed .nom__l { display: flex; flex-direction: column; }
+.wbfeed .nom__i {
+    display: grid; grid-template-columns: 22px auto minmax(0, 1fr) auto;
+    gap: 11px; align-items: center;
+    padding: 10px 12px; border-radius: var(--r-s);
+}
+.wbfeed .nom__i:hover { background: var(--sunk); }
+/* The leader is tinted rather than badged: at a glance the shape of the list is
+   the information, and a badge is a second thing to read. */
+.wbfeed .nom__i--lead { background: var(--gold-wash); }
+.wbfeed .nom__i--lead:hover { background: var(--gold-wash); }
+.wbfeed .nom__r {
+    text-align: center; font-size: 12px; font-weight: 800; color: var(--fg-3);
+    font-variant-numeric: tabular-nums;
+}
+.wbfeed .nom__i--lead .nom__r { color: var(--gold-ink); }
+.wbfeed .nom__n {
+    font-size: 13.5px; font-weight: 700; letter-spacing: -.01em; min-width: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wbfeed .nom__c { display: flex; align-items: baseline; gap: 5px; flex: none; }
+.wbfeed .nom__c b {
+    font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--gold-ink);
+}
+.wbfeed .nom__c span {
+    font-size: 9.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--fg-3);
+}
+.wbfeed .nom__none {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 20px 16px; border-radius: var(--r-s);
+    border: 1px dashed var(--rule-2); text-align: center;
+}
+.wbfeed .nom__none b { font-size: 13px; font-weight: 700; }
+.wbfeed .nom__none span { font-size: 12px; line-height: 1.5; color: var(--fg-3); max-width: 60ch; margin-inline: auto; }
+
+@media (max-width: 900px) {
+    .wbfeed .ent__cols { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .wbfeed .ent {
+        position: static; margin: 0 -21px 0; border-left: 0;
+        border-top: 1px solid var(--rule-2);
+    }
+    .wbfeed .ent__btns { flex-direction: row; }
+    .wbfeed .ent__btns .btn { flex: 1; }
+}
+
+@media (max-width: 700px) {
+    .wbfeed .epv { padding-inline: 16px; }
+    .wbfeed .ent { margin-inline: -17px; }
+    .wbfeed .epv__cta { margin-left: 0; width: 100%; }
+    .wbfeed .epv--empty .btn, .wbfeed .epv__cta { width: 100%; }
+    .wbfeed .nom__i { grid-template-columns: 18px auto minmax(0, 1fr); gap: 9px; padding-inline: 8px; }
+    /* The count drops under the name: at this width it was pushing every name
+       into an ellipsis after two words. */
+    .wbfeed .nom__c { grid-column: 3; justify-content: flex-start; }
+}
