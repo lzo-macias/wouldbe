@@ -218,6 +218,18 @@ const init = async () => {
         const { router: debateSeedingRouter } = require("../API/debate/debateSeedingRoutes");
         // Standing arrows: the trophy case, the open-response gate, the backdoor.
         const { router: trophiesRouter } = require("../API/debate/trophiesRoutes");
+        // THE CLOSED-BETA GATE, mounted BEFORE every router so nothing can be
+        // reached around it. It is not authorization — each route keeps its own
+        // requireAuth/requireAdmin — it only decides whether this person may see
+        // the app at all while the raise is running. PRELAUNCH_LOCK=off lifts it.
+        const { preLaunchGate, PRELAUNCH_LOCKED } = require("../middleware/preLaunchGate");
+        app.use(preLaunchGate);
+        console.log(
+            PRELAUNCH_LOCKED
+                ? "closed beta: ON — /api requires a session (set PRELAUNCH_LOCK=off to open)"
+                : "closed beta: OFF — /api is publicly readable"
+        );
+
         app.use("/api/auth", authRouter);
         app.use("/api/users", userRouter);
         app.use("/api", consentRouter);

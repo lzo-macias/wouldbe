@@ -72,13 +72,13 @@ import './Fund.css'
    disagree with each other, because there is only one number. */
 const ALLOCATION = [
     { name: 'Campus launch & live events', cents: 3000000, color: 'var(--wb-gold-500)' },
-    { name: 'Initial attorney briefing',   cents:  350000, color: 'var(--wb-gold-800)' },
+    { name: 'Initial attorney briefing',   cents:  500000, color: 'var(--wb-gold-800)' },
 ]
 
 const GOAL_CENTS = ALLOCATION.reduce((sum, a) => sum + a.cents, 0)
 
 const CAMPAIGN = {
-    goalCents:   GOAL_CENTS,  // $33,500 — the sum of the budget above
+    goalCents:   GOAL_CENTS,  // $35,000 — the sum of the budget above
     /* raised/backers are MOCK, and they have to stay coherent with each other:
        raised must sit under the goal (or the meter pins at 100% and the page
        claims a success it has not had), and raised ÷ backers is what the "avg
@@ -176,7 +176,7 @@ const TEAM = [
         photo: '/team/ansh.jpg',
         initials: 'AM',
         name: 'Ansh Mehta',
-        role: 'Advisor',
+        role: 'Tech Advisor',
         bio: 'Ships production AI into regulated industries — an autonomous legal research engine at Cliff, and neural cash-flow forecasting for banks. Three years building product at Intellect Design Arena in New York, on top of a math and computer science degree from Wisconsin.',
         firms: ['Cliff', 'Intellect Design Arena', 'Jio', 'UW–Madison'],
         linkedin: 'https://www.linkedin.com/in/anshmehta2000/',

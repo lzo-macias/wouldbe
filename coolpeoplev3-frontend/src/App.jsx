@@ -54,6 +54,10 @@ const MatchThread      = lazy(() => import('./assets/pages/debate/Debates/MatchT
 // RequireAdmin stays static: it is a GUARD, not a page. Lazy-loading it would
 // mean fetching a chunk just to decide whether the user may proceed.
 import RequireAdmin from "./assets/component/RequireAdmin"
+// The closed-beta guard. Same shape as RequireAdmin and mounted the same way:
+// static, because a guard that has to be fetched before it can refuse is a
+// window in which the page it guards has already rendered.
+import RequireAuth from "./assets/component/RequireAuth"
 
 function App() {
 
@@ -68,10 +72,10 @@ function App() {
           shift layout, which is what CLS measures. */}
       <Suspense fallback={<div className="routeFallback">Loading…</div>}>
       <Routes>
-        <Route path = "/" element = {<Home/>}/>
+        <Route path = "/" element = {<RequireAuth><Home/></RequireAuth>}/>
         {/* The redesign, side by side with the live home page rather than on
             top of it — "/" keeps working while this is being built. */}
-        <Route path = "/homev2" element = {<HomeV2/>}/>
+        <Route path = "/homev2" element = {<RequireAuth><HomeV2/></RequireAuth>}/>
         {/* The raise. '/back' is the shareable alias — it is what goes in a bio
             link and on a flyer, and a second Route costs nothing. */}
         <Route path = "/fund" element = {<Fund/>}/>
@@ -79,44 +83,44 @@ function App() {
         {/* Admin-gated: emails, amounts and a refund button. RequireAdmin is the
             UI guard; every /api/fund admin route re-checks server-side. */}
         <Route path = "/admin/fund" element = {<RequireAdmin><FundBoard/></RequireAdmin>}/>
-        <Route path = "/myWouldBe" element = {<MyRunningWouldBe/>}/>
-        <Route path = "wouldbe/:id" element = {<AnyWouldBe/>} />
-        <Route path = "/startadebate" element = {<StartADebate/>}/>
+        <Route path = "/myWouldBe" element = {<RequireAuth><MyRunningWouldBe/></RequireAuth>}/>
+        <Route path = "wouldbe/:id" element = {<RequireAuth><AnyWouldBe/></RequireAuth>}/>
+        <Route path = "/startadebate" element = {<RequireAuth><StartADebate/></RequireAuth>}/>
         {/* Post-submission setup. Its own route because the Twitch OAuth handoff
             leaves the site, and coming back has to rebuild context from the URL. */}
-        <Route path = "/startadebate/:debateId/twitch" element = {<ConnectTwitch/>}/>
+        <Route path = "/startadebate/:debateId/twitch" element = {<RequireAuth><ConnectTwitch/></RequireAuth>}/>
         {/* Seeding day. Its own route because the sponsor arrives from an email
             days after submitting — there is no in-app journey to resume, so the
             URL has to carry the whole context. */}
-        <Route path = "/startadebate/:debateId/seed" element = {<SeedBracket/>}/>
+        <Route path = "/startadebate/:debateId/seed" element = {<RequireAuth><SeedBracket/></RequireAuth>}/>
         {/* A contestant's whole answering surface for a typed debate. Its own
             route because the link in their notification email is where most of
             them will arrive from, days before they open the debate page. */}
-        <Route path = "/debate/:debateId/my-prompts" element = {<MyPrompts/>}/>
+        <Route path = "/debate/:debateId/my-prompts" element = {<RequireAuth><MyPrompts/></RequireAuth>}/>
         {/* Anyone's public profile. Auth is optional — a token only widens it
             into the owner's own view, which shows their hidden fields back to
             them and includes campaigns they haven't launched. */}
-        <Route path = "/u/:userId" element = {<AnyUserProfile/>}/>
-        <Route path = "/debate" element = {<Debate/>} />
+        <Route path = "/u/:userId" element = {<RequireAuth><AnyUserProfile/></RequireAuth>}/>
+        <Route path = "/debate" element = {<RequireAuth><Debate/></RequireAuth>}/>
         <Route path = "/login" element = {<Login/>} />
         <Route path = "/signup" element = {<Signup/>} />
         <Route path = "/admin" element = {<RequireAdmin><Admin/></RequireAdmin>} />
-        <Route path = '/wouldbe' element = {<Wouldbe/>}/>
+        <Route path = '/wouldbe' element = {<RequireAuth><Wouldbe/></RequireAuth>}/>
         {/* '/wouldbe/:id' is served by AnyWouldBe above. IndividualWouldbe is an
             unfinished stub and its duplicate route was unreachable anyway —
             the first matching route wins. */}
-        <Route path = '/wouldbe/:jurisdiction_id/:officeId' element = {<StartAnOffice/>}/>
+        <Route path = '/wouldbe/:jurisdiction_id/:officeId' element = {<RequireAuth><StartAnOffice/></RequireAuth>}/>
         {/* '/debate/:id' is the NEW debate screen — one question per bracket,
             the timeline, the criteria and the standings. AnyDebate, the original
             dark page, is still mounted one segment along rather than deleted:
             the feed's inline expansion renders its DebateDetail, and it is the
             only screen that talks to the live /full endpoint. */}
-        <Route path = 'debate/:debateId' element = {<DebateRoute/>}/>
-        <Route path = 'debate/:debateId/classic' element = {<AnyDebate/>}/>
-        <Route path = 'debate/:debateId/agreement' element = {<PrizeAgreement/>}/>
+        <Route path = 'debate/:debateId' element = {<RequireAuth><DebateRoute/></RequireAuth>}/>
+        <Route path = 'debate/:debateId/classic' element = {<RequireAuth><AnyDebate/></RequireAuth>}/>
+        <Route path = 'debate/:debateId/agreement' element = {<RequireAuth><PrizeAgreement/></RequireAuth>}/>
         {/* `key` is the bracket slot coordinate, "left:0:1" — the same
             (side, round, position) the matches and prompts are keyed on. */}
-        <Route path = 'debate/:debateId/match/:key' element = {<MatchThread/>}/>
+        <Route path = 'debate/:debateId/match/:key' element = {<RequireAuth><MatchThread/></RequireAuth>}/>
       </Routes>
       </Suspense>
     </main>
