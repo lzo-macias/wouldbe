@@ -130,6 +130,14 @@
 }
 
 /* ---- manual entry ------------------------------------------------------- */
+.wbfb__ok {
+    padding: var(--s3) var(--s4); margin-bottom: var(--s4);
+    background: #E7F3EA; border: 1px solid #C4E0CF; border-radius: var(--radius-sm);
+    color: #1E5B32; font-size: var(--text-sm);
+}
+/* Abandoned reads as neutral, not alarming — it is a normal outcome. */
+.wbfb__pill--abandoned { background: var(--fb-sunk); color: var(--fb-ink-3); }
+
 .wbfb__manual {
     margin-top: var(--s6); padding: var(--s5);
     background: #fff; border: 1px dashed var(--wb-gold-hair);

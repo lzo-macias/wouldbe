@@ -115,11 +115,21 @@ const createPledge = async ({
         intent = await stripe.createPaymentIntent({
             amount_cents: cents,
             currency,
-            // THE WHOLE PAYMENT-METHOD LIST COMES FROM HERE. Stripe returns
-            // whatever is enabled on the account and the browser can actually
-            // use — a wallet only appears on a device that has one. Nothing in
-            // this codebase names the methods any more.
-            automatic_payment_methods: true,
+            /* AN EXPLICIT LIST, not automatic_payment_methods.
+               "Everything the Dashboard has on" was offering Cash App, Amazon
+               Pay and Klarna alongside card. Pay-over-time on a $25 pledge is a
+               strange thing to put in front of a backer, and each extra tile is
+               another decision between someone and giving you money.
+
+               'card' carries more than it looks: Apple Pay and Google Pay are
+               card-backed wallets and still appear automatically on a device
+               that has one. 'link' is Stripe's own saved-details 1-click. So
+               this list renders as Card / Apple Pay / Google Pay / Link.
+
+               To offer more, add the type here — it does NOT need a Dashboard
+               change, and a type that is off in the Dashboard will error rather
+               than silently vanish, which is the failure mode you want. */
+            payment_method_types: ["card", "link"],
             metadata: {
                 kind: "fund_pledge",
                 fund_pledge_id: pledge.id,
@@ -210,6 +220,152 @@ const markPledgeFailed = async ({ stripe_payment_intent_id, failure_reason = nul
         [stripe_payment_intent_id, failure_reason]
     );
     return rows[0] || null;
+};
+
+// ---------------------------------------------------------------------------
+// confirmPledgeFromStripe — the belt to the webhook's braces.
+//
+// The webhook is the source of truth, but it is ALSO the single point of
+// failure: until STRIPE_WEBHOOK_SECRET and the endpoint are configured, a
+// successful charge leaves its row 'pending' forever and the public meter sits
+// at $0 while money is arriving. That is the worst possible failure on a raise —
+// it looks like nobody is backing you.
+//
+// So the browser also nudges us after it confirms. It is NOT trusted: the client
+// says only "check this pledge", and we ask STRIPE what happened. A crafted
+// request can therefore do nothing except make us re-read a PaymentIntent that
+// is not paid. markPledgePaid is idempotent, so the webhook arriving later (or
+// first) changes nothing.
+// ---------------------------------------------------------------------------
+const confirmPledgeFromStripe = async ({ id } = {}) => {
+    const { rows } = await client.query(
+        `SELECT id, status, stripe_payment_intent_id FROM fund_pledges WHERE id = $1`, [id]
+    );
+    const p = rows[0];
+    if (!p) throw httpError(404, "Pledge not found");
+    if (p.status === "succeeded") return p;               // already settled
+    if (!p.stripe_payment_intent_id) throw httpError(409, "This pledge has no payment to confirm");
+
+    const intent = await stripe.retrievePaymentIntent({
+        payment_intent_id: p.stripe_payment_intent_id,
+    });
+
+    if (intent.status === "succeeded") {
+        return await markPledgePaid({
+            stripe_payment_intent_id: intent.id,
+            stripe_charge_id: intent.latest_charge ?? null,
+            channel: intent.payment_method_types?.[0] ?? null,
+        });
+    }
+    // 'processing' is normal for ACH and some BNPL — not a failure, just not
+    // money yet. Leave it pending and let the webhook settle it.
+    if (intent.status === "requires_payment_method" && intent.last_payment_error) {
+        await markPledgeFailed({
+            stripe_payment_intent_id: intent.id,
+            failure_reason: intent.last_payment_error.message,
+        });
+    }
+    return { ...p, stripe_status: intent.status };
+};
+
+// ---------------------------------------------------------------------------
+// reconcilePledges — ask STRIPE what really happened to every unsettled row.
+//
+// This is the backstop for both other paths. The webhook can be unconfigured or
+// have missed a delivery; the browser's confirm nudge never fires if the tab is
+// closed. Neither failure is visible — the row just sits 'pending' while the
+// money is real — so there has to be something that goes and looks.
+//
+// Stripe is the authority for every decision here. Nothing is inferred from our
+// own timestamps except the abandonment cutoff, which is the one thing Stripe
+// cannot tell us (it has no concept of "the human walked away").
+// ---------------------------------------------------------------------------
+const ABANDON_AFTER_MINUTES = 60;
+
+const reconcilePledges = async ({ limit = 200 } = {}) => {
+    const out = { checked: 0, succeeded: 0, failed: 0, abandoned: 0, still_pending: 0, errors: 0 };
+
+    /* FIRST: rows that never got a PaymentIntent at all.
+       These are the residue of a broken processor — createPledge writes the row,
+       then Stripe refuses, and the row is kept so the backer's email is not lost.
+       They are UN-CHARGEABLE BY CONSTRUCTION: with no intent there is nothing
+       Stripe could ever have collected against. There is no point asking Stripe
+       about them, and leaving them 'pending' makes a configuration outage look
+       like a queue of people waiting to pay. */
+    const { rowCount: noIntent } = await client.query(
+        `UPDATE fund_pledges
+            SET status = 'abandoned', updated_at = now()
+          WHERE status = 'pending'
+            AND stripe_payment_intent_id IS NULL
+            AND created_at < now() - interval '${ABANDON_AFTER_MINUTES} minutes'`
+    );
+    out.abandoned += noIntent;
+    out.checked += noIntent;
+
+    const { rows } = await client.query(
+        `SELECT id, status, created_at, stripe_payment_intent_id
+           FROM fund_pledges
+          WHERE status = 'pending'
+            AND stripe_payment_intent_id IS NOT NULL
+          ORDER BY created_at DESC
+          LIMIT $1`,
+        [Math.min(Number(limit) || 200, 500)]
+    );
+
+    for (const p of rows) {
+        out.checked += 1;
+        let intent;
+        try {
+            intent = await stripe.retrievePaymentIntent({
+                payment_intent_id: p.stripe_payment_intent_id,
+            });
+        } catch {
+            // A key rotation or a wrong-mode key makes the intent unreadable.
+            // Leave the row alone rather than guessing about money.
+            out.errors += 1;
+            continue;
+        }
+
+        if (intent.status === "succeeded") {
+            await markPledgePaid({
+                stripe_payment_intent_id: intent.id,
+                stripe_charge_id: intent.latest_charge ?? null,
+                channel: intent.payment_method_types?.[0] ?? null,
+            });
+            out.succeeded += 1;
+            continue;
+        }
+
+        // A declined card. Stripe attaches the reason; that is worth keeping.
+        if (intent.last_payment_error) {
+            await markPledgeFailed({
+                stripe_payment_intent_id: intent.id,
+                failure_reason: intent.last_payment_error.message,
+            });
+            out.failed += 1;
+            continue;
+        }
+
+        // Money genuinely on its way (ACH, some BNPL). Not our business yet.
+        if (intent.status === "processing" || intent.status === "requires_capture") {
+            out.still_pending += 1;
+            continue;
+        }
+
+        // Never paid, never failed, and old enough that nobody is still typing.
+        const ageMin = (Date.now() - new Date(p.created_at).getTime()) / 60000;
+        if (ageMin >= ABANDON_AFTER_MINUTES) {
+            await client.query(
+                `UPDATE fund_pledges SET status = 'abandoned', updated_at = now()
+                  WHERE id = $1 AND status = 'pending'`,
+                [p.id]
+            );
+            out.abandoned += 1;
+        } else {
+            out.still_pending += 1;
+        }
+    }
+    return out;
 };
 
 // ---------------------------------------------------------------------------
@@ -329,6 +485,7 @@ const pledgeSummary = async () => {
             COUNT(*) FILTER (WHERE status = 'succeeded')::int                             AS pledge_count,
             COUNT(*) FILTER (WHERE status = 'pending')::int                               AS pending_count,
             COUNT(*) FILTER (WHERE status = 'failed')::int                                AS failed_count,
+            COUNT(*) FILTER (WHERE status = 'abandoned')::int                             AS abandoned_count,
             COUNT(*) FILTER (WHERE status = 'refunded')::int                              AS refunded_count
         FROM fund_pledges
     `);
@@ -358,6 +515,7 @@ const pledgeSummary = async () => {
 
 module.exports = {
     TIERS, tierFor, normaliseChannel,
-    createPledge, markPledgePaid, markPledgeFailed, refundPledge,
+    createPledge, markPledgePaid, markPledgeFailed, confirmPledgeFromStripe,
+    reconcilePledges, refundPledge,
     recordOfflinePledge, markReceiptSent, listPledges, pledgeSummary,
 };

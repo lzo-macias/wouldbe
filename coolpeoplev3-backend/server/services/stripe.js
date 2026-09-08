@@ -32,13 +32,19 @@ const notConfigured = (what = "Stripe") => {
 const createPaymentIntent = async ({
     amount_cents, currency = "usd", metadata = {}, customer,
     automatic_payment_methods = false,
+    payment_method_types = null,
 } = {}) => {
     if (!ENABLED) throw notConfigured();
-    return stripe.paymentIntents.create({
-        amount: amount_cents, currency, metadata, customer,
-        ...(automatic_payment_methods
+    // The two are mutually exclusive in Stripe's API: automatic_payment_methods
+    // means "offer whatever the Dashboard has on", an explicit list means
+    // "offer exactly these". Passing both is an error, so the explicit list wins.
+    const methods = payment_method_types
+        ? { payment_method_types }
+        : automatic_payment_methods
             ? { automatic_payment_methods: { enabled: true } }
-            : {}),
+            : {};
+    return stripe.paymentIntents.create({
+        amount: amount_cents, currency, metadata, customer, ...methods,
     });
 };
 

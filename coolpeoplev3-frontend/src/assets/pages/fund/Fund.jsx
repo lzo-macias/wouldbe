@@ -243,6 +243,15 @@ const getStripe = (key) => {
     return stripeLoader
 }
 
+const SHARE_TEXT = 'The first crowdfunding platform for political candidates under 45.'
+
+const SHARE_TARGETS = [
+    { kind: 'copy', label: 'Copy link' },
+    { kind: 'x', label: 'Share on X', url: (u) => `https://twitter.com/intent/tweet?text=${encodeURIComponent(SHARE_TEXT)}&url=${encodeURIComponent(u)}` },
+    { kind: 'whatsapp', label: 'Share on WhatsApp', url: (u) => `https://wa.me/?text=${encodeURIComponent(`${SHARE_TEXT} ${u}`)}` },
+    { kind: 'email', label: 'Share by email', url: (u) => `mailto:?subject=${encodeURIComponent('Back WouldBe')}&body=${encodeURIComponent(`${SHARE_TEXT}\n\n${u}`)}` },
+]
+
 const usd = (cents, opts = {}) =>
     (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0, ...opts })
 
@@ -250,6 +259,21 @@ function daysLeft(iso) {
     const ms = new Date(`${iso}T23:59:59`).getTime() - Date.now()
     return Math.max(0, Math.ceil(ms / 86400000))
 }
+
+/* SHARE. These used to render `label[0]` — which is why the row read "C X W E".
+   Real marks now, and each one actually shares rather than sitting there. */
+const SHARE_ICONS = {
+    copy: 'M8 4h9a3 3 0 0 1 3 3v9M6 8h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z',
+    x: 'M4 4l7.5 9.5L4.5 20h2l5.6-6 4.6 6H21l-7.9-10L20.2 4h-2l-5.2 5.6L8.7 4H4z',
+    whatsapp: 'M12 3a9 9 0 0 0-7.7 13.6L3 21l4.5-1.2A9 9 0 1 0 12 3zm4.5 12.2c-.2.6-1.1 1.1-1.6 1.1-.9.1-1.7-.4-3.4-1.4a11 11 0 0 1-3.6-4c-.5-.9-.2-2 .3-2.5.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.7 1.6c.1.2 0 .4-.1.6l-.4.5c-.1.1-.2.3-.1.5.4.8 1.6 2 2.7 2.5.2.1.4.1.6-.1l.6-.7c.2-.2.3-.2.5-.1l1.6.8c.2.1.3.2.3.4z',
+    email: 'M3 6h18v12H3zM3 7l9 6 9-6',
+}
+const ShareIcon = ({ kind }) => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d={SHARE_ICONS[kind]} />
+    </svg>
+)
 
 const LinkedIn = () => (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -274,6 +298,11 @@ export default function Fund() {
        campaign rather than "$0 raised", which on a funding page reads as "this
        failed" to a visitor who has no idea our API is unreachable. */
     const [live, setLive] = useState(null)
+    // Bumped after a completed payment so the panel refetches. Without this the
+    // meter is a snapshot from page load: a backer pays, the modal says thank
+    // you, and the bar behind it still reads $0 — which reads as "my money
+    // vanished" more than anything else the page could do.
+    const [refreshKey, setRefreshKey] = useState(0)
 
     useEffect(() => {
         let cancelled = false
@@ -281,7 +310,7 @@ export default function Fund() {
             .then(({ data }) => { if (!cancelled) setLive(data) })
             .catch(() => {})   // silent: the fallback below is a good answer
         return () => { cancelled = true }
-    }, [])
+    }, [refreshKey])
 
     /* COMING BACK FROM A REDIRECT. PayPal, Cash App and the pay-over-time
        methods take the backer off-site and return them to /fund with
@@ -293,6 +322,20 @@ export default function Fund() {
        query string is then stripped so a refresh does not replay it. The webhook
        still settles the row; this only decides what the person sees. */
     const [returned, setReturned] = useState(null)
+    const [copied, setCopied] = useState(false)
+
+    function share(target) {
+        const url = window.location.origin + '/fund'
+        if (target.kind === 'copy') {
+            // clipboard is unavailable on insecure origins and in some embedded
+            // views; a silent no-op there would look like a dead button.
+            navigator.clipboard?.writeText(url)
+                .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+                .catch(() => window.prompt('Copy this link', url))
+            return
+        }
+        window.open(target.url(url), '_blank', 'noopener,noreferrer')
+    }
 
     useEffect(() => {
         const secret = new URLSearchParams(window.location.search)
@@ -305,6 +348,9 @@ export default function Fund() {
             .then((res) => {
                 if (cancelled || !res?.paymentIntent) return
                 setReturned(res.paymentIntent.status)
+                // Same reason as above: they have just paid off-site, so the
+                // panel they land on must not still read $0.
+                if (res.paymentIntent.status === 'succeeded') setRefreshKey((k) => k + 1)
                 window.history.replaceState({}, '', window.location.pathname)
             })
             .catch(() => {})
@@ -424,12 +470,20 @@ export default function Fund() {
                         </p>
 
                         <div className="wbfund__share">
-                            {['Copy link', 'X', 'WhatsApp', 'Email'].map((s) => (
-                                <button key={s} className="wbfund__shareBtn" title={`Share — ${s}`} aria-label={`Share — ${s}`}>
-                                    {s[0]}
+                            {SHARE_TARGETS.map((t) => (
+                                <button
+                                    key={t.kind}
+                                    type="button"
+                                    className="wbfund__shareBtn"
+                                    title={t.label}
+                                    aria-label={t.label}
+                                    onClick={() => share(t)}
+                                >
+                                    <ShareIcon kind={t.kind} />
                                 </button>
                             ))}
                         </div>
+                        {copied && <p className="wbfund__note" role="status">Link copied.</p>}
                     </aside>
                 </div>
             </section>
@@ -752,7 +806,13 @@ export default function Fund() {
                 </p>
             </footer>
 
-            {openTier && <Checkout tier={openTier} onClose={() => setOpenTier(null)} />}
+            {openTier && (
+                <Checkout
+                    tier={openTier}
+                    onClose={() => setOpenTier(null)}
+                    onPaid={() => setRefreshKey((k) => k + 1)}
+                />
+            )}
         </div>
     )
 }
@@ -833,9 +893,22 @@ function PayStep({ pledge, onPaid, onClose }) {
             setBusy(false)
             return
         }
-        // The webhook is the source of truth and will settle the row; this only
-        // decides what the backer sees next. A processing status (ACH, some
-        // BNPL) is a success from their side — the money is on its way.
+        /* NUDGE THE SERVER before showing the thank-you. The webhook is the
+           source of truth, but it cannot reach a machine that has not configured
+           it — and until STRIPE_WEBHOOK_SECRET exists, every paid pledge would
+           sit 'pending' and the public meter would stay at $0 while money
+           arrives. This asks the server to check with Stripe; the two paths hit
+           the same idempotent confirmer, so whichever lands first wins.
+
+           A failure here is NOT fatal: the money moved and the webhook will
+           reconcile whenever it is wired. It must not block the success screen. */
+        if (paymentIntent?.status === 'succeeded' && pledge?.id) {
+            try {
+                await api.post(`/api/fund/pledges/${pledge.id}/confirm`)
+            } catch (err) {
+                console.error('[fund] confirm nudge failed; the webhook will reconcile', err)
+            }
+        }
         onPaid(paymentIntent?.status ?? 'processing')
     }
 
@@ -862,7 +935,7 @@ function PayStep({ pledge, onPaid, onClose }) {
     )
 }
 
-function Checkout({ tier, onClose }) {
+function Checkout({ tier, onClose, onPaid }) {
     const isCustom = tier === 'custom'
     const [amount, setAmount] = useState(isCustom ? '25' : String(tier.amountCents / 100))
     const [email, setEmail] = useState('')
@@ -982,7 +1055,7 @@ function Checkout({ tier, onClose }) {
                             <PayStep
                                 pledge={pledge}
                                 onClose={onClose}
-                                onPaid={() => setStep('done')}
+                                onPaid={() => { setStep('done'); onPaid?.() }}
                             />
                         </Elements>
                     </>

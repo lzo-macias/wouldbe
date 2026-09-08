@@ -85,11 +85,36 @@ export async function uploadAvatar(file, { onProgress } = {}) {
     }
 
     onProgress?.("uploading");
-    const put = await fetch(presigned.uploadUrl, {
-        method: "PUT",
-        body: blob,
-        headers: { "Content-Type": contentType },
-    });
+    /* THE CROSS-ORIGIN PUT. This is where "Failed to fetch" comes from, and the
+       raw message is useless to everyone: a browser reports a CORS-blocked
+       request as a generic network failure, with no status and no body, because
+       the response is opaque to the page by design.
+
+       There are only two real causes, and neither is fixable in this file:
+         · the R2 bucket has no CORS rule permitting PUT from this origin
+         · the presigned URL is unreachable (R2_* unset / wrong account)
+
+       So catch it and say something true and actionable instead of letting the
+       browser's wording reach a person setting up their profile. */
+    let put;
+    try {
+        put = await fetch(presigned.uploadUrl, {
+            method: "PUT",
+            body: blob,
+            headers: { "Content-Type": contentType },
+        });
+    } catch (networkErr) {
+        console.error(
+            "[avatar] PUT to storage was blocked before it got a response. " +
+            "Almost always the R2 bucket's CORS policy: it must allow PUT from " +
+            `${window.location.origin} with the Content-Type header.`,
+            { uploadUrl: presigned.uploadUrl?.split("?")[0], networkErr },
+        );
+        throw new Error(
+            "Photo storage isn’t reachable right now — you can finish setup and add a photo later.",
+            { cause: networkErr },
+        );
+    }
     if (!put.ok) throw new Error(`Upload failed (${put.status})`);
 
     onProgress?.("registering");

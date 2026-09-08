@@ -2,6 +2,8 @@ const express = require("express");
 
 const {
     createPledge,
+    confirmPledgeFromStripe,
+    reconcilePledges,
     refundPledge,
     recordOfflinePledge,
     markReceiptSent,
@@ -50,6 +52,24 @@ router.post("/fund/pledges", async (req, res, next) => {
             user_agent: req.headers["user-agent"] ?? null,
         });
         return res.status(201).json(result);
+    } catch (err) {
+        next(err);
+    }
+});
+
+// POST /fund/pledges/:id/confirm — the browser telling us it just paid.
+//
+// PUBLIC, like the pledge route, because the backer has no account. It is safe
+// to leave open: the body is ignored entirely and the answer comes from Stripe,
+// so the worst a stranger can do with a pledge id is make us re-read a
+// PaymentIntent that has not been paid.
+//
+// This exists so the meter moves even before the webhook is wired. Both paths
+// call the same idempotent confirmer; whichever arrives first wins and the
+// second is a no-op.
+router.post("/fund/pledges/:id/confirm", async (req, res, next) => {
+    try {
+        return res.json(await confirmPledgeFromStripe({ id: req.params.id }));
     } catch (err) {
         next(err);
     }
@@ -154,6 +174,20 @@ router.get("/fund/pledges/export.csv", requireAuth, requireAdmin(), async (req, 
         res.setHeader("Content-Type", "text/csv; charset=utf-8");
         res.setHeader("Content-Disposition", `attachment; filename="wouldbe-backers-${new Date().toISOString().slice(0, 10)}.csv"`);
         return res.send([head.join(","), ...body].join("\n"));
+    } catch (err) {
+        next(err);
+    }
+});
+
+// POST /fund/pledges/reconcile — ask Stripe about every unsettled row.
+//
+// The button behind this exists because the two automatic paths can both miss:
+// a webhook that was never configured, and a confirm nudge from a tab that was
+// closed. Neither failure announces itself, so somebody has to be able to go
+// and check.
+router.post("/fund/pledges/reconcile", requireAuth, requireAdmin(), async (req, res, next) => {
+    try {
+        return res.json(await reconcilePledges({ limit: req.body?.limit }));
     } catch (err) {
         next(err);
     }

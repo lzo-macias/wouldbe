@@ -37,6 +37,12 @@ const LOCKED = String(process.env.PRELAUNCH_LOCK || "").toLowerCase() !== "off";
 const ALLOW = [
     // --- the raise. The entire point of the gate is that these still work. ---
     ["POST", "/api/fund/pledges"],
+    // The post-payment nudge. Same reasoning as the pledge route: the backer has
+    // no account. Matched by REGEX, not a prefix — "/api/fund/pledges/*" would
+    // also have opened /refund and /offline, which are admin routes. They carry
+    // their own requireAdmin and would still reject, but a gate that lets
+    // through more than it means to is one bad refactor away from being wrong.
+    ["POST", /^\/api\/fund\/pledges\/[0-9a-f-]{36}\/confirm$/],
     ["GET", "/api/fund/summary"],
     // The publishable key. Without this the payment step cannot mount for a
     // logged-out backer, which is every backer.
@@ -62,10 +68,11 @@ const ALLOW = [
 ];
 
 function allowed(method, path) {
-    return ALLOW.some(([m, p]) =>
-        m === method &&
-        (p.endsWith("*") ? path.startsWith(p.slice(0, -1)) : path === p)
-    );
+    return ALLOW.some(([m, p]) => {
+        if (m !== method) return false;
+        if (p instanceof RegExp) return p.test(path);
+        return p.endsWith("*") ? path.startsWith(p.slice(0, -1)) : path === p;
+    });
 }
 
 const preLaunchGate = async (req, res, next) => {

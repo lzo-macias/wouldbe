@@ -35,7 +35,7 @@ const when = (iso) =>
         month: 'short', day: 'numeric', year: '2-digit', hour: 'numeric', minute: '2-digit',
     }) : '—'
 
-const STATUSES = ['', 'succeeded', 'pending', 'failed', 'refunded', 'disputed']
+const STATUSES = ['', 'succeeded', 'pending', 'abandoned', 'failed', 'refunded', 'disputed']
 
 export default function FundBoard() {
     const [rows, setRows] = useState([])
@@ -44,6 +44,7 @@ export default function FundBoard() {
     const [q, setQ] = useState('')
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [notice, setNotice] = useState(null)
     const [acting, setActing] = useState(null)   // pledge id mid-action
 
     // Manual entry, for a check or a wire that arrived off-platform.
@@ -156,6 +157,28 @@ export default function FundBoard() {
     // The CSV is behind requireAdmin like everything else, so it cannot be a
     // plain <a href> — that request carries no Authorization header. Fetch it
     // through the same api instance, then hand the browser a blob.
+    /* Ask Stripe about every unsettled row. This is the manual backstop: the
+       webhook and the browser nudge can both miss silently, and when they do a
+       real payment sits 'pending' looking like nothing happened. */
+    async function reconcile() {
+        setActing('reconcile')
+        try {
+            const { data } = await api.post('/api/fund/pledges/reconcile')
+            setError(null)
+            setNotice(
+                `Checked ${data.checked} with Stripe — ` +
+                `${data.succeeded} settled, ${data.failed} failed, ` +
+                `${data.abandoned} abandoned, ${data.still_pending} still in flight` +
+                (data.errors ? ` · ${data.errors} unreadable` : '')
+            )
+            await load()
+        } catch (err) {
+            setError(err?.response?.data?.error || 'Reconcile failed')
+        } finally {
+            setActing(null)
+        }
+    }
+
     async function exportCsv() {
         setActing('csv')
         try {
@@ -184,12 +207,16 @@ export default function FundBoard() {
                 </span>
                 <span className="wbfb__spacer" />
                 <button className="wbfb__btn" onClick={load} disabled={loading}>Refresh</button>
+                <button className="wbfb__btn" onClick={reconcile} disabled={acting === 'reconcile'}>
+                    {acting === 'reconcile' ? 'Checking Stripe…' : 'Reconcile with Stripe'}
+                </button>
                 <button className="wbfb__btn wbfb__btn--gold" onClick={exportCsv} disabled={acting === 'csv'}>
                     {acting === 'csv' ? 'Exporting…' : 'Export CSV'}
                 </button>
             </div>
 
             {error && <div className="wbfb__err">{error}</div>}
+            {notice && <div className="wbfb__ok" role="status">{notice}</div>}
 
             {summary && (
                 <div className="wbfb__tiles">
@@ -217,10 +244,15 @@ export default function FundBoard() {
                         <div className="wbfb__tileSub">per backer</div>
                     </div>
                     <div className="wbfb__tile">
+                        {/* ABANDONED IS NOT A FAULT. A closed tab writes a row
+                            because the PaymentIntent has to carry a pledge id —
+                            counting those here made 18 people changing their
+                            mind look like 18 broken payments. */}
                         <div className="wbfb__tileK">Needs attention</div>
                         <div className="wbfb__tileV">{summary.pending_count + summary.failed_count}</div>
                         <div className="wbfb__tileSub">
-                            {summary.pending_count} pending · {summary.failed_count} failed
+                            {summary.pending_count} in flight · {summary.failed_count} failed
+                            {summary.abandoned_count ? ` · ${summary.abandoned_count} abandoned` : ''}
                         </div>
                     </div>
                 </div>
