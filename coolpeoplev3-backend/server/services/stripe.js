@@ -19,9 +19,27 @@ const notConfigured = (what = "Stripe") => {
     return e;
 };
 
-const createPaymentIntent = async ({ amount_cents, currency = "usd", metadata = {}, customer } = {}) => {
+// `automatic_payment_methods` is OPT-IN rather than always-on. With it, Stripe
+// offers every method enabled in the Dashboard — card, Apple Pay, Google Pay,
+// Link, Cash App, ACH, Klarna/Affirm/Afterpay, Amazon Pay — and decides the
+// order and device eligibility itself. Without it a PaymentIntent is card-only,
+// which is why the fund page could never have shown a wallet no matter what its
+// buttons said.
+//
+// It is not switched on globally because it changes what a payment sheet OFFERS,
+// and the tip / post / debate-entry flows have their own UI assumptions. Callers
+// that want the full set ask for it.
+const createPaymentIntent = async ({
+    amount_cents, currency = "usd", metadata = {}, customer,
+    automatic_payment_methods = false,
+} = {}) => {
     if (!ENABLED) throw notConfigured();
-    return stripe.paymentIntents.create({ amount: amount_cents, currency, metadata, customer });
+    return stripe.paymentIntents.create({
+        amount: amount_cents, currency, metadata, customer,
+        ...(automatic_payment_methods
+            ? { automatic_payment_methods: { enabled: true } }
+            : {}),
+    });
 };
 
 // retrievePaymentIntent — read a PaymentIntent back from Stripe. Used to confirm

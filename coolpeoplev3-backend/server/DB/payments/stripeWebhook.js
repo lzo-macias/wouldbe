@@ -149,6 +149,28 @@ const dispatchStripeEvent = async (event) => {
                 case "wouldbe_creation":
                     await require("../candidacy/wouldbe").confirmWouldbeCreationPayment(common);
                     return { handled: true };
+                // The launch raise. Without this branch a pledge stayed 'pending'
+                // forever: the money moved, the row did not, and the public meter
+                // never counted it.
+                case "fund_pledge": {
+                    const fp = require("./fundPledges");
+                    if (status === "succeeded") {
+                        await fp.markPledgePaid({
+                            stripe_payment_intent_id: obj.id,
+                            stripe_charge_id: obj.latest_charge ?? null,
+                            // What the backer ACTUALLY paid with, which is only
+                            // knowable now — the client's declared channel was a
+                            // guess made before the sheet was even shown.
+                            channel: obj.payment_method_types?.[0] ?? null,
+                        });
+                    } else {
+                        await fp.markPledgeFailed({
+                            stripe_payment_intent_id: obj.id,
+                            failure_reason: obj.last_payment_error?.message ?? null,
+                        });
+                    }
+                    return { handled: true };
+                }
                 default:
                     // Unknown/absent kind — record but don't guess.
                     return { handled: false };

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
+import { stripePromise, stripeConfigured } from '../../lib/stripe'
 import api from '../../lib/api'
 import Trophy from '../debate/Debates/Trophy'
 import './Fund.css'
@@ -194,42 +196,30 @@ const TEAM = [
     },
 ]
 
-/* EVERY CHANNEL WE CAN TAKE. `id` is what the backend stores in
-   fund_pledges.channel, so these strings must stay inside that column's CHECK.
-
-   Almost all of them are ONE Stripe integration: a PaymentIntent created with
-   automatic_payment_methods offers whatever is switched on in the Stripe
-   dashboard, so adding Cash App or Klarna is a dashboard toggle, not a deploy.
-   That is why `via` is recorded — it says which of the three real integrations
-   a row depends on, and there are only three:
-
-     stripe   card, wallets, Link, Cash App, ACH, BNPL, Amazon Pay
-     paypal   PayPal, and Venmo through it (Venmo has no standalone API)
-     offline  a mailed check or a wire — no processor at all, entered by an admin
-
-   `primary: true` is the row shown by default. The rest sit behind "More ways
-   to pay", because sixteen payment buttons above a form reads as a checkout
-   error, not as generosity. */
-const CHANNELS = [
-    { id: 'card',       label: 'Card',            sub: 'Visa · Mastercard · Amex', via: 'stripe', primary: true },
-    { id: 'apple_pay',  label: 'Apple Pay',       sub: 'One tap',                  via: 'stripe', primary: true },
-    { id: 'google_pay', label: 'Google Pay',      sub: 'One tap',                  via: 'stripe', primary: true },
-    { id: 'paypal',     label: 'PayPal',          sub: 'Venmo balance included',   via: 'paypal', primary: true },
-
-    { id: 'venmo',      label: 'Venmo',           sub: 'Through PayPal',           via: 'paypal' },
-    { id: 'link',       label: 'Link',            sub: 'Saved with Stripe',        via: 'stripe' },
-    { id: 'cashapp',    label: 'Cash App Pay',    sub: 'Scan to pay',              via: 'stripe' },
-    { id: 'ach',        label: 'Bank (ACH)',      sub: 'Lowest fee on big pledges', via: 'stripe' },
-    { id: 'klarna',     label: 'Klarna',          sub: 'Pay over time',            via: 'stripe' },
-    { id: 'affirm',     label: 'Affirm',          sub: 'Pay over time',            via: 'stripe' },
-    { id: 'afterpay',   label: 'Afterpay',        sub: 'Pay in 4',                 via: 'stripe' },
-    { id: 'amazon_pay', label: 'Amazon Pay',      sub: 'Amazon account',           via: 'stripe' },
-    { id: 'check',      label: 'Check',           sub: 'Mailed — we invoice you',  via: 'offline' },
-    { id: 'wire',       label: 'Wire transfer',   sub: 'For large pledges',        via: 'offline' },
-]
-
-const PRIMARY_CHANNELS = CHANNELS.filter((c) => c.primary)
-const MORE_CHANNELS = CHANNELS.filter((c) => !c.primary)
+/* PAYMENT METHODS ARE NOT LISTED HERE ANY MORE, and that is the fix.
+ *
+ * This file used to carry fourteen hand-written buttons — Card, Apple Pay,
+ * Google Pay, PayPal, Venmo, Cash App and the rest. Every one of them was a
+ * label. Clicking "Apple Pay" stored the string 'apple_pay' and then charged
+ * nothing, because the PaymentIntent behind them was card-only and no card form
+ * was ever mounted.
+ *
+ * They are replaced by Stripe's PAYMENT ELEMENT, which is the only thing that
+ * can answer this correctly. It renders exactly the methods enabled on the
+ * account AND supported by the device in front of it: Apple Pay appears on
+ * Safari with a card in Wallet and nowhere else, Google Pay on Chrome, Link for
+ * a returning Link user, Cash App with its QR. A hand-built grid cannot know any
+ * of that — it can only claim it.
+ *
+ * TO ADD OR REMOVE A METHOD: toggle it in the Stripe Dashboard
+ * (Settings → Payment methods). No deploy. The PaymentIntent is created with
+ * automatic_payment_methods, so the sheet follows the Dashboard.
+ *
+ * VENMO is the one thing that cannot arrive this way: it has no Stripe payment
+ * method type and is reachable only through PayPal's own SDK or Braintree. If
+ * PayPal is enabled on the Stripe account, a PayPal payment may still be funded
+ * from a Venmo balance — which is what the FAQ says, and all it can honestly say.
+ */
 
 const usd = (cents, opts = {}) =>
     (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0, ...opts })
@@ -271,6 +261,33 @@ export default function Fund() {
         return () => { cancelled = true }
     }, [])
 
+    /* COMING BACK FROM A REDIRECT. PayPal, Cash App and the pay-over-time
+       methods take the backer off-site and return them to /fund with
+       ?payment_intent_client_secret=… . Without this they would land on the
+       campaign page as if nothing had happened, having just paid — the single
+       most alarming thing a payment flow can do.
+
+       Stripe is asked for the real status rather than trusting the URL, and the
+       query string is then stripped so a refresh does not replay it. The webhook
+       still settles the row; this only decides what the person sees. */
+    const [returned, setReturned] = useState(null)
+
+    useEffect(() => {
+        const secret = new URLSearchParams(window.location.search)
+            .get('payment_intent_client_secret')
+        if (!secret || !stripeConfigured) return
+        let cancelled = false
+        stripePromise
+            .then((stripe) => stripe?.retrievePaymentIntent(secret))
+            .then((res) => {
+                if (cancelled || !res?.paymentIntent) return
+                setReturned(res.paymentIntent.status)
+                window.history.replaceState({}, '', window.location.pathname)
+            })
+            .catch(() => {})
+        return () => { cancelled = true }
+    }, [])
+
     const raised = live?.raised_cents ?? CAMPAIGN.raisedCents
     const backers = live?.backers ?? CAMPAIGN.backers
     const avg = live?.avg_pledge_cents ?? (backers ? Math.round(raised / backers) : 0)
@@ -296,6 +313,19 @@ export default function Fund() {
                     </button>
                 </div>
             </header>
+
+            {/* A backer returning from PayPal / Cash App / Klarna lands here. */}
+            {returned && (
+                <div className={`wbfund__returned wbfund__returned--${
+                    returned === 'succeeded' ? 'ok' : returned === 'processing' ? 'wait' : 'bad'
+                }`} role="status">
+                    <div className="wbfund__wrap">
+                        {returned === 'succeeded' && <><strong>Payment received.</strong> Your receipt is on its way, and your membership lands at launch.</>}
+                        {returned === 'processing' && <><strong>Payment is processing.</strong> Bank transfers take a few days to clear — we&apos;ll email you when it lands.</>}
+                        {returned !== 'succeeded' && returned !== 'processing' && <><strong>That payment didn&apos;t go through.</strong> Nothing was charged — you can try again below.</>}
+                    </div>
+                </div>
+            )}
 
             {/* ───────────────────────────── HERO ──────────────────────────── */}
             <section className="wbfund__hero">
@@ -664,7 +694,9 @@ export default function Fund() {
                             ['What is the Trophy?',
                              'The gold mark WouldBe gives debate winners. Level 3 backers carry it on their profile permanently, marked as a founding backer rather than a debate win — it is the same object, earned a different way.'],
                             ['How is my payment handled?',
-                             'Through Stripe. Card details are entered on Stripe-hosted fields and never touch our servers or our database — we store an opaque customer reference and nothing else. PayPal is offered as an alternative for backers who prefer it.'],
+                             'Through Stripe. Card details are entered on Stripe-hosted fields and never touch our servers or our database — we store an opaque reference and nothing else. The payment screen shows every method your device can actually use: card, Apple Pay, Google Pay, Link, Cash App Pay, bank transfer, and pay-over-time options where they are available.'],
+                            ['Can I pay with Venmo?',
+                             'Not directly. Venmo has no standalone payment API — it is reachable only through PayPal. Where PayPal appears on the payment screen you may be able to fund it from a Venmo balance, but we cannot promise Venmo as its own button and would rather say so than show one that fails.'],
                         ].map(([q, a]) => (
                             <details className="wbfund__q" key={q}>
                                 <summary>{q}</summary>
@@ -703,37 +735,132 @@ export default function Fund() {
 }
 
 /* ============================================================================
- * Checkout — the pledge modal. MOCK.
+ * Checkout — the pledge modal, in two stages.
  *
- * It is a separate component so the real one can be swapped in wholesale: the
- * page hands it a tier and a close handler and wants nothing back. When Stripe
- * lands, this file is the only one that changes — wrap the form in <Elements>,
- * replace submitPledge's setTimeout with the fetch + confirm, keep everything
- * else.
+ *   1  DETAILS   name, email, amount  ->  POST /api/fund/pledges
+ *                writes the row, returns a client_secret
+ *   2  PAY       Stripe Payment Element, then stripe.confirmPayment()
+ *
+ * WHY TWO STAGES. The Payment Element cannot mount without a client_secret, and
+ * the secret cannot exist before an amount is known. So the row is written
+ * first — which is also the safer order: if the browser dies between the two, we
+ * hold a pending pledge with an email we can follow up, rather than a charge we
+ * have no record of.
+ *
+ * REDIRECT METHODS. PayPal, Cash App and the pay-over-time methods leave the
+ * site and come back to `return_url`. `redirect: 'if_required'` keeps card and
+ * wallet payments inline and only redirects the ones that must. On return, the
+ * page reads payment_intent_client_secret from the URL — see the effect in
+ * Fund() — so the backer lands on a confirmation rather than on a form they
+ * already filled in.
  * ========================================================================= */
+
+// Stripe's own appearance API, driven from the page's tokens so the card fields
+// do not arrive as a white rectangle in the middle of a warm gold modal.
+const STRIPE_APPEARANCE = {
+    theme: 'flat',
+    variables: {
+        colorPrimary: '#B07524',
+        colorBackground: '#FFFFFF',
+        colorText: '#16150F',
+        colorDanger: '#8A2318',
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+        borderRadius: '14px',
+        spacingUnit: '4px',
+    },
+    rules: {
+        '.Input': { border: '1px solid #E7E0CE', boxShadow: 'none', padding: '12px' },
+        '.Input:focus': { border: '1px solid #B07524', boxShadow: '0 0 0 3px #FBF0D4' },
+        '.Label': {
+            fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
+            letterSpacing: '.08em', color: '#78715C',
+        },
+        '.Tab': { border: '1px solid #E7E0CE', boxShadow: 'none' },
+        '.Tab--selected': { border: '1px solid #B07524', backgroundColor: '#FBF0D4' },
+    },
+}
+
+// ---------------------------------------------------------------------------
+// Stage 2 — the real card form. Everything the account offers, rendered by
+// Stripe: card, Apple Pay, Google Pay, Link, Cash App, ACH, PayPal, BNPL.
+// ---------------------------------------------------------------------------
+function PayStep({ pledge, onPaid, onClose }) {
+    const stripe = useStripe()
+    const elements = useElements()
+    const [busy, setBusy] = useState(false)
+    const [error, setError] = useState(null)
+
+    async function pay(e) {
+        e.preventDefault()
+        if (!stripe || !elements) return
+        setBusy(true)
+        setError(null)
+
+        const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
+            elements,
+            // Where PayPal / Cash App / Klarna come back to. It must be an
+            // absolute URL, and it must be a page that can read the result —
+            // /fund handles that on mount.
+            confirmParams: { return_url: `${window.location.origin}/fund` },
+            redirect: 'if_required',
+        })
+
+        if (stripeError) {
+            setError(stripeError.message)
+            setBusy(false)
+            return
+        }
+        // The webhook is the source of truth and will settle the row; this only
+        // decides what the backer sees next. A processing status (ACH, some
+        // BNPL) is a success from their side — the money is on its way.
+        onPaid(paymentIntent?.status ?? 'processing')
+    }
+
+    return (
+        <form onSubmit={pay}>
+            <div className="wbfund__field">
+                <PaymentElement options={{ layout: 'tabs' }} />
+            </div>
+
+            {error && <p className="wbfund__error" role="alert">{error}</p>}
+
+            <button className="wbfund__btn wbfund__btn--gold wbfund__btn--block wbfund__btn--lg"
+                    type="submit" disabled={!stripe || busy}>
+                {busy ? 'Confirming…' : `Pay ${usd(pledge.amount_cents)}`}
+            </button>
+
+            {/* The pledge row already exists. Saying so removes the fear that
+                backing out here loses the pledge — and it is simply true. */}
+            <button type="button" className="wbfund__btn wbfund__btn--block"
+                    style={{ marginTop: 'var(--s2)' }} onClick={onClose} disabled={busy}>
+                Cancel — nothing has been charged
+            </button>
+        </form>
+    )
+}
+
 function Checkout({ tier, onClose }) {
     const isCustom = tier === 'custom'
     const [amount, setAmount] = useState(isCustom ? '25' : String(tier.amountCents / 100))
-    const [method, setMethod] = useState('card')
-    const [showMore, setShowMore] = useState(false)
     const [email, setEmail] = useState('')
     const [name, setName] = useState('')
     const [busy, setBusy] = useState(false)
-    const [done, setDone] = useState(false)
     const [error, setError] = useState(null)
-    // Set when the pledge was RECORDED but no payment leg could be opened —
-    // Stripe keys absent, or an offline channel. The success card has to say so;
-    // telling someone they are done when no money moved is the one lie this
-    // page cannot afford.
+
+    // 'details' -> 'pay' -> 'done'
+    const [step, setStep] = useState('details')
+    const [pledge, setPledge] = useState(null)
+    const [clientSecret, setClientSecret] = useState(null)
+    // Recorded, but no payment leg could be opened (Stripe keys absent). The
+    // success card must say so — telling somebody they are done when no money
+    // moved is the one lie this page cannot afford.
     const [pendingPayment, setPendingPayment] = useState(false)
 
     const cents = Math.max(0, Math.round(parseFloat(amount || '0') * 100))
-    const isOffline = CHANNELS.find((c) => c.id === method)?.via === 'offline'
 
-    /* Which reward this pledge actually earns. Computed from the AMOUNT rather
-       than from the card that was clicked, so a custom pledge of $500 gets
-       Level 3 and a tier card that someone edited down to $30 does not silently
-       keep Level 3. The amount is the contract. */
+    /* Which reward the pledge actually earns, computed from the AMOUNT rather
+       than from the card that was clicked. The server does this too and its
+       answer is the real one; this is only so the summary agrees with it. */
     const earned = useMemo(
         () => [...TIERS].reverse().find((t) => cents >= t.amountCents) || null,
         [cents],
@@ -750,15 +877,16 @@ function Checkout({ tier, onClose }) {
                 email,
                 backer_name: name,
                 amount_cents: cents,
-                channel: method,
             })
-            // client_secret present ⇒ there is a Stripe payment to confirm.
-            // That confirm step is the one piece still to build: it needs
-            // <Elements> around this form and stripe.confirmPayment() here.
-            // Until then a real key still books the intent and the webhook
-            // settles it, so the row and the money stay in step.
-            setPendingPayment(!data.client_secret)
-            setDone(true)
+            setPledge(data.pledge)
+            if (data.client_secret && stripeConfigured) {
+                setClientSecret(data.client_secret)
+                setStep('pay')
+            } else {
+                // No processor leg — the row stands and we follow up by email.
+                setPendingPayment(true)
+                setStep('done')
+            }
         } catch (err) {
             setError(err?.response?.data?.error || 'Something went wrong. Your card has not been charged.')
         } finally {
@@ -769,7 +897,9 @@ function Checkout({ tier, onClose }) {
     return (
         <div className="wbfund__overlay" role="dialog" aria-modal="true" aria-label="Back this project" onClick={onClose}>
             <div className="wbfund__modal" onClick={(e) => e.stopPropagation()}>
-                {done ? (
+
+                {/* ------------------------------ done ------------------------------ */}
+                {step === 'done' && (
                     <div className="wbfund__done">
                         <div className="wbfund__doneMark" aria-hidden="true">✓</div>
                         <h2 className="wbfund__modalH">You&apos;re in.</h2>
@@ -784,9 +914,36 @@ function Checkout({ tier, onClose }) {
                                 Done
                             </button>
                         </div>
-                        <span className="wbfund__mockTag">Recorded in the backer ledger</span>
                     </div>
-                ) : (
+                )}
+
+                {/* ------------------------------ pay ------------------------------- */}
+                {step === 'pay' && clientSecret && (
+                    <>
+                        <div className="wbfund__modalHead">
+                            <div>
+                                <h2 className="wbfund__modalH">Pay {usd(cents)}</h2>
+                                <p className="wbfund__modalSub">
+                                    {earned ? earned.level : 'Supporter'} · delivered {CAMPAIGN.launchTarget}
+                                </p>
+                            </div>
+                            <button type="button" className="wbfund__x" onClick={onClose} aria-label="Close">×</button>
+                        </div>
+                        <Elements
+                            stripe={stripePromise}
+                            options={{ clientSecret, appearance: STRIPE_APPEARANCE }}
+                        >
+                            <PayStep
+                                pledge={pledge}
+                                onClose={onClose}
+                                onPaid={() => setStep('done')}
+                            />
+                        </Elements>
+                    </>
+                )}
+
+                {/* ---------------------------- details ---------------------------- */}
+                {step === 'details' && (
                     <form onSubmit={submitPledge}>
                         <div className="wbfund__modalHead">
                             <div>
@@ -802,16 +959,9 @@ function Checkout({ tier, onClose }) {
                             <label className="wbfund__label" htmlFor="wbfund-amt">Your pledge</label>
                             <div className="wbfund__amtRow">
                                 <span className="wbfund__amtPrefix">$</span>
-                                <input
-                                    id="wbfund-amt"
-                                    className="wbfund__input"
-                                    type="number"
-                                    min="1"
-                                    step="1"
-                                    value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
-                                    required
-                                />
+                                <input id="wbfund-amt" className="wbfund__input" type="number"
+                                       min="1" step="1" value={amount}
+                                       onChange={(e) => setAmount(e.target.value)} required />
                             </div>
                         </div>
 
@@ -827,31 +977,6 @@ function Checkout({ tier, onClose }) {
                                    onChange={(e) => setEmail(e.target.value)} placeholder="jane@example.com" required />
                         </div>
 
-                        <div className="wbfund__field">
-                            <span className="wbfund__label">Payment method</span>
-                            <div className="wbfund__pays">
-                                {(showMore ? CHANNELS : PRIMARY_CHANNELS).map((m) => (
-                                    <button
-                                        key={m.id}
-                                        type="button"
-                                        className="wbfund__pay"
-                                        aria-pressed={method === m.id}
-                                        onClick={() => setMethod(m.id)}
-                                    >
-                                        <span>
-                                            {m.label}<br />
-                                            <span className="wbfund__paySub">{m.sub}</span>
-                                        </span>
-                                    </button>
-                                ))}
-                            </div>
-                            {!showMore && (
-                                <button type="button" className="wbfund__morePay" onClick={() => setShowMore(true)}>
-                                    More ways to pay ({MORE_CHANNELS.length}) — Venmo, Cash App, bank, pay over time, check
-                                </button>
-                            )}
-                        </div>
-
                         <div className="wbfund__summary">
                             <div className="wbfund__sumRow">
                                 <span>Reward</span>
@@ -860,10 +985,6 @@ function Checkout({ tier, onClose }) {
                             <div className="wbfund__sumRow">
                                 <span>Delivered</span>
                                 <span>{CAMPAIGN.launchTarget}</span>
-                            </div>
-                            <div className="wbfund__sumRow">
-                                <span>Charged</span>
-                                <span>{isOffline ? 'When your transfer clears' : 'Today, on confirm'}</span>
                             </div>
                             <div className="wbfund__sumRow wbfund__sumRow--total">
                                 <span>Total today</span>
@@ -875,18 +996,20 @@ function Checkout({ tier, onClose }) {
 
                         <button className="wbfund__btn wbfund__btn--gold wbfund__btn--block wbfund__btn--lg"
                                 type="submit" disabled={busy || cents < 100}>
-                            {busy ? 'Confirming…' : `Pledge ${usd(cents)}`}
+                            {busy ? 'One moment…' : 'Continue to payment'}
                         </button>
 
+                        {/* Naming the methods HERE is safe — it is a sentence about
+                            what the next screen may offer, not four buttons
+                            claiming to be them. */}
+                        <p className="wbfund__note">
+                            Card, Apple Pay, Google Pay, Link, Cash App, bank transfer and pay-over-time,
+                            wherever your device supports them.
+                        </p>
                         <p className="wbfund__note">
                             Not a political contribution. Not an investment. You are pre-buying a
                             membership on WouldBe.
                         </p>
-                        <div style={{ textAlign: 'center' }}>
-                            <span className="wbfund__mockTag">
-                                Pledge is recorded · card confirmation step still to wire
-                            </span>
-                        </div>
                     </form>
                 )}
             </div>

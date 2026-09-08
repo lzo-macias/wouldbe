@@ -115,6 +115,11 @@ const createPledge = async ({
         intent = await stripe.createPaymentIntent({
             amount_cents: cents,
             currency,
+            // THE WHOLE PAYMENT-METHOD LIST COMES FROM HERE. Stripe returns
+            // whatever is enabled on the account and the browser can actually
+            // use — a wallet only appears on a device that has one. Nothing in
+            // this codebase names the methods any more.
+            automatic_payment_methods: true,
             metadata: {
                 kind: "fund_pledge",
                 fund_pledge_id: pledge.id,
@@ -138,6 +143,31 @@ const createPledge = async ({
     );
 
     return { pledge: updated[0], client_secret: intent.client_secret };
+};
+
+// Stripe's payment_method_types do not all match our `channel` CHECK, and a
+// mismatch would raise a constraint violation INSIDE the webhook handler — which
+// Stripe reads as a failed delivery and retries, forever, on a payment that
+// actually succeeded. So every incoming type is normalised and anything
+// unrecognised becomes 'other'. Recording the channel imprecisely is a reporting
+// nuisance; failing the webhook is a pledge that never settles.
+const CHANNEL_ALIASES = {
+    afterpay_clearpay: "afterpay",
+    us_bank_account: "us_bank_account",
+    cashapp: "cashapp",
+    amazon_pay: "amazon_pay",
+    sepa_debit: "sepa_debit",
+    wechat_pay: "wechat_pay",
+};
+const ALLOWED_CHANNELS = new Set([
+    "card", "apple_pay", "google_pay", "link", "cashapp", "ach", "us_bank_account",
+    "paypal", "venmo", "klarna", "affirm", "afterpay", "amazon_pay", "alipay",
+    "wechat_pay", "sepa_debit", "ideal", "bancontact", "check", "wire", "other",
+]);
+const normaliseChannel = (t) => {
+    if (!t) return null;
+    const v = CHANNEL_ALIASES[t] ?? t;
+    return ALLOWED_CHANNELS.has(v) ? v : "other";
 };
 
 // ---------------------------------------------------------------------------
@@ -165,7 +195,8 @@ const markPledgePaid = async ({
           WHERE stripe_payment_intent_id = $1
             AND status <> 'succeeded'
         RETURNING ${PLEDGE_COLS}`,
-        [stripe_payment_intent_id, stripe_charge_id, channel, fee_amount_cents, net_amount_cents]
+        [stripe_payment_intent_id, stripe_charge_id, normaliseChannel(channel),
+         fee_amount_cents, net_amount_cents]
     );
     return rows[0] || null;
 };
@@ -326,7 +357,7 @@ const pledgeSummary = async () => {
 };
 
 module.exports = {
-    TIERS, tierFor,
+    TIERS, tierFor, normaliseChannel,
     createPledge, markPledgePaid, markPledgeFailed, refundPledge,
     recordOfflinePledge, markReceiptSent, listPledges, pledgeSummary,
 };

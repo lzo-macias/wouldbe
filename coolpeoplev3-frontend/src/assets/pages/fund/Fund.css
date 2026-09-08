@@ -572,6 +572,19 @@
     border-radius: var(--radius-sm);
 }
 
+/* The redirect-return banner. Full-bleed and directly under the bar, because a
+   backer arriving back from PayPal is looking for one thing and it must not be
+   something they have to find. */
+.wbfund__returned {
+    padding: var(--s4) 0;
+    font-size: var(--text-sm); line-height: 1.5;
+    border-bottom: 1px solid transparent;
+}
+.wbfund__returned strong { font-weight: 800; }
+.wbfund__returned--ok   { background: #E4F1EA; color: #16593A; border-bottom-color: #C4E0CF; }
+.wbfund__returned--wait { background: var(--f-gold-050); color: var(--f-gold-900); border-bottom-color: var(--wb-gold-hair); }
+.wbfund__returned--bad  { background: #FBEAE6; color: #8E2F1E; border-bottom-color: #F0CFC9; }
+
 .wbfund__summary {
     background: var(--f-sunk); border-radius: var(--radius-sm);
     padding: var(--s4); margin-block: var(--s4);
