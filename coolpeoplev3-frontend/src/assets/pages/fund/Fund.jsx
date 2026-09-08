@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
-import { stripePromise, stripeConfigured } from '../../lib/stripe'
+import { loadStripe } from '@stripe/stripe-js'
 import api from '../../lib/api'
 import Trophy from '../debate/Debates/Trophy'
 import './Fund.css'
@@ -221,6 +221,28 @@ const TEAM = [
  * from a Venmo balance — which is what the FAQ says, and all it can honestly say.
  */
 
+/* STRIPE IS LOADED AT RUNTIME, not from a build-time env var.
+ *
+ * The old path was `import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY`, inlined by
+ * Vite when the bundle is built. On a hosted frontend that is a trap: setting
+ * the variable changes nothing until someone rebuilds, so the key looks set and
+ * the payment step still refuses to open, with no error that says why.
+ *
+ * The key now comes from GET /api/fund/config, which means the backend is the
+ * one place Stripe is configured and a restart is enough. loadStripe is
+ * memoised here so the script is fetched once per page load however many times
+ * the modal is opened.
+ *
+ * A publishable key is public by design — it ships in the page's JavaScript
+ * either way. Nothing secret moved.
+ */
+let stripeLoader = null
+const getStripe = (key) => {
+    if (!key) return null
+    if (!stripeLoader) stripeLoader = loadStripe(key)
+    return stripeLoader
+}
+
 const usd = (cents, opts = {}) =>
     (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0, ...opts })
 
@@ -275,9 +297,10 @@ export default function Fund() {
     useEffect(() => {
         const secret = new URLSearchParams(window.location.search)
             .get('payment_intent_client_secret')
-        if (!secret || !stripeConfigured) return
+        if (!secret) return
         let cancelled = false
-        stripePromise
+        api.get('/api/fund/config')
+            .then(({ data }) => getStripe(data.publishable_key))
             .then((stripe) => stripe?.retrievePaymentIntent(secret))
             .then((res) => {
                 if (cancelled || !res?.paymentIntent) return
@@ -851,6 +874,7 @@ function Checkout({ tier, onClose }) {
     const [step, setStep] = useState('details')
     const [pledge, setPledge] = useState(null)
     const [clientSecret, setClientSecret] = useState(null)
+    const [stripeInstance, setStripeInstance] = useState(null)
 
     const cents = Math.max(0, Math.round(parseFloat(amount || '0') * 100))
 
@@ -876,6 +900,10 @@ function Checkout({ tier, onClose }) {
             })
             setPledge(data.pledge)
 
+            // The publishable key, fetched now rather than baked into the build.
+            const { data: cfg } = await api.get('/api/fund/config')
+            const stripeObj = getStripe(cfg.publishable_key)
+
             /* THE PAYMENT STEP OPENS, OR THIS FAILS. There is deliberately no
                third outcome any more.
 
@@ -890,9 +918,9 @@ function Checkout({ tier, onClose }) {
                backer stays where they are and can retry the moment it is fixed,
                and the message names the actual cause rather than inventing a
                follow-up nobody has scheduled. */
-            if (!data.client_secret || !stripeConfigured) {
-                const cause = !stripeConfigured
-                    ? 'VITE_STRIPE_PUBLISHABLE_KEY is not set in this build'
+            if (!data.client_secret || !stripeObj) {
+                const cause = !cfg.publishable_key
+                    ? 'STRIPE_PUBLISHABLE_KEY is not set on the server'
                     : 'the server could not open a Stripe payment (check STRIPE_SECRET_KEY)'
                 console.error(`[fund] payment step could not open — ${cause}. Nothing was charged.`)
                 setError(
@@ -902,6 +930,7 @@ function Checkout({ tier, onClose }) {
                 return
             }
 
+            setStripeInstance(stripeObj)
             setClientSecret(data.client_secret)
             setStep('pay')
         } catch (err) {
@@ -947,7 +976,7 @@ function Checkout({ tier, onClose }) {
                             <button type="button" className="wbfund__x" onClick={onClose} aria-label="Close">×</button>
                         </div>
                         <Elements
-                            stripe={stripePromise}
+                            stripe={stripeInstance}
                             options={{ clientSecret, appearance: STRIPE_APPEARANCE }}
                         >
                             <PayStep

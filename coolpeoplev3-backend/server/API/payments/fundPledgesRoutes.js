@@ -55,6 +55,28 @@ router.post("/fund/pledges", async (req, res, next) => {
     }
 });
 
+// GET /fund/config — the Stripe PUBLISHABLE key, at runtime.
+//
+// WHY THIS EXISTS. The key used to reach the browser only through Vite's
+// VITE_STRIPE_PUBLISHABLE_KEY, which is inlined at BUILD time. That coupling is
+// a trap on a hosted frontend: setting the variable does nothing until the
+// bundle is rebuilt, so "I set the key and it still doesn't work" is the
+// expected experience rather than a mistake. Serving it from here means the
+// backend is the single place Stripe is configured, and a restart is enough.
+//
+// PUBLISHABLE KEYS ARE PUBLIC. This one ships inside every page's JavaScript by
+// design — it can create payment intents to confirm, nothing more. The SECRET
+// key never leaves the server and is not referenced here.
+router.get("/fund/config", (_req, res) => {
+    const key = process.env.STRIPE_PUBLISHABLE_KEY || null;
+    return res.json({
+        publishable_key: key,
+        // So an operator can tell live from test at a glance without reading
+        // the key, and so the page can warn when it is about to take play money.
+        mode: key ? (key.startsWith("pk_live_") ? "live" : "test") : null,
+    });
+});
+
 // GET /fund/summary — the numbers behind the public meter.
 // PUBLIC ON PURPOSE, and deliberately NOT the same shape as the admin summary:
 // this returns totals only. No email, no name, no row ever reaches this route.

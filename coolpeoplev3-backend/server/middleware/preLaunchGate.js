@@ -38,6 +38,9 @@ const ALLOW = [
     // --- the raise. The entire point of the gate is that these still work. ---
     ["POST", "/api/fund/pledges"],
     ["GET", "/api/fund/summary"],
+    // The publishable key. Without this the payment step cannot mount for a
+    // logged-out backer, which is every backer.
+    ["GET", "/api/fund/config"],
 
     // --- getting IN. A login page that cannot call login is a locked door with
     //     no handle. ---
