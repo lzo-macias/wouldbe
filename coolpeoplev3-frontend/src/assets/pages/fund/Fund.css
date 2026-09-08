@@ -599,6 +599,14 @@
     background: var(--f-brushed); color: var(--f-on-gold);
     display: grid; place-items: center; font-size: 28px;
 }
+/* The fault face. Same geometry as the success mark so the modal does not jump,
+   opposite meaning so nobody misreads it. */
+.wbfund__doneMark--warn {
+    background: #FBEAE6;
+    color: #8E2F1E;
+    border: 1px solid #F0CFC9;
+}
+
 .wbfund__mockTag {
     display: inline-block; margin-top: var(--s3);
     font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;

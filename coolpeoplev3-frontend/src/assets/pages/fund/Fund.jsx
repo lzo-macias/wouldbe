@@ -851,10 +851,6 @@ function Checkout({ tier, onClose }) {
     const [step, setStep] = useState('details')
     const [pledge, setPledge] = useState(null)
     const [clientSecret, setClientSecret] = useState(null)
-    // Recorded, but no payment leg could be opened (Stripe keys absent). The
-    // success card must say so — telling somebody they are done when no money
-    // moved is the one lie this page cannot afford.
-    const [pendingPayment, setPendingPayment] = useState(false)
 
     const cents = Math.max(0, Math.round(parseFloat(amount || '0') * 100))
 
@@ -879,14 +875,35 @@ function Checkout({ tier, onClose }) {
                 amount_cents: cents,
             })
             setPledge(data.pledge)
-            if (data.client_secret && stripeConfigured) {
-                setClientSecret(data.client_secret)
-                setStep('pay')
-            } else {
-                // No processor leg — the row stands and we follow up by email.
-                setPendingPayment(true)
-                setStep('done')
+
+            /* THE PAYMENT STEP OPENS, OR THIS FAILS. There is deliberately no
+               third outcome any more.
+
+               There used to be a fallback: if Stripe could not be reached the
+               modal showed "You're in" and promised an email. That is the worst
+               possible behaviour on a page whose panel says the card is charged
+               on pledge — it reports success for a payment that never started,
+               and it hides a broken checkout behind a green tick, which is how a
+               raise sits at $0 while every screen looks healthy.
+
+               So a missing client_secret is now an ERROR on the form. The
+               backer stays where they are and can retry the moment it is fixed,
+               and the message names the actual cause rather than inventing a
+               follow-up nobody has scheduled. */
+            if (!data.client_secret || !stripeConfigured) {
+                const cause = !stripeConfigured
+                    ? 'VITE_STRIPE_PUBLISHABLE_KEY is not set in this build'
+                    : 'the server could not open a Stripe payment (check STRIPE_SECRET_KEY)'
+                console.error(`[fund] payment step could not open — ${cause}. Nothing was charged.`)
+                setError(
+                    'We couldn’t open the payment step just now, so nothing has been charged. ' +
+                    'Please try again in a moment — if it keeps happening, email us and we’ll take it directly.'
+                )
+                return
             }
+
+            setClientSecret(data.client_secret)
+            setStep('pay')
         } catch (err) {
             setError(err?.response?.data?.error || 'Something went wrong. Your card has not been charged.')
         } finally {
@@ -901,13 +918,13 @@ function Checkout({ tier, onClose }) {
                 {/* ------------------------------ done ------------------------------ */}
                 {step === 'done' && (
                     <div className="wbfund__done">
+                        {/* Reached ONLY after Stripe confirms. This screen means
+                            money moved — nothing else can get here. */}
                         <div className="wbfund__doneMark" aria-hidden="true">✓</div>
-                        <h2 className="wbfund__modalH">You&apos;re in.</h2>
+                        <h2 className="wbfund__modalH">You’re in.</h2>
                         <p className="wbfund__modalSub">
-                            {usd(cents)} pledged{earned ? ` · ${earned.level}` : ''}.{' '}
-                            {pendingPayment
-                                ? 'We have your pledge on record and will email you to complete the payment.'
-                                : 'Your receipt is on its way, and your membership lands at launch.'}
+                            {usd(cents)} pledged{earned ? ` · ${earned.level}` : ''}. Your receipt is on
+                            its way, and your membership lands at launch.
                         </p>
                         <div style={{ marginTop: 'var(--s5)' }}>
                             <button className="wbfund__btn wbfund__btn--gold wbfund__btn--block" onClick={onClose}>
