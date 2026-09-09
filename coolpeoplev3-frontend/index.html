@@ -4,7 +4,13 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>coolpeoplev3-frontend</title>
+    <title>WouldBe</title>
+    <!-- The SPA-wide default. Every route renders from this one shell, so this
+         is the description a crawler sees unless a page overrides it — /fund
+         does, in an effect, because it is the route people arrive at from
+         outside the app. Without any description at all, Lighthouse fails SEO
+         and Google writes the snippet itself out of whatever text it finds. -->
+    <meta name="description" content="WouldBe is where people under 45 test a run for office — build a campaign, debate the field, and let voters decide before the filing deadline." />
     <!-- Archivo for the chrome, Newsreader for the argument bodies. The split is
          the point: the serif marks "this is the record" and separates testimony
          from UI. Nothing loaded a webfont before this — index.css asked for
@@ -14,10 +20,35 @@
          serialised behind the first. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- LOADED WITHOUT BLOCKING RENDER.
+         A plain <link rel="stylesheet"> to fonts.googleapis.com is render-
+         blocking: nothing paints until that request has crossed the network,
+         been parsed, and pulled in the font files behind it. On a throttled
+         mobile connection Lighthouse measured ~800ms of the page's Largest
+         Contentful Paint sitting in exactly that wait, for a stylesheet whose
+         own `display=swap` already says the text may paint in a fallback face.
+
+         media="print" makes the browser fetch it at low priority and NOT block
+         on it; onload flips it to "all", at which point it applies and the real
+         faces swap in. The <noscript> copy keeps the fonts for the (rare) agent
+         that runs no JavaScript, where blocking is the only option available. -->
     <link
-      rel="stylesheet"
+      rel="preload"
+      as="style"
       href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400..900;1,400..900&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&display=swap"
     />
+    <link
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'; this.onload=null;"
+      href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400..900;1,400..900&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&display=swap"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400..900;1,400..900&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&display=swap"
+      />
+    </noscript>
   </head>
   <body>
     <div id="root"></div>

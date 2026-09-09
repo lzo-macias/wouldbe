@@ -39,10 +39,14 @@
     --f-sunk:     #F6F2E8;
     --f-ink:      #16150F;
     --f-ink-2:    #45412F;
-    /* 4.7:1 on --f-surface and 4.6:1 on --f-ground. The obvious lighter grey
-       for this role fails AA on exactly the text it carries: every caption,
-       every timestamp, every legal line. */
-    --f-ink-3:    #78715C;
+    /* 5.6:1 on --f-surface, 5.4:1 on --f-ground, 5.0:1 on --f-sunk. The obvious
+       lighter grey for this role fails AA on exactly the text it carries: every
+       caption, every timestamp, every legal line.
+       #78715C was the previous value and cleared AA on the first two grounds
+       but not the THIRD: the stat tiles under the meter sit on --f-sunk, where
+       it measured 4.35:1 and Lighthouse failed it. All three grounds have to
+       clear 4.5:1, because this one token paints small text on all of them. */
+    --f-ink-3:    #6E6752;
     --f-rule:     #E7E0CE;
     --f-rule-2:   #F0EBDD;
 
@@ -187,10 +191,21 @@
     height: 8px; border-radius: 99px; background: var(--f-sunk);
     overflow: hidden; margin-bottom: var(--s4);
 }
+/* The fill is always 100% WIDE and scaled horizontally, rather than being
+   animated from one width to another.
+   `width` is a layout property: animating it makes the browser re-layout and
+   repaint the bar on every frame of the 600ms transition, on the main thread,
+   which is what Lighthouse's "avoid non-composited animations" was reporting.
+   `transform` is handed to the compositor and costs the main thread nothing.
+   The visual result is identical here — the parent already clips to the pill
+   shape via overflow:hidden, so the child's own radius never showed. */
 .wbfund__meterFill {
-    height: 100%; border-radius: 99px;
+    height: 100%; width: 100%;
     background: var(--f-brushed);
-    transition: width .6s var(--wb-ease);
+    transform: scaleX(var(--fill, 0));
+    transform-origin: left center;
+    transition: transform .6s var(--wb-ease);
+    will-change: transform;
 }
 
 .wbfund__stats {
@@ -263,7 +278,15 @@
     font-size: 40px; font-weight: 800; letter-spacing: -.03em; line-height: 1;
     color: var(--f-gold-700); margin-bottom: var(--s3);
 }
-.wbfund__cardH { font-size: var(--text-md); font-weight: 700; margin: 0 0 6px; }
+/* `color` is set EXPLICITLY, not inherited.
+   src/assets/component/grid/HomeGrid.css has the rule `.statpreviews p, h3 {
+   color: #777777 }` — the second half of that selector list is a bare `h3` with
+   no scope, so it paints every h3 in the app, this page included, and #777 on
+   white is 4.47:1 (AA wants 4.5). That rule almost certainly means
+   `.statpreviews h3`, but it belongs to the home grid and fixing it there would
+   repaint headings on screens this page has nothing to do with. Stating the
+   colour here is the scoped fix: correct on /fund whatever the global does. */
+.wbfund__cardH { font-size: var(--text-md); font-weight: 700; margin: 0 0 6px; color: var(--f-ink); }
 .wbfund__cardP { font-size: var(--text-sm); line-height: 1.55; color: var(--f-ink-3); margin: 0; }
 
 /* named-wins strip */
@@ -304,6 +327,9 @@
     overflow: hidden; border: 1px solid var(--wb-gold-hair);
     margin-bottom: var(--s5);
 }
+/* No `color` here on purpose — each segment sets its own inline, because the
+   right label ink depends on which step of the gold ramp it is painted on. See
+   ALLOCATION in Fund.jsx. --f-on-gold stays the fallback for a row that forgets. */
 .wbfund__allocSeg {
     display: grid; place-items: center;
     font-size: 12px; font-weight: 800; color: var(--f-on-gold);
@@ -632,4 +658,19 @@
     .wbfund__steps { grid-template-columns: minmax(0, 1fr); }
     .wbfund__pays { grid-template-columns: minmax(0, 1fr); }
     .wbfund__section { padding-block: var(--s8); }
+}
+
+/* Present to assistive tech, absent from the page. Used for the one section
+   heading this layout has no visual room for — see the note in Fund.jsx. The
+   clip-path/1px-box form is the one that survives: `display:none` and
+   `visibility:hidden` remove the element from the accessibility tree too, which
+   defeats the entire purpose. */
+.wbfund__srOnly {
+    position: absolute;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
 }

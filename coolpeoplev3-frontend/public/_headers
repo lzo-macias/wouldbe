@@ -1,0 +1,61 @@
+# Netlify response headers.
+#
+# Sits next to _redirects and is read the same way: a path pattern, then the
+# headers to add to responses matching it. Netlify only, and only in the
+# deployed build — `vite dev` and `vite preview` ignore this file, so a local
+# Lighthouse run will still report these as missing.
+
+/*
+  # Clickjacking. The app is never meant to be framed by anyone, and Lighthouse
+  # flags a page with no frame control policy at all. X-Frame-Options is the
+  # legacy header; frame-ancestors is the modern one and both are cheap.
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  # Stop the browser from second-guessing a declared Content-Type — the vector
+  # is a user-uploaded file served as text and sniffed into script.
+  X-Content-Type-Options: nosniff
+  # Cross-origin isolation. Also stops window.opener reaching back into the app
+  # from anything we open in a new tab.
+  Cross-Origin-Opener-Policy: same-origin
+  # Two years, subdomains included, and preload-eligible. Only meaningful over
+  # HTTPS, which Netlify terminates for us.
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  # Send the origin to third parties, never the full path. /fund URLs carry
+  # payment-return query strings, and the LinkedIn links in the team section
+  # would otherwise hand the campaign URL of every backer who clicks through.
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# Vite fingerprints everything in /assets with a content hash, so a given URL's
+# bytes can never change: a new build is a new filename. That is precisely the
+# case `immutable` exists for, and it is what "use efficient cache lifetimes"
+# wants. Do NOT extend this to /index.html — that filename is stable and a
+# cached copy would pin visitors to an old build's asset URLs forever.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The shell. Revalidate every time so a deploy is picked up on the next load.
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# A FULL Content-Security-Policy is deliberately NOT set here.
+#
+# Lighthouse lists "Ensure CSP is effective against XSS" and "Mitigate DOM-based
+# XSS with Trusted Types" under Best Practices, but both are scored at weight 0
+# — they are advisory and adding them will not move the number. What they would
+# do is break the site if a directive is wrong, and the one value needed to get
+# it right, the production API origin, is not knowable from this repo
+# (VITE_API_BASE_URL is http://localhost:3000 here).
+#
+# When that origin is known, the policy below is the shape to enable. Verify it
+# with Content-Security-Policy-Report-Only FIRST and watch the console on /fund
+# with the payment modal open, on a debate page with the Twitch embed, and on
+# any screen that loads an R2 image.
+#
+#  Content-Security-Policy: default-src 'self';
+#    script-src 'self' https://js.stripe.com https://m.stripe.network;
+#    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+#    font-src 'self' https://fonts.gstatic.com;
+#    img-src 'self' data: blob: https://*.r2.dev https://*.stripe.com;
+#    connect-src 'self' https://<YOUR-API-ORIGIN> https://api.stripe.com https://m.stripe.com https://m.stripe.network;
+#    frame-src https://js.stripe.com https://hooks.stripe.com https://player.twitch.tv;
+#    object-src 'none'; base-uri 'none'; frame-ancestors 'none'

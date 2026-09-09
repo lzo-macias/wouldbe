@@ -1,0 +1,24 @@
+# robots.txt — WouldBe
+#
+# WHY THIS FILE HAS TO EXIST AS A FILE.
+# _redirects sends /* to /index.html with a 200, so before this existed a
+# request for /robots.txt was answered with the app's HTML. A crawler parsed
+# that as robots syntax and got ~30 "syntax not understood" errors — which is
+# what Lighthouse's "robots.txt is not valid" was reporting. Netlify serves a
+# real file in publish/ ahead of the rewrite, so this shadows the catch-all.
+# The same is true of any other well-known path: give it a file or it gets HTML.
+
+User-agent: *
+Allow: /
+
+# Signed-in surfaces. Nothing here is a public document, none of it renders
+# without a token, and an indexed URL that always redirects to /login is a dead
+# result in someone's search page.
+Disallow: /admin
+Disallow: /login
+Disallow: /signup
+Disallow: /myWouldBe
+
+# Stripe returns backers to /fund carrying ?payment_intent_client_secret=… .
+# That is a per-payment value and has no business in a search index.
+Disallow: /*?*payment_intent_client_secret=

@@ -1,7 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
-import { loadStripe } from '@stripe/stripe-js'
+/* '/pure', NOT '@stripe/stripe-js'.
+ *
+ * The default entrypoint injects https://js.stripe.com/…/stripe.js the moment
+ * the MODULE is imported — before anybody calls loadStripe, and regardless of
+ * whether the payment modal is ever opened. On this page that meant every
+ * visitor who came to read the pitch downloaded 258 KB of Stripe (73% of it
+ * unused), and m.stripe.com set a third-party cookie on them. Lighthouse
+ * charged us for all three: unused JavaScript, third-party cookies, and a
+ * Chrome Issues-panel cookie warning.
+ *
+ * The '/pure' build exports the same loadStripe but defers the script tag until
+ * the function is actually CALLED — which here is only on modal open or on
+ * return from an off-site redirect. Identical API, same memoisation below;
+ * nothing about the payment flow changes. */
+import { loadStripe } from '@stripe/stripe-js/pure'
 import api from '../../lib/api'
 import Trophy from '../debate/Debates/Trophy'
 import './Fund.css'
@@ -72,9 +86,15 @@ import './Fund.css'
    So the amounts are exact and the percentages are derived. Edit a line here,
    or add one, and the goal, the bar and the legend all follow. They cannot
    disagree with each other, because there is only one number. */
+/* `ink` is the LABEL colour for the segment, and it is per-row rather than one
+   value on the class, because the ramp spans light and dark: --wb-gold-500 is a
+   mid gold that wants near-black on it (4.8:1), --wb-gold-800 is a dark brown
+   where that same near-black measured 1.82:1 — unreadable, and an accessibility
+   failure Lighthouse caught. A segment carries its own contrast pairing so
+   adding a row cannot silently reintroduce the problem. */
 const ALLOCATION = [
-    { name: 'Campus launch & live events', cents: 3000000, color: 'var(--wb-gold-500)' },
-    { name: 'Initial attorney briefing',   cents:  500000, color: 'var(--wb-gold-800)' },
+    { name: 'Campus launch & live events', cents: 3000000, color: 'var(--wb-gold-500)', ink: 'var(--wb-on-gold)'   },
+    { name: 'Initial attorney briefing',   cents:  500000, color: 'var(--wb-gold-800)', ink: 'var(--wb-gold-050)' },
 ]
 
 const GOAL_CENTS = ALLOCATION.reduce((sum, a) => sum + a.cents, 0)
@@ -292,6 +312,39 @@ const Tick = () => (
 export default function Fund() {
     const [openTier, setOpenTier] = useState(null)   // tier object, or 'custom'
 
+    /* TITLE AND DESCRIPTION, set per-route rather than in index.html.
+     *
+     * This is a single-page app: one index.html serves every route, so its
+     * <title> and <meta name="description"> are whatever the shell says for the
+     * whole site. index.html now carries a sensible default, but /fund is the
+     * one route people reach from OUTSIDE the app — a bio link, a flyer, a
+     * shared message — so it is the one route whose search snippet and browser
+     * tab actually matter, and it deserves its own.
+     *
+     * Done with a plain effect rather than a helmet library: two DOM properties
+     * on one page is not worth a dependency, and Lighthouse (like Google) reads
+     * the rendered DOM, so setting them after mount counts.
+     *
+     * The cleanup restores the shell's values. Without it, navigating from
+     * /fund to the app via the footer's "Platform" link would leave every
+     * subsequent screen still titled and described as the crowdfunding page. */
+    useEffect(() => {
+        const el = document.querySelector('meta[name="description"]')
+        const prevTitle = document.title
+        const prevDesc = el?.getAttribute('content')
+
+        document.title = 'Back WouldBe — crowdfunding the platform for candidates under 45'
+        el?.setAttribute('content',
+            'WouldBe is the first crowdfunding and debate platform built for political ' +
+            'candidates under 45. Back the build and get a premium membership at launch — ' +
+            'a pre-order of software, not a political contribution.')
+
+        return () => {
+            document.title = prevTitle
+            if (prevDesc != null) el?.setAttribute('content', prevDesc)
+        }
+    }, [])
+
     /* The meter reads from GET /api/fund/summary — succeeded pledges only, no
        names or emails in the payload. CAMPAIGN's literals are the FALLBACK, not
        the source: if the backend is down the page still renders a coherent
@@ -370,7 +423,13 @@ export default function Fund() {
             <header className="wbfund__bar">
                 <div className="wbfund__wrap wbfund__barIn">
                     <Link to="/" className="wbfund__brand">
-                        <img src="/logos/WouldBeLogo.svg" alt="WouldBe" className="wbfund__logo" />
+                        {/* width/height are the SVG's intrinsic 208x34, not the rendered size.
+                             CSS still drives the display (height:38px, width:auto); these
+                             attributes exist so the browser knows the aspect ratio before
+                             the file arrives and reserves the right box instead of
+                             reflowing the header around it once it does. */}
+                        <img src="/logos/WouldBeLogo.svg" alt="WouldBe" className="wbfund__logo"
+                             width="208" height="34" />
                         <span className="wbfund__brandText">A fundraising platform for candidates under 45</span>
                     </Link>
                     <span className="wbfund__barSpacer" />
@@ -442,7 +501,7 @@ export default function Fund() {
                         </div>
 
                         <div className="wbfund__meter" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Funding progress">
-                            <div className="wbfund__meterFill" style={{ width: `${pct}%` }} />
+                            <div className="wbfund__meterFill" style={{ '--fill': pct / 100 }} />
                         </div>
 
                         <div className="wbfund__stats">
@@ -492,6 +551,17 @@ export default function Fund() {
             <section className="wbfund__section">
                 <div className="wbfund__wrap">
                     <div className="wbfund__kicker">Why now</div>
+                    {/* Every other section on this page opens with a visible h2; this
+                        one opens with the pull-quote, which is a <blockquote> and not a
+                        heading. That left the three card <h3>s below hanging directly
+                        off the hero's <h1> — a jump from level 1 to level 3, which is
+                        what Lighthouse's "heading elements are not in a sequentially-
+                        descending order" was pointing at.
+
+                        The fix is the outline, not the design: a real h2 that names the
+                        section for anyone navigating by heading, hidden from sight so
+                        the quote keeps the stage it was given. */}
+                    <h2 className="wbfund__srOnly">Why now</h2>
                     <blockquote className="wbfund__quote">
                         “The representatives in office should be young enough to live to see the
                         consequences of their actions.”
@@ -592,7 +662,7 @@ export default function Fund() {
                                 <div
                                     key={a.name}
                                     className="wbfund__allocSeg"
-                                    style={{ width: `${share}%`, background: a.color }}
+                                    style={{ width: `${share}%`, background: a.color, color: a.ink }}
                                     title={`${a.name} — ${usd(a.cents)}`}
                                 >
                                     {/* Below ~12% the label does not fit the segment, and a
@@ -722,7 +792,8 @@ export default function Fund() {
                                     below, so alt text here would make a screen reader say it
                                     twice. */}
                                 {m.photo
-                                    ? <img className="wbfund__avatar wbfund__avatar--img" src={m.photo} alt="" />
+                                    ? <img className="wbfund__avatar wbfund__avatar--img" src={m.photo} alt=""
+                                           width="64" height="64" loading="lazy" decoding="async" />
                                     : <div className="wbfund__avatar" aria-hidden="true">{m.initials}</div>}
                                 <div className="wbfund__personName">{m.name}</div>
                                 <div className="wbfund__personRole">{m.role}</div>
@@ -737,7 +808,15 @@ export default function Fund() {
                                 {/* rel="noreferrer" as well as noopener: this page is the raise,
                                     and the Referer header would hand LinkedIn the campaign URL
                                     of every backer who clicks through. */}
+                                {/* aria-label carries the NAME. Three cards each rendering a
+                                    link whose only text is "LinkedIn" gives a screen-reader
+                                    user three identical links to three different people —
+                                    Lighthouse's "identical links have the same purpose" —
+                                    and, read out of context in a links list, they are
+                                    genuinely indistinguishable. The visible text stays
+                                    "LinkedIn" because it sits under the name it belongs to. */}
                                 <a className="wbfund__li" href={m.linkedin}
+                                   aria-label={`${m.name} on LinkedIn`}
                                    target="_blank" rel="noopener noreferrer">
                                     <LinkedIn />
                                     LinkedIn

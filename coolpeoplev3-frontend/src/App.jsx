@@ -10,11 +10,23 @@ import './App.css'
 // to a visitor who only opened the home page. Lighthouse counted that as unused
 // JavaScript, and it was right.
 //
-// lazy() makes each route its own chunk, fetched when it is first visited. Home
-// stays STATIC on purpose: it is the landing route, so deferring it would just
-// add a network round trip before the first paint — the opposite of the goal.
+// lazy() makes each route its own chunk, fetched when it is first visited.
+//
+// HOME IS LAZY TOO, which it did not used to be. The argument for keeping it
+// static was that "/" is the landing route and deferring it costs a round trip.
+// That turned out to be the wrong trade for two reasons:
+//   · "/" is behind RequireAuth. It is an app screen for signed-in users with a
+//     warm cache, not a cold-visit landing page.
+//   · /fund IS the cold-visit landing page — it is what goes in a bio link —
+//     and a static Home put Home's entire import tree (and its CSS) into the
+//     entry chunk that /fund has to download and parse before it can render
+//     anything. Lighthouse measured 44% of that 292 KB entry as unused on
+//     /fund, and the parse sat directly in front of the Largest Contentful
+//     Paint.
+// Both routes now pay one chunk fetch. The one that pays it on a cold, throttled
+// connection is the one that got faster.
 // ============================================================================
-import Home from './assets/pages/home/Home'
+const Home = lazy(() => import('./assets/pages/home/Home'))
 
 // The V2 landing surface, lazy because "/" is still served by Home — nobody
 // pays for this chunk until they ask for /homev2.
